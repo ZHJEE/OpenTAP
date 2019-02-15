@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<Package Name="QualcommFemto" Version="1.5.48+a9e2ce5" xmlns="http://keysight.com/schemas/TAP/Package">
+  <Files>
+    <File Path="TapPlugin.TmciKeysight.dll" Obfuscate="true" UseVersion="true">
+      <Plugins>
+        <Plugin>TapPlugin.TmciKeysight.QCFemtoStep</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.CalRxPath</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.SetTopology</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.CalTxPath</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.FtBase</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.QualcommDut</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.RebootDut</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.SendCommand</Plugin>
+        <Plugin>TapPlugin.TmciKeysight.SendQuery</Plugin>
+      </Plugins>
+    </File>
+    <File Path="TMCI.Keysight.dll" Obfuscate="true" UseVersion="false">
+      <Plugins />
+    </File>
+  </Files>
+</Package>
