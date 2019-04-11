@@ -47,7 +47,7 @@ Build-x86:
   tags: [ docker, windows ]
   script:
          - nuget restore
-         - dotnet restore
+         - dotnet restore -r win7-x86
          - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet build tap\tap.csproj -c Release -r win-x86
          - rmdir /s /q "bin\Release\Packages"
@@ -62,7 +62,7 @@ Build-x64:
   tags: [ docker, windows ]
   script: 
          - nuget restore
-         - dotnet restore
+         - dotnet restore -r win7-x64
          - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x64 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet build tap\tap.csproj -c Release -r win-x64
          - rmdir /s /q "bin\Release\Packages"
@@ -72,25 +72,25 @@ Build-x64:
     paths:
        - bin/Release64/
 
-Doc-API:
-  stage: build
-  tags:
-     - aalborg
-     - doxygen
-     - chmcmd
-  script: 
-         - cd "doc/API Documentation"
-         - doxygen Doxyfile
-         - pushd "apiref/html"
-         - chmcmd index.hhp
-         - popd
-         - xcopy /F /y apiref\html\OpenTapApiReference.chm ..\..\Help\
-         - xcopy /F /y apiref\html ..\..\API\
-  artifacts:
-    expire_in: 1 week
-    paths:
-       - Help\OpenTapApiReference.chm
-       - API
+# Doc-API:
+#   stage: build
+#   tags:
+#      - aalborg
+#      - doxygen
+#      - chmcmd
+#   script: 
+#          - cd "doc/API Documentation"
+#          - doxygen Doxyfile
+#          - pushd "apiref/html"
+#          - chmcmd index.hhp
+#          - popd
+#          - xcopy /F /y apiref\html\OpenTapApiReference.chm ..\..\Help\
+#          - xcopy /F /y apiref\html ..\..\API\
+#   artifacts:
+#     expire_in: 1 week
+#     paths:
+#        - Help\OpenTapApiReference.chm
+#        - API
 
 WarningTest:
   stage: build
