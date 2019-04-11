@@ -1,0 +1,380 @@
+variables:
+  DOTFUSCATOR_VERSION: "1.0.0+79e06524"
+  OBFUSCAR_VERSION: "1.0.2+a8c731f7"
+  SIGN_VERSION: "1.0.0+06a84572"
+  BUNDLE_INSTALLER_VERSION: "2.1.0-beta.8"
+  PACKAGE_REPO_URL: "http://packages.opentap.keysight.com"
+
+stages:
+  - build
+  - package
+  - test
+  - deploy
+
+#############################################
+# Stage: build                              #
+#############################################
+
+# Build this in the "build" stage because it cannot be parallelized with the "Documentation" build
+# Build-DevGuide:
+#   stage: build
+#   image: gitlab.it.keysight.com:4567/tap/documentationgeneration/docgen:beta
+#   tags: 
+#     - docker,ubuntu18.4
+#   script: |
+#            tap generate-pdf "doc/Developer Guide/Readme.md" --appendix "Appendix C: Migration Guide"="doc/Migration/Migrating from tap 8 to 9/Readme.md" --toc --skip-first-file --out "sdk/Examples/OpenTAP Developer Guide.pdf" --frontpage "doc/Developer Guide/Frontpage.html" --frontpage-file "doc/Developer Guide/Frontpage.png" --notices "doc/Developer Guide/Introduction/Notices.md"
+#   artifacts:
+#     expire_in: 1 week
+#     paths:
+#        - sdk/Examples/OpenTAP Developer Guide.pdf
+
+Build-Linux64:
+  stage: build
+  image: microsoft/dotnet:2.1-sdk-stretch
+  tags: [ docker, gce ]
+  script: 
+         - dotnet publish -c Linux -r linux-x64 OpenTAP.sln
+         - dotnet publish -c Linux -r linux-x64 tap/tap.csproj
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - bin/Release/linux-x64/publish
+
+# Builds the Everything.sln solution
+Build-x86:
+  stage: build
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  script:
+         - nuget restore
+         - dotnet restore
+         - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /m
+         - dotnet build tap\tap.csproj -c Release -r win-x86
+         - rmdir /s /q "bin\Release\Packages"
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - bin/Release/
+
+Build-x64:
+  stage: build
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  script: 
+         - nuget restore
+         - dotnet restore
+         - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x64 /target:Rebuild /p:DefineConstants="TRACE" /m
+         - dotnet build tap\tap.csproj -c Release -r win-x64
+         - rmdir /s /q "bin\Release\Packages"
+         - move /y bin\Release bin\Release64
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - bin/Release64/
+
+Doc-API:
+  stage: build
+  tags:
+     - aalborg
+     - doxygen
+     - chmcmd
+  script: 
+         - cd "doc/API Documentation"
+         - doxygen Doxyfile
+         - pushd "apiref/html"
+         - chmcmd index.hhp
+         - popd
+         - xcopy /F /y apiref\html\OpenTapApiReference.chm ..\..\Help\
+         - xcopy /F /y apiref\html ..\..\API\
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - Help\OpenTapApiReference.chm
+       - API
+
+WarningTest:
+  stage: build
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  script: 
+         - nuget restore
+         - dotnet restore
+         - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /p:TreatWarningsAsErrors="true" /m
+
+#############################################
+# Stage: package                            #
+#############################################
+
+# Package-Windows:
+#   stage: package
+#   tags:
+#      - vs2017
+#      - can-sign
+#   dependencies:
+#      - Build-x64
+#   script: |
+#           nuget restore OpenTAP.sln
+
+#           cd bin/Release64
+#           rmdir /s /q "Packages"
+#           .\tap.exe package install -f -r %PACKAGE_REPO_URL% "Sign" --version "%SIGN_VERSION%"
+#           .\tap.exe package create -v ../../opentap/opentapCE.package.xml -o "Packages/OpenTAP/OpenTAP-CE.TapPackage" --install
+#   artifacts:
+#     when: on_success
+#     expire_in: 1 day
+#     paths:
+#        - "bin/Release64/Packages/"
+#        - "bin/Release64/Dependencies"
+
+# Package-Linux:
+#   stage: package
+#   tags:
+#      - vs2017
+#      - can-sign
+#      - dotnetcore2
+#      - obfuscar
+#   dependencies:
+#      - Build-x86
+#      - Build-Linux64
+#   script: |
+#           mv bin\Release\linux-x64 bin\linux-x64
+#           pushd bin\linux-x64\publish
+          
+#           setlocal EnableDelayedExpansion
+#           rmdir /s /q "../../Release/Packages"
+#           echo "%LICENSING_VERSION%"
+#           "../../Release/tap" package install -f -r %PACKAGE_REPO_URL% "Sign" --version "%SIGN_VERSION%"
+          
+#           "../../Release/tap" package download --os Linux --architecture x64 -f -r %PACKAGE_REPO_URL% -t . Demonstration
+#           move "Demonstration*.TapPackage" "Demonstration.TapPackage"
+
+#           "../../Release/tap" package create -v ../../opentap_linux64.package.xml -o "Packages/TAPLinux.TapPackage" --install
+          
+#           mv "Packages/TAPLinux.TapPackage" "."
+#           tr -d '\r' < "../../LinuxInstructions/INSTALL.sh" > INSTALL.sh
+#           tr -d '\r' < "../../LinuxInstructions/README" > README
+#           tar -cf "../../TAP2018.tar" TAPLinux.TapPackage INSTALL.sh README
+#           popd
+          
+#           mv "bin/linux-x64/publish/TAPLinux.TapPackage" "."
+#   artifacts:
+#     when: on_success
+#     expire_in: 1 week
+#     paths:
+#        - "TAPLinux.TapPackage"
+#        - "TAP2018.tar"
+#        - bin/linux-x64/publish
+
+
+# #############################################
+# # Stage: test                               #
+# #############################################
+
+# # Gets bin directory from the builddrop location and runs unit tests in Tap.Engine.dll
+# TestEngine:
+#   stage: test
+#   tags:
+#      - vs2017
+#      - has-license
+#   dependencies:
+#      - Build-x86
+#      - Package-Base32
+#   script: |
+#           nuget restore OpenTAP.sln
+#           "packages/NUnit.ConsoleRunner.3.9.0/tools/nunit3-console.exe" bin/Release/OpenTap.UnitTests.dll --labels=All
+#   artifacts:
+#     when: always
+#     expire_in: 1 week
+#     paths:
+#        - "TestResult.xml"
+#        - "bin/Release/*.TapLog"
+
+# # Can't run on docker, as a unit test is using dotfuscator
+# TestPackage:
+#   stage: test
+#   tags:
+#      - has-license
+#      - can-sign
+#      - obfuscar
+#      - vs2017
+#   dependencies:
+#      - Build-x86
+#      - Package-Base32
+#   script: |
+#           rmdir /s /q "bin/Release/Packages"
+#           cp -r --verbose "opentap/Package.UnitTests/Packages" bin/Release
+#           nuget restore OpenTAP.sln
+#           "packages/NUnit.ConsoleRunner.3.9.0/tools/nunit3-console.exe" bin/Release/OpenTap.Package.UnitTests.dll --labels=All
+#   artifacts:
+#     when: always
+#     expire_in: 1 week
+#     paths:
+#        - "TestResult.xml"
+#        - "bin/Release/*.TapLog"
+
+# TestUbuntu:
+#   image: buildpack-deps:bionic
+#   tags: [docker, ubuntu18.4]
+#   stage: test
+#   dependencies:
+#      - Package-BaseUbuntu
+#   script: |
+#           cp -r opentap/Engine.UnitTests/TestTestPlans bin/linux-x64/publish
+#           cd bin/linux-x64/publish
+#           chmod +x tap
+#           echo "./tap run -v TestTestPlans/testMultiReferencePlan.TapPlan
+#  if [ \$? -eq 20 ]
+#  then echo \"OK\"
+#  else false
+#  fi" >./run_ubuntu_test.sh
+#           chmod +x ./run_ubuntu_test.sh
+#           bash run_ubuntu_test.sh
+
+# TestUbuntuPackaged:
+#   image: buildpack-deps:bionic
+#   tags: [docker, ubuntu18.4]
+#   stage: test
+#   dependencies:
+#      - Package-BaseUbuntu
+#   script:
+#      - DEST_DIR=testInstallDir
+#      - mkdir $DEST_DIR
+#      - unzip TAPLinux.TapPackage -d $DEST_DIR
+#      - chmod -R +w $DEST_DIR
+#      - chmod +x $DEST_DIR/tap
+#      - cp -r opentap/Engine.UnitTests/TestTestPlans $DEST_DIR
+#      - cp bin/linux-x64/publish/OpenTap.UnitTests.dll $DEST_DIR
+#      - cd $DEST_DIR
+#      - echo "./tap run -v TestTestPlans/testMultiReferencePlan.TapPlan
+#  if [ \$? -eq 20 ]
+#  then echo \"OK\"
+#  else false
+#  fi" >./run_ubuntu_test.sh
+#      - bash run_ubuntu_test.sh
+
+# OverrideConfig:
+#   stage: test
+#   dependencies: []
+#   script: |
+#           if not exist "bin/Release" mkdir "bin/Release"
+#           echo Compression=none > "bin/Release/compression.iss"
+#   except:
+#     - /^integration$/
+#     - /^release[0-9]+x$/
+#     - /^ship[0-9]+x$/
+#     - /^rc[0-9]+x$/
+#   artifacts:
+#     when: on_success
+#     expire_in: 7 day
+#     paths:
+#        - "bin/Release/compression.iss"
+
+# #############################################
+# # Stage: deploy                             #
+# #############################################
+
+# Installer-OpenTAP:
+#   stage: deploy
+#   tags:
+#      - can-sign
+#      - inno2
+#   dependencies:
+#      - Build-x64
+#      - Package-OpenTAP
+#      - OverrideConfig
+#   script: |
+#           pushd bin\Release64
+
+#           tap sdk gitversion > version.txt
+#           set /p VersionNumber=<version.txt
+          
+#           tap package install -f -v -r %PACKAGE_REPO_URL% --version "%BUNDLE_INSTALLER_VERSION%" "Bundle Installer"
+          
+#           del "Packages\Bundle Installer\Assets\LICENSES.txt"
+
+#           tap sdk create-bundle --no-gui --tap64 "Packages/OpenTAP/OpenTAP-CE.TapPackage" -x ..\opentapCE.installer.xml setup.exe
+
+#           "C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe" sign /a /n "Keysight Technologies, Inc." /t http://timestamp.verisign.com/scripts/timstamp.dll "setup.exe"
+
+#           move setup.exe ..\..\OpenTAP.%VersionNumber%.exe
+#           popd
+
+#           plink -pw %REPO_SSH_PASS% -hostkey %REPO_SSH_KEY% %REPO_SSH_URL% mkdir -p %REPO_SSH_PATH%/%VersionNumber%/OpenTAP
+#           pscp -pw %REPO_SSH_PASS% -hostkey %REPO_SSH_KEY% OpenTAP*.exe %REPO_SSH_URL%:%REPO_SSH_PATH%/%VersionNumber%/OpenTAP
+          
+#   artifacts:
+#     expire_in: 1 week
+#     paths:
+#        - "*.exe"
+
+# TAPBaseDockerImageRelease:
+#   image: gitlab.it.keysight.com:4567/tap/linuxbuildrunners/dockerbuild:latest
+#   stage: deploy
+#   only:
+#     refs:
+#       - /^[vV][0-9]+\.[0-9]+\.[0-9]+$/
+#   tags:
+#     - docker,ubuntu18.4
+#   dependencies:
+#      - Package-BaseUbuntu
+#   script: |
+#           version=$(cat .gitversion | sed -nr 's/version *= *([0-9]+\.[0-9]+)\.[0-9]+/\1/p')
+#           docker login -u gitlab-ci-token -p $CI_JOB_TOKEN gitlab.it.keysight.com:4567
+#           cp TAPLinux.TapPackage opentap
+#           cd opentap
+#           docker build -t gitlab.it.keysight.com:4567/tap/tap:latest .
+#           docker push gitlab.it.keysight.com:4567/tap/tap:latest
+#           docker tag gitlab.it.keysight.com:4567/tap/tap:latest gitlab.it.keysight.com:4567/tap/tap:$version
+#           docker push gitlab.it.keysight.com:4567/tap/tap:$version
+
+# TAPBaseDockerImageRC:
+#   image: gitlab.it.keysight.com:4567/tap/linuxbuildrunners/dockerbuild:latest
+#   stage: deploy
+#   only:
+#     - /^release[0-9]+x$/
+#   tags:
+#     - docker,ubuntu18.4
+#   dependencies:
+#      - Package-BaseUbuntu
+#   script: |
+#           docker login -u gitlab-ci-token -p $CI_JOB_TOKEN gitlab.it.keysight.com:4567
+#           cp TAPLinux.TapPackage opentap
+#           cd opentap
+#           docker build -t gitlab.it.keysight.com:4567/tap/tap:rc .
+#           docker push gitlab.it.keysight.com:4567/tap/tap:rc
+
+
+# TAPBaseDockerImageBeta:
+#   image: gitlab.it.keysight.com:4567/tap/linuxbuildrunners/dockerbuild:latest
+#   stage: deploy
+#   only:
+#     - /^integration$/
+#   tags:
+#     - docker,ubuntu18.4
+#   dependencies:
+#      - Package-BaseUbuntu
+#   script: |
+#           docker login -u gitlab-ci-token -p $CI_JOB_TOKEN gitlab.it.keysight.com:4567
+#           cp TAPLinux.TapPackage opentap
+#           cd opentap
+#           docker build -t gitlab.it.keysight.com:4567/tap/tap:beta .
+#           docker push gitlab.it.keysight.com:4567/tap/tap:beta
+
+# TAPBaseDockerImageAlpha:
+#   image: gitlab.it.keysight.com:4567/tap/linuxbuildrunners/dockerbuild:latest
+#   stage: deploy
+#   when: manual
+#   except:
+#     - /^release[0-9]+x$/
+#     - /^rc[0-9]+x$/
+#     - /^integration$/
+#   tags:
+#     - docker,ubuntu18.4
+#   dependencies:
+#      - Package-BaseUbuntu
+#   script: |
+#           docker login -u gitlab-ci-token -p $CI_JOB_TOKEN gitlab.it.keysight.com:4567
+#           cp TAPLinux.TapPackage opentap
+#           cd opentap
+#           docker build -t gitlab.it.keysight.com:4567/tap/tap:alpha .
+#           docker push gitlab.it.keysight.com:4567/tap/tap:alpha
