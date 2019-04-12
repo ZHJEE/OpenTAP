@@ -16,17 +16,16 @@ stages:
 #############################################
 
 # Build this in the "build" stage because it cannot be parallelized with the "Documentation" build
-# Build-DevGuide:
-#   stage: build
-#   image: gitlab.it.keysight.com:4567/tap/documentationgeneration/docgen:beta
-#   tags: 
-#     - docker,ubuntu18.4
-#   script: |
-#            tap generate-pdf "doc/Developer Guide/Readme.md" --appendix "Appendix C: Migration Guide"="doc/Migration/Migrating from tap 8 to 9/Readme.md" --toc --skip-first-file --out "sdk/Examples/OpenTAP Developer Guide.pdf" --frontpage "doc/Developer Guide/Frontpage.html" --frontpage-file "doc/Developer Guide/Frontpage.png" --notices "doc/Developer Guide/Introduction/Notices.md"
-#   artifacts:
-#     expire_in: 1 week
-#     paths:
-#        - sdk/Examples/OpenTAP Developer Guide.pdf
+Build-DevGuide:
+  stage: build
+  image: registry.gitlab.com/opentap/buildrunners/docgen:beta
+  tags: [ docker, gce ]
+  script: |
+           tap generate-pdf "doc/Developer Guide/Readme.md" --appendix "Appendix C: Migration Guide"="doc/Migration/Migrating from tap 8 to 9/Readme.md" --toc --skip-first-file --out "sdk/Examples/OpenTAP Developer Guide.pdf" --frontpage "doc/Developer Guide/Frontpage.html" --frontpage-file "doc/Developer Guide/Frontpage.png" --notices "doc/Developer Guide/Introduction/Notices.md"
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - sdk/Examples/OpenTAP Developer Guide.pdf
 
 Build-Linux64:
   stage: build
@@ -72,25 +71,25 @@ Build-x64:
     paths:
        - bin/Release64/
 
-# Doc-API:
-#   stage: build
-#   tags:
-#      - aalborg
-#      - doxygen
-#      - chmcmd
-#   script: 
-#          - cd "doc/API Documentation"
-#          - doxygen Doxyfile
-#          - pushd "apiref/html"
-#          - chmcmd index.hhp
-#          - popd
-#          - xcopy /F /y apiref\html\OpenTapApiReference.chm ..\..\Help\
-#          - xcopy /F /y apiref\html ..\..\API\
-#   artifacts:
-#     expire_in: 1 week
-#     paths:
-#        - Help\OpenTapApiReference.chm
-#        - API
+Doc-API:
+  stage: build
+  image: registry.gitlab.com/opentap/buildrunners/doxygen:latest
+  tags: [ docker, gce ]
+  script: 
+         - mkdir Help
+         - mkdir API
+         - rootdir=`pwd`
+         - cd "doc/API Documentation"
+         - doxygen Doxyfile
+         - cd "apiref/html"
+         - chmcmd index.hhp
+         - cp OpenTapApiReference.chm $rootdir/Help/
+         - cp -r . $rootdir/API/
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - Help/OpenTapApiReference.chm
+       - API
 
 WarningTest:
   stage: build
