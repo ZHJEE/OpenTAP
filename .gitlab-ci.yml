@@ -3,7 +3,7 @@ variables:
   OBFUSCAR_VERSION: "1.0.2+a8c731f7"
   SIGN_VERSION: "1.0.0+06a84572"
   BUNDLE_INSTALLER_VERSION: "2.1.0-beta.8"
-  PACKAGE_REPO_URL: "http://packages.opentap.keysight.com"
+  PACKAGE_REPO_URL: "http://packages.opentap.io:8081"
 
 stages:
   - build
@@ -50,7 +50,7 @@ Build-x86:
          - dotnet restore -r win7-x86
          - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet build tap\tap.csproj -c Release -r win-x86
-         - rmdir /s /q "bin\Release\Packages"
+         - Remove-Item -recurse "bin\Release\Packages"
   artifacts:
     expire_in: 1 week
     paths:
@@ -65,8 +65,8 @@ Build-x64:
          - dotnet restore -r win7-x64
          - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x64 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet build tap\tap.csproj -c Release -r win-x64
-         - rmdir /s /q "bin\Release\Packages"
-         - move /y bin\Release bin\Release64
+         - Remove-Item -recurse "bin\Release\Packages"
+         - Move-Item bin\Release bin\Release64
   artifacts:
     expire_in: 1 week
     paths:
@@ -105,65 +105,70 @@ WarningTest:
 # Stage: package                            #
 #############################################
 
-# Package-Windows:
-#   stage: package
-#   tags:
-#      - vs2017
-#      - can-sign
-#   dependencies:
-#      - Build-x64
-#   script: |
-#           nuget restore OpenTAP.sln
+Package-Windows:
+  stage: package
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  dependencies:
+     - Build-x64
+  script:
+         - nuget restore OpenTAP.sln
 
-#           cd bin/Release64
-#           rmdir /s /q "Packages"
-#           .\tap.exe package install -f -r %PACKAGE_REPO_URL% "Sign" --version "%SIGN_VERSION%"
-#           .\tap.exe package create -v ../../opentap/opentapCE.package.xml -o "Packages/OpenTAP/OpenTAP-CE.TapPackage" --install
-#   artifacts:
-#     when: on_success
-#     expire_in: 1 day
-#     paths:
-#        - "bin/Release64/Packages/"
-#        - "bin/Release64/Dependencies"
+         - cd bin/Release64
+         #- .\tap.exe package install -f -r %PACKAGE_REPO_URL% "Sign" --version "%SIGN_VERSION%"
+         - cmd /C ".\tap.exe package create -v ../../opentapCE.package.xml -o Packages/OpenTAP/OpenTAP-CE.TapPackage --install"
+  artifacts:
+    when: on_success
+    expire_in: 1 day
+    paths:
+       - "bin/Release64/Packages/"
+       - "bin/Release64/Dependencies"
 
-# Package-Linux:
-#   stage: package
-#   tags:
-#      - vs2017
-#      - can-sign
-#      - dotnetcore2
-#      - obfuscar
-#   dependencies:
-#      - Build-x86
-#      - Build-Linux64
-#   script: |
-#           mv bin\Release\linux-x64 bin\linux-x64
-#           pushd bin\linux-x64\publish
-          
-#           setlocal EnableDelayedExpansion
-#           rmdir /s /q "../../Release/Packages"
-#           echo "%LICENSING_VERSION%"
-#           "../../Release/tap" package install -f -r %PACKAGE_REPO_URL% "Sign" --version "%SIGN_VERSION%"
-          
-#           "../../Release/tap" package download --os Linux --architecture x64 -f -r %PACKAGE_REPO_URL% -t . Demonstration
-#           move "Demonstration*.TapPackage" "Demonstration.TapPackage"
+Package-Linux:
+  stage: package
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  dependencies:
+     - Build-x86
+     - Build-Linux64
+  script:
+         - mv bin\Release\linux-x64 bin\linux-x64
+         - pushd bin\linux-x64\publish
+         #- ../../Release/tap package install -f -r $env:PACKAGE_REPO_URL "Sign" --version $env:SIGN_VERSION
+         - ../../Release/tap package download --os Linux --architecture x64 -f -r $env:PACKAGE_REPO_URL -t . Demonstration
+         - mv "Demonstration*.TapPackage" "Demonstration.TapPackage"
+         # Create package
+         - cmd /C "..\..\Release\tap package create -v ../../../opentap_linux64.package.xml -o Packages/TAPLinux.TapPackage --install"
+         - cp Packages/TAPLinux.TapPackage ../../../TAPLinux.TapPackage
+  artifacts:
+    when: on_success
+    expire_in: 1 week
+    paths:
+       - TAPLinux.TapPackage
+       - bin/linux-x64/publish
 
-#           "../../Release/tap" package create -v ../../opentap_linux64.package.xml -o "Packages/TAPLinux.TapPackage" --install
-          
-#           mv "Packages/TAPLinux.TapPackage" "."
-#           tr -d '\r' < "../../LinuxInstructions/INSTALL.sh" > INSTALL.sh
-#           tr -d '\r' < "../../LinuxInstructions/README" > README
-#           tar -cf "../../TAP2018.tar" TAPLinux.TapPackage INSTALL.sh README
-#           popd
-          
-#           mv "bin/linux-x64/publish/TAPLinux.TapPackage" "."
-#   artifacts:
-#     when: on_success
-#     expire_in: 1 week
-#     paths:
-#        - "TAPLinux.TapPackage"
-#        - "TAP2018.tar"
-#        - bin/linux-x64/publish
+Installer-Linux:
+  stage: deploy
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  dependencies:
+     - Package-Linux
+  script:
+         - Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/gnuwin32/tar/1.13-1/tar-1.13-1-bin.exe -Outfile tarsetup.exe
+         - Start-process .\tarsetup.exe -NoNewWindow -Wait -ArgumentList "/SILENT"
+
+         - $str = cat "LinuxInstructions/INSTALL.sh"
+         - $str -replace "\r\n", "\n" > INSTALL.sh
+         - $str = cat "LinuxInstructions/README"
+         - $str -replace "\r\n", "\n" > README
+
+         - cmd /C '"C:\Program Files (x86)\GnuWin32\bin\tar.exe" -cf "TAP2018.tar" TAPLinux.TapPackage INSTALL.sh README'
+  artifacts:
+    when: on_success
+    expire_in: 1 week
+    paths:
+       - "TAPLinux.TapPackage"
+       - "TAP2018.tar"
 
 
 # #############################################
