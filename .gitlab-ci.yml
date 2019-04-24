@@ -147,29 +147,6 @@ Package-Linux:
        - TAPLinux.TapPackage
        - bin/linux-x64/publish
 
-Installer-Linux:
-  stage: deploy
-  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
-  tags: [ docker, windows ]
-  dependencies:
-     - Package-Linux
-  script:
-         - Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/gnuwin32/tar/1.13-1/tar-1.13-1-bin.exe -Outfile tarsetup.exe
-         - Start-process .\tarsetup.exe -NoNewWindow -Wait -ArgumentList "/SILENT"
-
-         - $str = cat "LinuxInstructions/INSTALL.sh"
-         - $str -replace "\r\n", "\n" > INSTALL.sh
-         - $str = cat "LinuxInstructions/README"
-         - $str -replace "\r\n", "\n" > README
-
-         - cmd /C '"C:\Program Files (x86)\GnuWin32\bin\tar.exe" -cf "TAP2018.tar" TAPLinux.TapPackage INSTALL.sh README'
-  artifacts:
-    when: on_success
-    expire_in: 1 week
-    paths:
-       - "TAPLinux.TapPackage"
-       - "TAP2018.tar"
-
 
 # #############################################
 # # Stage: test                               #
@@ -278,39 +255,58 @@ Installer-Linux:
 # # Stage: deploy                             #
 # #############################################
 
-# Installer-OpenTAP:
-#   stage: deploy
-#   tags:
-#      - can-sign
-#      - inno2
-#   dependencies:
-#      - Build-x64
-#      - Package-OpenTAP
-#      - OverrideConfig
-#   script: |
-#           pushd bin\Release64
+Installer-OpenTAP:
+  stage: deploy
+  image: registry.gitlab.com/opentap/buildrunners/inno
+  tags: [ docker, windows ]
+  dependencies:
+     - Build-x64
+     - Package-Windows
+  script:
+         - pushd bin\Release64
+         - $version = ./tap.exe sdk gitversion
+         - echo "OpenTAP.$($version).exe"
 
-#           tap sdk gitversion > version.txt
-#           set /p VersionNumber=<version.txt
+         - ./tap.exe package install -f -v "/BundleInstaller.TapPackage"
+         - Remove-Item "Packages\Bundle Installer\Assets\LICENSES.txt"
+
+         - ./tap.exe sdk create-bundle --no-gui --tap64 "Packages/OpenTAP/OpenTAP-CE.TapPackage" -x ../../Installer/Assets/opentapCE.installer.xml setup.exe
+
+#          "C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe" sign /a /n "Keysight Technologies, Inc." /t http://timestamp.verisign.com/scripts/timstamp.dll "setup.exe"
+
+         - move setup.exe ..\..\OpenTAP.$($version).exe
+         - popd
+
+         # - plink -pw %REPO_SSH_PASS% -hostkey %REPO_SSH_KEY% %REPO_SSH_URL% mkdir -p %REPO_SSH_PATH%/%VersionNumber%/OpenTAP
+         # - pscp -pw %REPO_SSH_PASS% -hostkey %REPO_SSH_KEY% OpenTAP*.exe %REPO_SSH_URL%:%REPO_SSH_PATH%/%VersionNumber%/OpenTAP
           
-#           tap package install -f -v -r %PACKAGE_REPO_URL% --version "%BUNDLE_INSTALLER_VERSION%" "Bundle Installer"
-          
-#           del "Packages\Bundle Installer\Assets\LICENSES.txt"
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - "*.exe"
 
-#           tap sdk create-bundle --no-gui --tap64 "Packages/OpenTAP/OpenTAP-CE.TapPackage" -x ..\opentapCE.installer.xml setup.exe
+Installer-Linux:
+  stage: deploy
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  dependencies:
+     - Package-Linux
+  script:
+         - Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/gnuwin32/tar/1.13-1/tar-1.13-1-bin.exe -Outfile tarsetup.exe
+         - Start-process .\tarsetup.exe -NoNewWindow -Wait -ArgumentList "/SILENT"
 
-#           "C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\signtool.exe" sign /a /n "Keysight Technologies, Inc." /t http://timestamp.verisign.com/scripts/timstamp.dll "setup.exe"
+         - $str = cat "LinuxInstructions/INSTALL.sh"
+         - $str -replace "\r\n", "\n" > INSTALL.sh
+         - $str = cat "LinuxInstructions/README"
+         - $str -replace "\r\n", "\n" > README
 
-#           move setup.exe ..\..\OpenTAP.%VersionNumber%.exe
-#           popd
-
-#           plink -pw %REPO_SSH_PASS% -hostkey %REPO_SSH_KEY% %REPO_SSH_URL% mkdir -p %REPO_SSH_PATH%/%VersionNumber%/OpenTAP
-#           pscp -pw %REPO_SSH_PASS% -hostkey %REPO_SSH_KEY% OpenTAP*.exe %REPO_SSH_URL%:%REPO_SSH_PATH%/%VersionNumber%/OpenTAP
-          
-#   artifacts:
-#     expire_in: 1 week
-#     paths:
-#        - "*.exe"
+         - cmd /C '"C:\Program Files (x86)\GnuWin32\bin\tar.exe" -cf "TAP2018.tar" TAPLinux.TapPackage INSTALL.sh README'
+  artifacts:
+    when: on_success
+    expire_in: 1 week
+    paths:
+       - "TAPLinux.TapPackage"
+       - "TAP2018.tar"
 
 # TAPBaseDockerImageRelease:
 #   image: gitlab.it.keysight.com:4567/tap/linuxbuildrunners/dockerbuild:latest
