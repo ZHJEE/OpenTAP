@@ -67,13 +67,23 @@ namespace OpenTap.Package
         public string Url { get; set; }
         public void DownloadPackage(IPackageIdentifier package, string destination, CancellationToken cancellationToken)
         {
-            if (allPackages == null)
+            PackageDef packageDef = null;
+
+            // If the requested package is a file we do not want to start searching the entire repo.
+            if (package is PackageDef def && File.Exists(def.Location))
+            {
+                log.Debug("Downloading file without searching repository.");
+                packageDef = def;
+            }
+            else if (allPackages == null)
                 LoadPath(cancellationToken);
-            
+
+            if (packageDef == null)
+                packageDef = allPackages.FirstOrDefault(p => p.Equals(package));
+
             bool finished = false;
             try
             {
-                var packageDef = allPackages.FirstOrDefault(p => p.Equals(package));
                 if (packageDef == null)
                     throw new Exception($"Could not download '{package.Name}', because it does not exists");
                 if (PathUtils.AreEqual(packageDef.Location, destination))
