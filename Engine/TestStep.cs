@@ -113,10 +113,18 @@ namespace OpenTap
             {
                 _ChildTestSteps = value;
                 _ChildTestSteps.Parent = this;
+                OnChildTestStepsChanged(_ChildTestSteps, value);
                 OnPropertyChanged("ChildTestSteps");
             }
         }
-        
+
+        /// <summary>
+        /// Called when the value of <see cref="ChildTestSteps"/> change. Allows derived classes to easily add a handler for this event.  
+        /// </summary>
+        protected virtual void OnChildTestStepsChanged(TestStepList oldList, TestStepList newList)
+        {
+        }
+
         /// <summary>
         /// The parent of this TestStep. Can be another TestStep or the <see cref="TestPlan"/>.  
         /// </summary>

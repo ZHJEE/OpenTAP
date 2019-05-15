@@ -129,7 +129,7 @@ namespace OpenTap.Plugins
             var objp = Serializer.SerializerStack.OfType<ObjectSerializer>().FirstOrDefault();
 
             
-            if (objp != null && objp.Object != null && objp.CurrentMember.TypeDescriptor.DescendsTo(typeof(ITestStep)))
+            if (objp != null && objp.Object != null && !objp.CurrentMember.TypeDescriptor.DescendsTo(typeof(TestStepList)))
             {
                 elem.Value = ((ITestStep)obj).Id.ToString();
                 return true;

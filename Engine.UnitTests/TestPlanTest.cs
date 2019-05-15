@@ -658,20 +658,25 @@ namespace OpenTap.Engine.UnitTests
             var run = plan.Execute();
             Assert.IsTrue(run.Verdict == Verdict.Pass);
             Assert.IsTrue(step.WasRun);
-                        
-            // Trigger issue with cycle on step.Parent / step.Parent.ChildTestSteps.
-            TestTraceListener trace = new TestTraceListener();
-            Log.AddListener(trace);
-            var file = "ChildITestStep.TapPlan";
-            plan.Save(file);
-            Log.RemoveListener(trace);
-            File.Delete(file);
-            StringAssert.Contains("Cycle detected", trace.GetLog());
 
             // Trigger possible issue with null Name.
             Assert.IsTrue(string.IsNullOrWhiteSpace(step.GetFormattedName()));
 
         }
+
+        [Test]
+        public void CyclicDetectionTest()
+        {
+            Enabled<object> list = new Enabled<object>();
+            list.Value = list;
+            // Trigger issue with cycle on step.Parent / step.Parent.ChildTestSteps.
+            TestTraceListener trace = new TestTraceListener();
+            Log.AddListener(trace);
+            string result = new TapSerializer().SerializeToString(list);
+            Log.RemoveListener(trace);
+            StringAssert.Contains("Cycle detected", trace.GetLog());
+        }
+
 
         [Test]
         public void TestChildStepsChanged()

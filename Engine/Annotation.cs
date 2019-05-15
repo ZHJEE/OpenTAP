@@ -1317,7 +1317,7 @@ namespace OpenTap
                 }
             }
 
-            public string Value => string.Format("Count: {0}", Elements.Cast<object>().Count());
+            public string Value => string.Format("Count: {0}", Elements?.Cast<object>().Count() ?? 0);
 
             AnnotationCollection fac;
             public GenericSequenceAnnotation(AnnotationCollection fac)
@@ -1924,12 +1924,6 @@ namespace OpenTap
 
                 annotation.Add(mem.Member.GetDisplayAttribute());
                 
-                if (mem.Member.GetAttribute<AvailableValuesAttribute>() is AvailableValuesAttribute avail)
-                    annotation.Add(new AvailableValuesAnnotation(annotation, avail.PropertyName));
-
-                if(mem.Member.GetAttribute<SuggestedValuesAttribute>() is SuggestedValuesAttribute suggested)
-                    annotation.Add(new SuggestedValueAnnotation(annotation, suggested.PropertyName));
-
                 if (mem.Member.GetAttribute<DeviceAddressAttribute>() is DeviceAddressAttribute dev_addr)
                     annotation.Add(new DeviceAddressAnnotation(annotation));
 
@@ -2045,7 +2039,14 @@ namespace OpenTap
                 else if (type.DescendsTo(typeof(ITestStep)))
                     annotation.Add(new TestStepSelectAnnotation(annotation));
             }
-            
+            if(mem != null)
+            {
+                if (mem.Member.GetAttribute<AvailableValuesAttribute>() is AvailableValuesAttribute avail)
+                    annotation.Add(new AvailableValuesAnnotation(annotation, avail.PropertyName));
+
+                if (mem.Member.GetAttribute<SuggestedValuesAttribute>() is SuggestedValuesAttribute suggested)
+                    annotation.Add(new SuggestedValueAnnotation(annotation, suggested.PropertyName));
+            }
 
 
             if (mem?.Member is MemberData mem2 && mem2.DeclaringType.DescendsTo(typeof(ITestStep)))
