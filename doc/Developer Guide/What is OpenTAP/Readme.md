@@ -23,18 +23,16 @@ The OpenTAP assembly is the core and is required for any OpenTAP plugin. The mos
 
 ## Graphical User Interface
 
-We recommend using the Keysight Test Automation Developer's System (Community or Enterprice Edition) that provide a graphical user interface that facilitates test plan editing and execution (Editor GUI). It interfaces with the OpenTAP API and uses C# reflection to expose configuration options to the user. The editor provides access to test step, instrument and DUT configuration, as well as information logged during test plan execution. Note that:
+If a graphical user interface is needed you can download the Keysight Test Automation Developer's System (Community or Enterprise Edition). It provide you with both a Software Development Kit (SDK) as well as an Editor GUI
 
 -	The graphical user interface consists of multiple dockable panels. It is possible to extend it with custom dockable panels. For an example, see `TAP_PATH\Packages\SDK\Examples\PluginDevelopment\GUI\DockablePanel.cs` 
--   If a editor GUI is not needed or desired, test plans can be executed using the [OpenTAP Command Line Interface](#tap-command-line-interface ) (CLI). 
--	It is possible to build custom GUIs to expose only the functionality necessary for test execution or to integrate OpenTAP into preexisting UIs. This can be useful for operators in a production environment.
 -	Users can specify one or more of the following command line arguments when starting the editor GUI:
 	
 | **Command** | **Description** | **Example** |
 | ---    | --------        | --------    |
-|**Open**     | Opens the specified test plan file  |   Keysight.OpenTap.Gui.exe --open testplan.tapplan       |
-| **Add**     | Adds a specific step to the end of the test plan.   |      Keysight.OpenTap.Gui.exe --add VerifyWcdmaMultiRx    |
-| **Search**  |     Allows PluginManager to search the specified folder for installed plugins. Multiple paths can be searched.     |   Keysight.OpenTap.Gui.exe --search `C:\myPlugins`       |
+|**Open**     | Opens the specified test plan file  |   tap editor --open testplan.tapplan       |
+| **Add**     | Adds a specific step to the end of the test plan.   |      tap editor --add VerifyWcdmaMultiRx    |
+| **Search**  |     Allows PluginManager to search the specified folder for installed plugins. Multiple paths can be searched.     |   tap editor --search `C:\myPlugins`       |
 
 ## OpenTAP Command Line Interface 
 
