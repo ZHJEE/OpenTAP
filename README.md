@@ -11,12 +11,17 @@ If you are looking to use OpenTAP, you can get pre-built binaries at http://open
 Using the OpenTAP CLI you are now able to download plugin packages from the OpenTAP package repository.
 
 To list and install plugin packages do the following in the command prompt: 
-`cd %TAP_PATH` 
-`tap package list` 
+```
+cd %TAP_PATH%
+tap package list
+```
 
-We recommend that you download the Software Development Kit, or simply the Developer’s System Community Edition provided by Keysight Technologies. The Developer System is a bundle that contain the SDK as well as a graphical user interface and result viewing capabilities. It can be installed by typing the following `tap package install 'Developer's System CE'`
+We recommend that you download the Software Development Kit, or simply the Developer’s System Community Edition provided by Keysight Technologies. The Developer System is a bundle that contain the SDK as well as a graphical user interface and result viewing capabilities. It can be installed by typing the following:
+```
+tap package install "Developer's System CE"
+```
 
-For how to develop using OpenTAP check out our __[Developer Guide](http://opentap.io/docs/OpenTAP%20Developer%20Guide.pdf)__, note the [source](https://gitlab.com/OpenTAP/opentap/blob/master/doc/Developer%20Guide/Readme.md) can as well be found in Gitlab. 
+For how to develop using OpenTAP check out our __[Developer Guide PDF](http://opentap.io/docs/OpenTAP%20Developer%20Guide.pdf)__, note the [source](https://gitlab.com/OpenTAP/opentap/blob/master/doc/Developer%20Guide/Readme.md) can as well be found in Gitlab. 
 
 ## Building OpenTAP
 
