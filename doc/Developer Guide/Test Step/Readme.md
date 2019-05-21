@@ -63,7 +63,7 @@ namespace MyOpenTAPProject
     }
 }
 ```
-To allow user configuration of a test step, developers must add appropriate properties to the plugin code. These properties will very likely be visible and editable in the OpenTAP GUI. Properties typically include instrument and DUT references, instrument and DUT settings, timing and limit information, etc. Defining these properties is a major part of plugin development.
+To allow user configuration of a test step, developers must add appropriate properties to the plugin code. These properties will very likely be visible and editable in the GUI Editor. Properties typically include instrument and DUT references, instrument and DUT settings, timing and limit information, etc. Defining these properties is a major part of plugin development.
 
 The SDK provides many examples of test step development in the **`TAP_PATH\Packages\SDK\Examples\PluginDevelopment\TestSteps`** folder. 
 
@@ -182,7 +182,7 @@ In the example above Step A is implemented so, that it sets its verdict based on
 
 ## Log Messages
 
-Log messages provide useful insight to the process of writing and debugging the test step code (as well as other plugin code). The TestStep base class has a predefined Log source, called **Log**. Log messages are displayed in the OpenTAP GUI **Log** panel and saved in the log file.
+Log messages provide useful insight to the process of writing and debugging the test step code (as well as other plugin code). The TestStep base class has a predefined Log source, called **Log**. Log messages are displayed in the GUI Editor **Log** panel and saved in the log file.
 
 When creating log messages, Keysight recommends the following:
 
