@@ -3,8 +3,8 @@ Plugin Packaging and Versioning
 ## Packaging
 A OpenTAP Package is a file that contains plugin DLLs and supporting files. Packages are used to distribute OpenTAP plugins, while providing support for correct versioning and dependency checking. This section deals with the construction and use of OpenTAP packages. The different programs and processes involved are described below:
 
-- The OpenTAP installation includes the **Package Manager** accessible by the `packagemanager` command. This can be used to create, install or uninstall packages, list installed packages, and run tests on one or more packages.
-- The OpenTAP installation also includes the **Keysight.OpenTap.PackageManager.Gui.exe** program. The PackageManager has a GUI that permits package downloading, displays an inventory of the packages, and ultimately installs package files found into the OpenTAP install directory.
+- The OpenTAP installation includes the **Package Manager** accessible by the `tap package` command. This can be used to create, install or uninstall packages, list installed packages, and run tests on one or more packages.
+- The GUI Editor installation also includes the **PackageManager.exe** program which is a GUI for the PackageManager. It permits package downloading, displays an inventory of the packages, and ultimately installs package files found into the OpenTAP install directory.
 - The default OpenTAP plugin project (release builds only) includes an *AfterBuild* task for creating a OpenTAP Package based on package declarations in the package.xml file. The resulting OpenTAP package has the **.TapPackage** suffix. Files with this suffix are renamed zip files, and as such, can be examined with a file compressor and archiver software, such as WinZip.
 
 When run from Visual Studio, most of the processes of the packaging system are automatic and invisible to the operation. However, the developer may wish to modify the content and/or properties of the package by editing the package.xml file. The following package.xml is found in `TAP_PATH\Packages\SDK\Examples\ExamplePlugin`:
