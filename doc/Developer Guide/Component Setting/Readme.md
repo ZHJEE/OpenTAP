@@ -72,7 +72,7 @@ public class SettingsRetrieval : TestStep
 ```
 ## Connection Management
 
-A OpenTAP *connection* represents a physical connection between Instrument and/or DUT ports. A *physical connection* is modeled in **software** by creating a class that extends the **OpenTap.Connection** abstract base class.
+An OpenTAP *connection* represents a physical connection between Instrument and/or DUT ports. A *physical connection* is modeled in **software** by creating a class that extends the **OpenTap.Connection** abstract base class.
 
 A *port* is the endpoint of a connection. Ports are often defined on Instruments or DUTs to represent physical connectors. An instrument or DUT can have an arbitrary number of ports.
 
@@ -81,4 +81,4 @@ OpenTAP comes with a number of predefined connections. These include:
 -	**RfConnection**, which extends the OpenTAP.Connection class, consists of two ports (inherited from the OpenTAP.Connection), and adds the concept of CableLoss, which is a list of LossPoints. An RfConnection represents a physical RF cable with known loss characteristics by using the list of loss points to represent the cable loss at different frequencies.
 -	**DirectionalRfConnection**, which extends the RfConnection class to include direction.
 
-For more information, see the *Bench Settings - Connections* topic in the OpenTAP GUI help, or contact support.
+For more information, see the *Bench Settings - Connections* topic in the GUI Editor help, or contact support.
