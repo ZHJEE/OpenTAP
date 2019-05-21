@@ -4,7 +4,7 @@ Component Setting
 
 In addition to the settings defined for test steps, DUTs, and instruments, there are several "built in" settings collections. These can be divided into two categories: *Global* and *Grouped*. 
 
- - **Global** settings are shown under the **Settings** menu. At a minimum, you will find settings for the **Engine**, **GUI**, and **Results**.
+ - **Global** settings are shown under the **Settings** menu. At a minimum, you will find settings for the **Engine**, **Editor**, and **Results**.
  - **Grouped** settings are applicable to a particular configuration profile and are shown under the **Settings > GroupName** menu.  The Bench settings (shown under the **Settings > Bench** menu) is an example of grouped settings. 
 
 ![](Benchsettings.PNG)
