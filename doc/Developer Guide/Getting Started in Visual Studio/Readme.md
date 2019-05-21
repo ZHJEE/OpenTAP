@@ -8,7 +8,7 @@ SDK Examples contains the following:
 | **Folder**  | **Description** |
 | -------- | --------  |
 | **`ExamplePlugin\ExamplePlugin.csproj`**                           | Creates a plugin package that contains one DUT resource, one Instrument resource, and one test step.   |
-|**`PluginDevelopment\PluginDevelopment.csproj`**                    | Creates a plugin package that contains several test steps, two DUT resources, four Instrument resources, and two result listeners.                                              |
+|**`PluginDevelopment\PluginDevelopment.csproj`**                    | Creates a plugin package that contains several test steps, DUT resources, Instrument resources, and result listeners.                                              |
 |**`TestPlanExecution\BuildTestPlan.Api\BuildTestPlan.Api.csproj`**  | Shows how to build, save and execute a test plan using OpenTAP API.  |
 |**`TestPlanExecution\RunTestPlan.Api\RunTestPlan.Api.csproj`**      | Shows how to load and run a test plan using OpenTAP API.   |
 
@@ -71,15 +71,15 @@ Follow the same process to build and view the **Plugin Development** project (`T
 
 ![](PluginDev_img1.PNG)
 
-- 	Two **DUT** resources:
+- 	**DUT** resources:
  	
 ![](PluginDev_img2.PNG)
 
--	Six Instrument resources:
+-	Instrument resources:
 	
 ![](PluginDev_img3.PNG)
 
--	Two Results Listeners:
+-	Results Listeners:
 	
 ![](PluginDev_img4.PNG)
 
