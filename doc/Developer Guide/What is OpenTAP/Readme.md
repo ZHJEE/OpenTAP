@@ -1,6 +1,6 @@
 What is OpenTAP?
 ============
-OpenTAP is a software solution for fast and easy development and execution of automated test and/or calibration algorithms. These algorithms control measurement instruments and possibly vendor-specific *devices under test* (DUTs). By leveraging the features of C#/.NET and providing an extendable architecture, the OpenTAP SDK minimizes the code needed to be written by the programmer. 
+OpenTAP is a software solution for fast and easy development and execution of automated test and/or calibration algorithms. These algorithms control measurement instruments and possibly vendor-specific *devices under test* (DUTs). By leveraging the features of C#/.NET and providing an extendable architecture, OpenTAP minimizes the code needed to be written by the programmer. 
 
 OpenTAP offers a range of functionality and infrastructure for configuring, controlling and executing test algorithms. OpenTAP provides an API for implementing plugins in the form of test steps, instruments, DUTs and more. 
 
@@ -23,7 +23,7 @@ The OpenTAP assembly is the core and is required for any OpenTAP plugin. The mos
 
 ## Graphical User Interface
 
-We recommend using the Keysight Test Automation Developer System (Community or Enterprice Edition) that provide a graphical user interface that facilitates test plan editing and execution (Editor GUI). It interfaces with the OpenTAP API and uses C# reflection to expose configuration options to the user. The editor provides access to test step, instrument and DUT configuration, as well as information logged during test plan execution. Note that:
+We recommend using the Keysight Test Automation Developer's System (Community or Enterprice Edition) that provide a graphical user interface that facilitates test plan editing and execution (Editor GUI). It interfaces with the OpenTAP API and uses C# reflection to expose configuration options to the user. The editor provides access to test step, instrument and DUT configuration, as well as information logged during test plan execution. Note that:
 
 -	The graphical user interface consists of multiple dockable panels. It is possible to extend it with custom dockable panels. For an example, see `TAP_PATH\Packages\SDK\Examples\PluginDevelopment\GUI\DockablePanel.cs` 
 -   If a editor GUI is not needed or desired, test plans can be executed using the [OpenTAP Command Line Interface](#tap-command-line-interface ) (CLI). 
@@ -38,7 +38,7 @@ We recommend using the Keysight Test Automation Developer System (Community or E
 
 ## OpenTAP Command Line Interface 
 
-The OpenTAP CLI is a console program that executes a test plan and allows easy integration with other programs. The CLI has options to configure the test plan execution, such as setting external parameters, setting meta data, and executing OpenTAP as a service.
+The OpenTAP CLI is a console program that executes a test plan and allows easy integration with other programs. The CLI has options to configure the test plan execution, such as setting external parameters, configuring resources and setting meta data.
 
 ## OpenTAP API
 
