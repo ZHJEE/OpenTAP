@@ -49,7 +49,7 @@ OpenTAP uses the following attributes:
 | **HelpLink**   | Defines the help link for a class or property.   |
 | **IgnoreSerializer**  | Used on classes to ignore serialization. Useful for cases where a plugin implementation contains non-serializable members or types.   |
 | **MacroPath**   | Indicates a setting should use MacroPath values, such as &lt;Name&gt; and %Temp%.   |
-| **MetaData**   | A *property* marked by this attribute becomes metadata and will be provided to all result listeners. If a resource is used with this attribute (and *Allow Metadata Dialog* is enabled), a dialog prompts the user. This works for both OpenTAP GUI and OpenTAP CLI.  |
+| **MetaData**   | A *property* marked by this attribute becomes metadata and will be provided to all result listeners. If a resource is used with this attribute (and *Allow Metadata Dialog* is enabled), a dialog prompts the user. This works for both the GUI Editor and the OpenTAP CLI.  |
 | **Output**   | Indicates a test step property is an output variable.  |
 | **ResultListenerIgnore**   | Indicates a property that should not be published to ResultListeners.   |
 | **Scpi**   | Identifies a method or enumeration value that can be handled by the SCPI class.    |
