@@ -82,7 +82,8 @@ namespace OpenTap.Package
                             }
                             else
                             {
-                                log.Warning($"Could not load plugins for '{fullPath}'");
+                                // This error is critical since assembly dependencies won't be found.
+                                throw new FileNotFoundException($"Could not load plugins for '{fullPath}'");
                             }
                         }
                         catch (BadImageFormatException)
