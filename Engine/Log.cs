@@ -341,7 +341,7 @@ namespace OpenTap
             }
             return source;
         }
-        
+
         /// <summary> Gets the source of a specified owner. </summary>
         /// <param name="owner"></param>
         /// <returns>returns the TraceSource or null if the owner owns no source.</returns>
@@ -379,6 +379,36 @@ namespace OpenTap
             TapContext.MessageBufferSize = 8 * 1024 * 1024;
         }
 
+        /// <summary>
+        /// Flushes all waiting log trace events.
+        /// </summary>
+        public static void Flush()
+        {
+            TapContext.Flush();
+        }
+
+        /// <summary>
+        /// Puts the current log context into synchronous mode.
+        /// All TraceSources will now wait for their trace events to be handled by all TraceListeners before returning.
+        /// </summary>
+        public static void StartSync()
+        {
+            Flush();
+            TapContext.Async = false;
+        }
+
+        /// <summary>
+        /// Ends synchronous mode. Must be called after <c ref="StartSync"/>.
+        /// </summary>
+        public static void StopSync()
+        {
+            TapContext.Async = true;
+            Flush();
+        }
+
+    }
+    public static class LogExtensions
+    {
         /// <summary>
         /// like traceEvent except it uses a stopwatch 'timer' to write formatted time after the message [{1:0}ms].
         /// Usually used to signal in the log how long an operation took.
@@ -663,32 +693,7 @@ namespace OpenTap
             }
         }
 
-        /// <summary>
-        /// Flushes all waiting log trace events.
-        /// </summary>
-        public static void Flush()
-        {
-            TapContext.Flush();
-        }
-
-        /// <summary>
-        /// Puts the current log context into synchronous mode.
-        /// All TraceSources will now wait for their trace events to be handled by all TraceListeners before returning.
-        /// </summary>
-        public static void StartSync()
-        {
-            Flush();
-            TapContext.Async = false;
-        }
-
-        /// <summary>
-        /// Ends synchronous mode. Must be called after <c ref="StartSync"/>.
-        /// </summary>
-        public static void StopSync()
-        {
-            TapContext.Async = true;
-            Flush();
-        }
+        
     }
 
     /// <summary>

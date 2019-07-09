@@ -42,12 +42,21 @@ namespace OpenTap
             UserInput.userInterface = inputInterface as IUserInterface;
         }
 
+        static int cyclic = 0;
         /// <summary> Call to notify the user interface that an object property has changed. </summary>
         /// <param name="obj"></param>
         /// <param name="property"></param>
         public static void NotifyChanged(object obj, string property)
         {
-            userInterface?.NotifyChanged(obj, property);
+            cyclic++;
+            try
+            {
+                userInterface?.NotifyChanged(obj, property);
+            }
+            finally
+            {
+                cyclic--;
+            }
         }
 
         /// <summary> Gets the current user input interface. </summary>

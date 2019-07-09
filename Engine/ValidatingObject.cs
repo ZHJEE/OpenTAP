@@ -38,62 +38,73 @@ namespace OpenTap
         // thread static to avoid locking everything and having a HashSet on each ValidationObject
         [ThreadStatic]
         static HashSet<object> traversed = null;
+        public bool IsGettingError { get; private set; }
         string getError(string propertyName = null)
         {
-            List<string> errors = null;
-            void pushError(string error)
+            var prevIsGettingError = IsGettingError;
+            IsGettingError = true;
+            try
             {
-                if (errors == null) errors = new List<string>();
-                if (!errors.Contains(error))
-                    errors.Add(error);
-            }
-
-            foreach (var rule in Rules)
-            {
-                try
+                List<string> errors = null;
+                void pushError(string error)
                 {
-                    if (propertyName != null && rule.PropertyName != propertyName) continue;
-                    if (rule.IsValid()) continue;
-                    var error = rule.ErrorMessage;
-                    if (string.IsNullOrEmpty(error)) continue;
-                    pushError(error);
-                }catch(Exception ex)
-                {
-                    pushError(ex.Message);
-                }
-            }
-            foreach (var fwd in Rules.ForwardedRules)
-            {
-                if (propertyName != null && fwd.Name != propertyName) continue;
-                var obj = fwd.GetValue(this) as IValidatingObject;
-                if (obj == null) continue;
-                if (traversed == null)
-                {
-                    traversed = new HashSet<object>();
-                }
-                else if (traversed.Contains(obj)) continue;
-                traversed.Add(obj);
-                traversed.Add(this);
-
-                try
-                {
-                    var err = obj.Error;
-                    
-                    if (string.IsNullOrWhiteSpace(err)) continue;
-                    err = err.TrimEnd();
-
                     if (errors == null) errors = new List<string>();
-                    if (!errors.Contains(err))
-                        errors.Add(err);
+                    if (!errors.Contains(error))
+                        errors.Add(error);
                 }
-                finally
+
+                foreach (var rule in Rules)
                 {
-                    traversed.Remove(obj);
+                    try
+                    {
+                        if (propertyName != null && rule.PropertyName != propertyName) continue;
+                        if (rule.IsValid()) continue;
+                        var error = rule.ErrorMessage;
+                        if (string.IsNullOrEmpty(error)) continue;
+                        pushError(error);
+                    }
+                    catch (Exception ex)
+                    {
+                        pushError(ex.Message);
+                    }
                 }
+                foreach (var fwd in Rules.ForwardedRules)
+                {
+                    if (propertyName != null && fwd.Name != propertyName) continue;
+                    var obj = fwd.GetValue(this) as IValidatingObject;
+                    if (obj == null) continue;
+                    if (traversed == null)
+                    {
+                        traversed = new HashSet<object>();
+                    }
+                    else if (traversed.Contains(obj)) continue;
+                    traversed.Add(obj);
+                    traversed.Add(this);
+
+                    try
+                    {
+                        var err = obj.Error;
+
+                        if (string.IsNullOrWhiteSpace(err)) continue;
+                        err = err.TrimEnd();
+
+                        if (errors == null) errors = new List<string>();
+                        if (!errors.Contains(err))
+                            errors.Add(err);
+                    }
+                    finally
+                    {
+                        traversed.Remove(obj);
+                    }
+                }
+                if (errors == null)
+                    return "";
+                return string.Join(Environment.NewLine, errors).TrimEnd();
             }
-            if (errors == null)
-                return "";
-            return string.Join(Environment.NewLine, errors).TrimEnd();
+            finally
+            {
+                IsGettingError = prevIsGettingError;
+            }
         }
 
         /// <summary>
@@ -139,7 +150,8 @@ namespace OpenTap
         public void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-            UserInput.NotifyChanged(this, propertyName);
+            if(IsGettingError == false)
+                UserInput.NotifyChanged(this, propertyName);
         }
 
         #endregion

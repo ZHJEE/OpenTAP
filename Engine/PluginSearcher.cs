@@ -199,11 +199,33 @@ namespace OpenTap
 
             AllTypes = new Dictionary<string, TypeData>();
             PluginTypes = new HashSet<TypeData>();
-            foreach (AssemblyData asm in Assemblies)
+
+            bool threaded = false;
+
+            if (!threaded)
             {
-                PluginsInAssemblyRecursive(asm);
+                foreach (AssemblyData asm in Assemblies)
+                {
+                    PluginsInAssemblyRecursive(asm);
+                }
             }
-            return PluginTypes;
+            else
+            {
+                var semaphore = new System.Threading.SemaphoreSlim(0);
+                foreach (AssemblyData asm in Assemblies)
+                {
+                    TapThread.Start(() =>
+                    {
+                        PluginsInAssemblyRecursive(asm);
+                        semaphore.Release();
+                    });
+                }
+                foreach (AssemblyData asm in Assemblies)
+                {
+                    semaphore.Wait();
+                }
+            }
+                return PluginTypes;
         }
 
         internal TypeData PluginMarkerType = new TypeData
@@ -270,10 +292,14 @@ namespace OpenTap
         /// </summary>
         internal HashSet<TypeData> PluginTypes;
 
-        private AssemblyData CurrentAsm;
-        private bool ReadPrivateTypesInCurrentAsm = false;
-        private Dictionary<TypeDefinitionHandle, TypeData> TypesInCurrentAsm;
-        private MetadataReader CurrentReader;
+        [ThreadStatic]
+        static private AssemblyData CurrentAsm;
+        [ThreadStatic]
+        static private bool ReadPrivateTypesInCurrentAsm = false;
+        [ThreadStatic]
+        static private Dictionary<TypeDefinitionHandle, TypeData> TypesInCurrentAsm;
+        [ThreadStatic]
+        static private MetadataReader CurrentReader;
 
 
         private TypeData PluginFromEntityRecursive(EntityHandle handle)

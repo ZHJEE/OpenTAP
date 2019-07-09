@@ -2,7 +2,10 @@
   "profiles": {
     "tap (Install Demo)": {
       "commandName": "Project",
-      "commandLineArgs": "install Demonstration -r plugins.tap.aalborg.keysight.com -v -f"
+      "commandLineArgs": "perf --iterations=10000",
+      "environmentVariables": {
+        "OPENTAP_DEBUGGER_ASSEMBLY": "C:\\"
+      }
     },
     "tap (list)": {
       "commandName": "Project",

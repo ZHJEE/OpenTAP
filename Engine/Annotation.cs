@@ -616,10 +616,29 @@ namespace OpenTap
         {
             get
             {
-                var values = merged.Select(x => (x.Get<IStringValueAnnotation>()?.Value ?? x.Get<IObjectValueAnnotation>().Value)).Distinct().Take(2).ToArray();
-                if (values.Length != 1) return null;
+                object val1 = null;
+                object val2 = null;
+                bool first = true;
+                foreach (var x in merged)
+                {
+                   
+                   var val = x.Get<IStringValueAnnotation>()?.Value ?? x.Get<IObjectValueAnnotation>().Value;
+                    if (first)
+                    {
+                        val1 = val;
+                        first = false;
+                        val2 = x.Get<IObjectValueAnnotation>()?.Value;
+                    }
+                    else
+                    {
+                        if(object.Equals(val, val1) == false)
+                        {
+                            return null;
+                        }
+                    }
+                }
 
-                return merged.Select(x => x.Get<IObjectValueAnnotation>().Value).FirstOrDefault();
+                return val2;
             }
             set
             {
@@ -1250,7 +1269,7 @@ namespace OpenTap
             }
             public string Value
             {
-                get => ((ITestStep)annotation.ParentAnnotation.Get<IObjectValueAnnotation>().Value).GetFormattedName();
+                get => (annotation.ParentAnnotation.Get<IObjectValueAnnotation>().Value as ITestStep)?.GetFormattedName();
             }
         }
 

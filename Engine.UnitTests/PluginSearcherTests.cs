@@ -12,11 +12,11 @@ namespace OpenTap.Engine.UnitTests
     [TestFixture]
     public class PluginSearcherTests
     {
+
         [Test]
         public void PluginSearcherBasics()
         {
             PluginSearcher searcher = new PluginSearcher();
-
             searcher.Search(new string[] { "OpenTap.UnitTests.dll", "OpenTap.dll" });
             CollectionAssert.AllItemsAreInstancesOfType(searcher.PluginTypes.ToList(), typeof(TypeData));
             CollectionAssert.AllItemsAreNotNull(searcher.PluginTypes.ToList());

@@ -219,6 +219,7 @@ namespace OpenTap
             return mem.Attributes.OfType<T>().Any();
         }
 
+
         /// <summary> Gets the attribute of type T from mem. </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="mem"></param>

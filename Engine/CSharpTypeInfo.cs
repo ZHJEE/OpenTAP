@@ -257,6 +257,7 @@ namespace OpenTap
             }
         }
 
+        ITypeData typeDescriptor;
         /// <summary>
         /// The type descriptor for the object that this member can hold.
         /// </summary>
@@ -264,11 +265,12 @@ namespace OpenTap
         {
             get
             {
+                if (typeDescriptor != null) return typeDescriptor;
                 switch (Member)
                 {
-                    case PropertyInfo Property: return TypeData.FromType(Property.PropertyType);
-                    case FieldInfo Field: return TypeData.FromType(Field.FieldType);
-                    case MethodInfo Method: return TypeData.FromType(createDelegateType(Method));
+                    case PropertyInfo Property: return (typeDescriptor = TypeData.FromType(Property.PropertyType));
+                    case FieldInfo Field: return (typeDescriptor = TypeData.FromType(Field.FieldType));
+                    case MethodInfo Method: return (typeDescriptor = TypeData.FromType(createDelegateType(Method)));
                     default: throw new InvalidOperationException("Unsupported member type: " + Member);
                 }
             }

@@ -85,6 +85,7 @@ namespace OpenTap
             {
                 if (value == null)
                     throw new ArgumentNullException("value", "TestStep.Name cannot be null.");
+                if (string.Equals(value, name)) return;
                 name = value;
                 OnPropertyChanged(nameof(Name));
             }

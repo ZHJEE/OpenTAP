@@ -1037,6 +1037,19 @@ namespace OpenTap.Engine.UnitTests
             }
         }
 
+        [Test]
+        public void WorkQueueLastElementQueueSize()
+        {
+
+            List<int> elements = new List<int>();
+            var tw = new WorkQueue(WorkQueue.Options.None, "Test");
+            tw.EnqueueWork(() => elements.Add(tw.QueueSize));
+            tw.Wait();
+            Assert.AreEqual(0, elements[0]);
+
+        }
+
+
         /// <summary>
         /// This test proves that each WorkQueue can process things in sequence, while working in parallel.
         /// </summary>

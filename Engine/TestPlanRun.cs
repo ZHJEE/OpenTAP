@@ -473,7 +473,31 @@ namespace OpenTap
             this.StartTimeStamp = startTimeStamp;
             this.IsCompositeRun = original.IsCompositeRun;
             Id = original.Id;
-            serializePlanTask = original.serializePlanTask;
+            string testPlanXml = null;
+            serializePlanTask = Task.Factory.StartNew(() =>
+            {
+                if (testPlanXml != null)
+                {
+                    TestPlanXml = testPlanXml;
+                    Parameters.Add(new ResultParameter("Test Plan", "Hash", GetHash(Encoding.UTF8.GetBytes(testPlanXml)), new MetaDataAttribute(), 0));
+                    return;
+                }
+                using (var memstr = new MemoryStream(128))
+                {
+                    try
+                    {
+                        plan.Save(memstr);
+                        var testPlanBytes = memstr.ToArray();
+                        TestPlanXml = Encoding.UTF8.GetString(testPlanBytes);
+                        Parameters.Add(new ResultParameter("Test Plan", "Hash", GetHash(testPlanBytes), new MetaDataAttribute(), 0));
+                    }
+                    catch (Exception e)
+                    {
+                        log.Warning("Unable to XML serialize test plan.");
+                        log.Debug(e);
+                    }
+                }
+            });
             TestPlanXml = original.TestPlanXml;
             TestPlanName = original.TestPlanName;
             this.plan = original.plan;
