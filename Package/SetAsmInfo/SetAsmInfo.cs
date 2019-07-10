@@ -391,6 +391,8 @@ namespace OpenTap.Package.SetAsmInfo
             {
                 try
                 {
+                    if (File.Exists(filename) == false)
+                        throw new FileNotFoundException("File was not found on disk.", filename);
                     var data = Win32Resource.ReadVersionResource(filename);
 
                     var versionInfo = new VERSION_INFO_CHUNK(data);
@@ -438,7 +440,7 @@ namespace OpenTap.Package.SetAsmInfo
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("Error while updating version information.", ex);
+                    throw new Exception($"Error while updating version information for '{filename}'", ex);
                 }
             }
 

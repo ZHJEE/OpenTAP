@@ -58,30 +58,24 @@ namespace OpenTap.Package
         [XmlIgnore]
         public string FileName
         {
-            get
-            {
-                if (_FileName == null)
-                    // When this type is deserialized from an xml file, FileName will 
-                    // be unset, so we use the value from RelativeDestinationPath
-                    return RelativeDestinationPath;
-                else
-                    return _FileName;
-            }
-            set { _FileName = value; }
+            // When this type is deserialized from an xml file, FileName will 
+            // be unset, so we use the value from RelativeDestinationPath
+            get => sourcePath ?? _FileName ?? RelativeDestinationPath;
+            set  => _FileName = value; 
         }
 
+        string sourcePath;
         [XmlAttribute("SourcePath")]
         [DefaultValue(null)]
+        [XmlIgnore]
         public string SourcePath
         {
-            get
-            {
-                return null;
-            }
+            get => sourcePath;
             set
             {
                 if (value != null)
                     FileName = value;
+                sourcePath = value;
             }
         }
 

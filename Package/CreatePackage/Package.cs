@@ -35,13 +35,21 @@ namespace OpenTap.Package
                     {
                         try
                         {
-                            // if the file is already in its destination dir use that inatead.
+                            // if the file is already in its destination dir use that instead.
                             // That file is much more likely to be inside the OpenTAP dir we already searched.
                             string fullPath = Path.GetFullPath(def.RelativeDestinationPath);
                             string dir = Path.GetDirectoryName(fullPath);
                             
                             AssemblyData assembly = searchedAssemblies.FirstOrDefault(a => PathUtils.AreEqual(a.Location, fullPath));
-                            
+
+                            if (assembly == null)
+                            {
+                                if (def.SourcePath != null)
+                                {
+                                    var fullPath2 = Path.GetFullPath(def.SourcePath);
+                                    assembly = searchedAssemblies.FirstOrDefault(a => PathUtils.AreEqual(a.Location, fullPath2));
+                                }
+                            }
                             if (assembly != null)
                             {
                                 var otherversions = searchedAssemblies.Where(a => a.Name == assembly.Name).ToList();
@@ -82,8 +90,8 @@ namespace OpenTap.Package
                             }
                             else
                             {
-                                // This error is critical since assembly dependencies won't be found.
-                                throw new FileNotFoundException($"Could not load plugins for '{fullPath}'");
+                                // This error could be critical since assembly dependencies won't be found.
+                                log.Warning($"Could not load plugins for '{fullPath}'");
                             }
                         }
                         catch (BadImageFormatException)
@@ -624,7 +632,7 @@ namespace OpenTap.Package
 
                     Directory.CreateDirectory(Path.GetDirectoryName(tempName));
                     ProgramHelper.FileCopy(file.FileName, tempName);
-                    file.FileName = tempName;
+                    file.SourcePath = tempName;
                 }
 
                 SemanticVersion fVersion = null;
