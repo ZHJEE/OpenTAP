@@ -1348,26 +1348,36 @@ namespace OpenTap
                 {
                     if (lst2.IsReadOnly)
                         rdonly = true;
-                    if (!rdonly)
-                        lst2.Clear();
+                    //if (!rdonly)
+                    //    lst2.Clear();
                     int index = 0;
                     foreach (var elem in annotatedElements)
                     {
                         var val = elem.Get<IObjectValueAnnotation>().Value;
-
+                        
                         elem.Write(val);
+                        if (lst2.Count > index && object.Equals(val, lst2[index]))
+                        {
+                            index++;
+                            continue;
+                        }
                         if (!rdonly)
                         {
                             if (lst2.IsFixedSize)
                             {
                                 lst2[index] = val;
-                                index++;
                             }
                             else
                             {
-                                lst2.Add(val);
+                                lst2.Insert(index, val);
+                                
                             }
+                            index++;
                         }
+                    }
+                    while(lst2.Count > index && !rdonly && !lst2.IsFixedSize)
+                    {
+                        lst2.RemoveAt(lst2.Count - 1);
                     }
                 }
                 isWriting = true;
