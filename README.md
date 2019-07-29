@@ -43,7 +43,7 @@ This should install the needed deb dependencies. Once these are installed to fol
 ```
 dotnet build -c NetCore -r linux-x64
 dotnet publish -c NetCore -r linux-x64
-SolutionDir=. dotnet publish -c NetCore -r linux-x64 tap/tap.csproj
+SolutionDir=`pwd`/ dotnet publish -c NetCore -r linux-x64 tap/tap.csproj
 ```
 *Note, the last line is there to ensure getting the right System.Runtime.dll.*
 
