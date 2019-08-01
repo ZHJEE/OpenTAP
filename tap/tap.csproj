@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15">
   <PropertyGroup Condition="'$(SolutionDir)'==''">
     <SolutionDir>../</SolutionDir>
   </PropertyGroup>
