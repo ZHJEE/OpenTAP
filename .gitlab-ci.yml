@@ -54,7 +54,7 @@ Build-Linux64:
   tags: [ docker, gce ]
   script: 
          - dotnet publish -c NetCore -r linux-x64 OpenTAP.sln
-         - dotnet publish -c NetCore -r linux-x64 tap/tap.csproj
+         - SolutionDir=`pwd`/ dotnet publish -c NetCore -r linux-x64 tap/tap.csproj
   artifacts:
     expire_in: 1 week
     paths:
