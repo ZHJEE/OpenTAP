@@ -1,4 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup Condition="'$(SolutionDir)'==''">
+    <SolutionDir>../</SolutionDir>
+  </PropertyGroup>
   <Import Project="$(SolutionDir)Common.Exe.targets"/>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
