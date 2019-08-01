@@ -3,6 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{B2B5AFDA-56F7-49AA-8615-4640581242A3}"
+	ProjectSection(SolutionItems) = preProject
+		nuget\OpenTAP.nuspec = nuget\OpenTAP.nuspec
+		nuget\build\OpenTap.props = nuget\build\OpenTap.props
+		nuget\build\OpenTap.targets = nuget\build\OpenTap.targets
+	EndProjectSection
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tap.Plugins.BasicSteps", "BasicSteps\Tap.Plugins.BasicSteps.csproj", "{57145555-3F78-44C3-BA7F-B5EDAA2B573C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tap.Cli", "Cli\Tap.Cli.csproj", "{1EB4D48C-5719-483D-82DE-017F6B1634E6}"
@@ -17,28 +24,22 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tap", "tap\tap.csproj", "{C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tap.Package.UnitTests", "Package.UnitTests\Tap.Package.UnitTests.csproj", "{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuget", "nuget", "{B2B5AFDA-56F7-49AA-8615-4640581242A3}"
-	ProjectSection(SolutionItems) = preProject
-		nuget\OpenTAP.nuspec = nuget\OpenTAP.nuspec
-		nuget\build\OpenTap.props = nuget\build\OpenTap.props
-		nuget\build\OpenTap.targets = nuget\build\OpenTap.targets
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tap.Package", "Package\Tap.Package.csproj", "{FC73F73C-BD97-4DDC-AD7B-5A990CB4AF6B}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Shared\Tap.Shared.projitems*{11c58bd2-45e5-4a19-ae43-073b689fdb43}*SharedItemsImports = 13
+		Shared\Tap.Shared.projitems*{fc73f73c-bd97-4ddc-ad7b-5a990cb4af6b}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		NetCore|x64 = NetCore|x64
 		NetCore|x86 = NetCore|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 		NetCoreDebug|x64 = NetCoreDebug|x64
 		NetCoreDebug|x86 = NetCoreDebug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{57145555-3F78-44C3-BA7F-B5EDAA2B573C}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -121,22 +122,22 @@ Global
 		{C2C29219-4ED1-4197-85BB-BBD96286686F}.Release|x64.Build.0 = Release|x64
 		{C2C29219-4ED1-4197-85BB-BBD96286686F}.Release|x86.ActiveCfg = Release|x86
 		{C2C29219-4ED1-4197-85BB-BBD96286686F}.Release|x86.Build.0 = Release|x86
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x64.Build.0 = Debug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x86.Build.0 = Debug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x64.ActiveCfg = NetCore|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x64.Build.0 = NetCore|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x86.ActiveCfg = NetCore|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x86.Build.0 = NetCore|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x64.ActiveCfg = NetCoreDebug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x64.Build.0 = NetCoreDebug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x86.ActiveCfg = NetCoreDebug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x86.Build.0 = NetCoreDebug|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x64.ActiveCfg = Release|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x64.Build.0 = Release|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x86.ActiveCfg = Release|Any CPU
-		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x86.Build.0 = Release|Any CPU
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x64.ActiveCfg = Debug|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x64.Build.0 = Debug|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x86.ActiveCfg = Debug|x86
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Debug|x86.Build.0 = Debug|x86
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x64.ActiveCfg = NetCore|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x64.Build.0 = NetCore|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x86.ActiveCfg = NetCore|x86
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCore|x86.Build.0 = NetCore|x86
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x64.ActiveCfg = NetCoreDebug|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x64.Build.0 = NetCoreDebug|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x86.ActiveCfg = NetCoreDebug|x86
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.NetCoreDebug|x86.Build.0 = NetCoreDebug|x86
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x64.ActiveCfg = Release|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x64.Build.0 = Release|x64
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x86.ActiveCfg = Release|x86
+		{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}.Release|x86.Build.0 = Release|x86
 		{FC73F73C-BD97-4DDC-AD7B-5A990CB4AF6B}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{FC73F73C-BD97-4DDC-AD7B-5A990CB4AF6B}.Debug|x64.Build.0 = Debug|Any CPU
 		{FC73F73C-BD97-4DDC-AD7B-5A990CB4AF6B}.Debug|x86.ActiveCfg = Debug|Any CPU

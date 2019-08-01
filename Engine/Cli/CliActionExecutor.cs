@@ -223,7 +223,7 @@ namespace OpenTap.Cli
    
     
 
-#if DEBUG && !NETSTANDARD2_0
+#if DEBUG2 && !NETSTANDARD2_0
     /// <summary>
     /// Helper class for interacting with the visual studio debugger. Does not build on .NET Core.
     /// </summary>
