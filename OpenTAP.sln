@@ -22,14 +22,13 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Tap.Shared", "Shared\Tap.Sh
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "tap", "tap\tap.csproj", "{C2C29219-4ED1-4197-85BB-BBD96286686F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tap.Package.UnitTests", "Package.UnitTests\Tap.Package.UnitTests.csproj", "{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tap.Package.UnitTests", "Package.UnitTests\Tap.Package.UnitTests.csproj", "{0875C7B8-47A5-4CF5-A6CA-8B2367D87799}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tap.Package", "Package\Tap.Package.csproj", "{FC73F73C-BD97-4DDC-AD7B-5A990CB4AF6B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tap.Package", "Package\Tap.Package.csproj", "{FC73F73C-BD97-4DDC-AD7B-5A990CB4AF6B}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Shared\Tap.Shared.projitems*{11c58bd2-45e5-4a19-ae43-073b689fdb43}*SharedItemsImports = 13
-		Shared\Tap.Shared.projitems*{fc73f73c-bd97-4ddc-ad7b-5a990cb4af6b}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
