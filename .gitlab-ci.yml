@@ -66,7 +66,7 @@ Build-x86:
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
   script:
-         - nuget restore
+         - MSBuild OpenTAP.sln /t:restore /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet restore -r win7-x86
          - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet build tap\tap.csproj -c Release -r win-x86
@@ -81,7 +81,7 @@ Build-x64:
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
   script: 
-         - nuget restore
+         - MSBuild /t:restore OpenTAP.sln /p:Configuration=Release /p:Platform=x64 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet restore -r win7-x64
          - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x64 /target:Rebuild /p:DefineConstants="TRACE" /m
          - dotnet build tap\tap.csproj -c Release -r win-x64
