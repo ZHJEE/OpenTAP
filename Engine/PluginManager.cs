@@ -113,20 +113,12 @@ namespace OpenTap
                 if(notLoadedTypesCnt > 0)
                 {
                     var notLoadedAssembliesCnt = unloadedPlugins.Select(x => x.Assembly).Distinct().Where(asm => asm.Status == LoadStatus.NotLoaded).ToArray();
-                    if (notLoadedAssembliesCnt.Length > 0)
-                    {
-                        notLoadedAssembliesCnt.AsParallel().ForAll(asm => asm.Load());
-                    }
+                    if(notLoadedAssembliesCnt.Length > 0)
+                        TapThread.ParallelFor(notLoadedAssembliesCnt, asm => asm.Load());
+                    TapThread.ParallelFor(unloadedPlugins, x => x.Load(), 8);
                 }
-                IEnumerable<TypeData> plugins = unloadedPlugins;
-                if (notLoadedTypesCnt > 8)
-                {
-                    // only find types in parallel if there are sufficiently many.
-                    plugins = plugins
-                    .AsParallel() // This is around 50% faster when many plugins are loaded in parallel.
-                    .AsOrdered(); // ensure the order is the same as before.
-                }
-
+                
+                ICollection<TypeData> plugins = unloadedPlugins;
                 return plugins
                     .Select(td => td.Load())
                     .Where(x => x != null)

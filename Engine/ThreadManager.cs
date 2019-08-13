@@ -4,7 +4,9 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -250,6 +252,51 @@ namespace OpenTap
         {
             return $"[Thread '{Name}']";
         }
+
+        /// <summary>
+        /// Runs func over objects in parallel in TapThreads. Blocks until all threads has executed.
+        /// </summary>
+        /// <param name="objects">the objects to process.</param>
+        /// <param name="func">the function to execute across the objects.</param>
+        /// <param name="divide">must be > 0. The number of elements to process in each parallel group. If divide is 4 and there are 12 elements, 3 threads will be started.</param>
+        /// <typeparam name="T"></typeparam>
+        internal static void ParallelFor<T>(IEnumerable<T> objects, Action<T> func, int divide = 1)
+        {
+            if(divide <= 0)
+                throw new ArgumentException("Divide must be larger than 0.", nameof(divide));
+            var len = objects.Count();
+            if (len <= divide)
+            {
+                foreach (var obj in objects)
+                    func(obj);
+                return;
+            }
+            if (divide != 1)
+            {
+                var sets = Enumerable.Range(0, len / divide + 1).Select(i => objects.Skip(i * divide).Take(divide).ToArray())
+                    .ToArray();
+                ParallelFor(sets, ts =>
+                {
+                    foreach (var obj in ts)
+                        func(obj);
+                });
+                return;
+            }
+
+            
+            var sem = new SemaphoreSlim(0);
+            foreach (var obj in objects)
+            {
+                TapThread.Start(() =>
+                {
+                    func(obj);
+                    sem.Release();
+                });
+            }
+
+            for (int i = 0; i < len; i++)
+                sem.Wait();
+        }
     }
 
     /// <summary> Custom thread pool for fast thread startup. </summary>
@@ -351,7 +398,6 @@ namespace OpenTap
         void processQueue()
         {
             int trd = Interlocked.Increment(ref threads);
-            Debug.WriteLine("ThreadManager: Stating thread {0}", trd);
             var handles = new WaitHandle[2];
             try
             {

@@ -85,6 +85,17 @@ namespace OpenTap.Package
             }
         }
 
+        static Dictionary<string, PackageDef> pkgs;
+
+        Dictionary<string, PackageDef> plugins
+        {
+            get
+            {
+                if (pkgs == null)
+                    pkgs = new Installation(Path.GetDirectoryName(Assembly.GetAssembly(typeof(PluginManager)).Location)).GetPackages().ToDictionary(x => x.Name);
+                return pkgs;
+            }
+        }
         public override bool Deserialize(XElement element, ITypeData t, Action<object> setter)
         {
             var dep = element.Element(PackageDependenciesName);
@@ -93,8 +104,6 @@ namespace OpenTap.Package
             dep.Remove();
             if (element.IsEmpty)
                 element.Value = ""; // little hack to ensure that the element is not created empty. (leading to null values).
-
-            var plugins = new Installation(Path.GetDirectoryName(Assembly.GetAssembly(typeof(PluginManager)).Location)).GetPackages().ToDictionary(x => x.Name);
 
             List<string> errors = new List<string>();
             foreach (var pkg in dep.Elements(PackageDependencyName))
@@ -182,7 +191,7 @@ namespace OpenTap.Package
                     var pluginsNode = new XElement(PackageDependenciesName);
 
                     var allassemblies = allTypes.Select(getAssemblyLocation).Where(x => x != null).ToHashSet();
-                    var plugins = new Installation(Path.GetDirectoryName(Assembly.GetAssembly(typeof(PluginManager)).Location)).GetPackages();
+                    var plugins = this.plugins.Values;
 
                     List<PackageDef> packages = new List<PackageDef>();
 

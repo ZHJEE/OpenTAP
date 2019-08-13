@@ -384,24 +384,24 @@ namespace OpenTap
         /// <returns>TestPlanRun results, no StepResults.</returns>
         public Task<TestPlanRun> ExecuteAsync(IEnumerable<IResultListener> resultListeners, IEnumerable<ResultParameter> metaDataParameters, HashSet<ITestStep> stepsOverride, CancellationToken cancellationToken)
         {
+            var sem = new SemaphoreSlim(0);
+            TestPlanRun testPlanRun = null;
+            TapThread.Start(() =>
+            {
+                try
+                {
+                    cancellationToken.Register(TapThread.Current.Abort);
+                    testPlanRun = Execute(resultListeners, metaDataParameters, stepsOverride);
+                }
+                finally
+                {
+                    sem.Release();
+                }
+            }, "Plan Thread");
+            
             Task<TestPlanRun> result = Task.Run(() =>
             {
-                var sem = new SemaphoreSlim(0);
-                TestPlanRun testPlanRun = null;
-                TapThread.Start(() =>
-                {
-                    try
-                    {
-                        cancellationToken.Register(TapThread.Current.Abort);
-                        testPlanRun = Execute(resultListeners, metaDataParameters, stepsOverride);
-                    }
-                    finally
-                    {
-                        sem.Release();
-                    }
-                }, "Plan Thread");
                 sem.Wait();
-                
                 return testPlanRun;
             });
             
