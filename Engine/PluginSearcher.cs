@@ -231,21 +231,124 @@ namespace OpenTap
         }
 
         /// <summary>
+        /// This is used for maintaining a list of files that does not include plugins. (blacklist)
+        /// </summary>
+        struct FileData
+        {
+            public long Timestamp;
+            public string Name;
+            
+            public static void WriteToFile(string file, IEnumerable<FileData> list)
+            {
+                using (var fstr = File.Open(file, FileMode.OpenOrCreate))
+                {
+                    fstr.SetLength(0);
+                    using (var writer = new StreamWriter(fstr))
+                    {
+                        foreach (var elem in list)
+                        {
+                            writer.Write(elem.Name);
+                            writer.Write(',');
+                            writer.Write(elem.Timestamp);
+                            writer.Write('\n');
+                        }
+                    }
+                    if (OperatingSystem.Current == OperatingSystem.Windows)
+                        File.SetAttributes(file, FileAttributes.Hidden);
+                }
+            }
+
+            public static IEnumerable<FileData> ReadFromFile(string file)
+            {
+                if (File.Exists(file) == false) return Array.Empty<FileData>();
+                List<FileData> list = new List<FileData>();
+                using (var fstr = File.Open(file, FileMode.Open))
+                {
+                    var reader = new StreamReader(fstr);
+                    while (reader.EndOfStream == false)
+                    {
+                        var line = reader.ReadLine();
+                        if (line == null) break;
+                        var x = line.Split(',');
+                        if (x.Length < 2) continue;
+                        string name = x[0];
+                        long.TryParse(x[1], out long stamp);
+                        list.Add(new FileData{Timestamp = stamp, Name =  name});
+                    }
+                }
+
+                return list;
+            }
+
+            public override string ToString() => $"{Name} : {Timestamp}";
+        }
+
+
+        /// <summary>
         /// Searches assembly files and returns all the plugin types found in those.
         /// The search will also populate a complete list of types searched in the AllTypes property
         /// </summary>
         public IEnumerable<TypeData> Search(IEnumerable<string> files)
         {
+            
             Stopwatch timer = Stopwatch.StartNew();
-            Assemblies = new AssemblyDependencyGraph().Generate(files);
+            
+            const string cacheFileName = ".plugin_file_blacklist";
+            HashSet<FileData> fileblacklist;
+            try
+            {
+                fileblacklist = FileData.ReadFromFile(cacheFileName).ToHashSet();
+            }
+            catch
+            {
+                log.Debug("Unable to read file blacklist");
+                fileblacklist = new HashSet<FileData>();
+            }
+            var lst = files.ToList();
+            lst.RemoveIf(file =>
+            {
+                var info = new FileInfo(file);
+                FileData fd = new FileData {Name = info.FullName, Timestamp = info.LastWriteTime.Ticks};
+                if (fileblacklist.Contains(fd))
+                    return true;
+                return false;
+            });
+            
+            
+            Assemblies = new AssemblyDependencyGraph().Generate(lst);
             log.Debug(timer, "Ordered {0} assemblies according to references.", Assemblies.Count());
 
             AllTypes = new Dictionary<string, TypeData>();
             PluginTypes = new HashSet<TypeData>();
+            fileblacklist.Clear();
+            var loadedFiles = new HashSet<FileData>();
             foreach (AssemblyData asm in Assemblies)
             {
                 PluginsInAssemblyRecursive(asm);
+                if (asm.PluginTypes.Any())
+                {
+                    var info = new FileInfo(asm.Location);
+                    loadedFiles.Add(new FileData {Name = info.FullName, Timestamp = info.LastWriteTime.Ticks});
+                }
             }
+
+            TapThread.Start(() =>
+            {
+                var towrite = files.Select(x =>
+                {
+                    var info = new FileInfo(x);
+                    return new FileData {Name = info.FullName, Timestamp = info.LastWriteTime.Ticks};
+                }).Where(fd => loadedFiles.Contains(fd) == false).ToArray();
+                try
+                {
+                    FileData.WriteToFile(cacheFileName, towrite);
+                }
+                catch
+                {
+                    log.Debug("Unable to write plugin file blacklist.");
+                }
+            });
+            
             return PluginTypes;
         }
 
@@ -863,9 +966,9 @@ namespace OpenTap
 
         private List<TypeData> _PluginTypes;
         /// <summary>
-        /// Gets a list of plugin types that this Assembly defines
+        /// Gets a list of plugin types that this Assembly defines.
         /// </summary>
-        public IEnumerable<TypeData> PluginTypes =>_PluginTypes;
+        public IEnumerable<TypeData> PluginTypes =>(IEnumerable<TypeData>)_PluginTypes ?? Array.Empty<TypeData>();
 
         internal void AddPluginType(TypeData typename)
         {

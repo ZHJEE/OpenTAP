@@ -172,7 +172,7 @@ namespace OpenTap.Cli
                 return;
             }
 
-            string[] args = Environment.GetCommandLineArgs().Skip(1).ToArray();
+            string[] args = Environment.GetCommandLineArgs().Skip(1).ToArray();    
             bool installCommand;
             bool uninstallCommand;
             bool packageManagerCommand;
