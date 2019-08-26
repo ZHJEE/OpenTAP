@@ -309,6 +309,25 @@ Installer-Linux:
     paths:
        - "OpenTAP.tar"
 
+Publish-Packages:
+  stage: deploy
+  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
+  tags: [ docker, windows ]
+  dependencies:
+     - Build-x64
+     - Package-Windows
+     - Package-Linux
+  only:
+    - tags
+  script:
+      - cd bin/Release64
+      - $version=$(./tap sdk gitversion)
+      - tap package install PackagePublish
+      - mv ../../OpenTAP.Linux.TapPackage OpenTAP.$version.Linux.TapPackage
+      - mv ../../OpenTAP.Windows.TapPackage OpenTAP.$version.Windows.TapPackage
+#      - tap package publish -r http://packages.opentap.io -k $PUBLIC_REPO_PASS OpenTAP*.Linux.TapPackage
+#      - tap package publish -r http://packages.opentap.io -k $PUBLIC_REPO_PASS OpenTAP*.Windows.TapPackage
+
 
 # #############################################
 # # Stage: docker                             #
