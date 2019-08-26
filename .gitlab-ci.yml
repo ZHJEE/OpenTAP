@@ -206,10 +206,10 @@ Package-Windows:
   stage: package
   image: registry.gitlab.com/opentap/buildrunners/signrunner:latest
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Build-x64
      - Doc-API
@@ -229,10 +229,10 @@ Package-Linux:
   stage: package
   image: registry.gitlab.com/opentap/buildrunners/signrunner:latest
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Build-x86
      - Build-Linux64
@@ -259,10 +259,10 @@ Installer-Windows:
   stage: deploy
   image: registry.gitlab.com/opentap/buildrunners/inno
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Build-x64
      - Package-Windows
@@ -285,10 +285,10 @@ Installer-Linux:
   stage: deploy
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Package-Linux
   script:
@@ -317,8 +317,8 @@ Publish-Packages:
      - Build-x64
      - Package-Windows
      - Package-Linux
-  only:
-    - tags
+#  only:
+#    - tags
   script:
       - cd bin/Release64
       - $version=$(./tap sdk gitversion)
