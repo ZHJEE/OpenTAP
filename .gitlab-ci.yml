@@ -259,10 +259,10 @@ Installer-Windows:
   stage: deploy
   image: registry.gitlab.com/opentap/buildrunners/inno
   tags: [ docker, windows ]
-#  only:
-#    - tags
-#    - /^release.*$/
-#    - master
+  only:
+    - tags
+    - /^release.*$/
+    - master
   dependencies:
      - Build-x64
      - Package-Windows
@@ -285,10 +285,10 @@ Installer-Linux:
   stage: deploy
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
-#  only:
-#    - tags
-#    - /^release.*$/
-#    - master
+  only:
+    - tags
+    - /^release.*$/
+    - master
   dependencies:
      - Package-Linux
   script:
@@ -322,7 +322,7 @@ Publish-Packages:
   script:
       - cd bin/Release64
       - $version=$(./tap sdk gitversion)
-      - ./tap package install PackagePublish
+      - ./tap package install -f PackagePublish
       - Move-Item ../../OpenTAP.Linux.TapPackage OpenTAP.$version.Linux.TapPackage
       - Move-Item ../../OpenTAP.Windows.TapPackage OpenTAP.$version.Windows.TapPackage
 #      - tap package publish -r http://packages.opentap.io -k $PUBLIC_REPO_PASS OpenTAP*.Linux.TapPackage
