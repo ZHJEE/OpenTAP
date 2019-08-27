@@ -206,10 +206,10 @@ Package-Windows:
   stage: package
   image: registry.gitlab.com/opentap/buildrunners/signrunner:latest
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Build-x64
      - Doc-API
@@ -230,10 +230,10 @@ Package-Linux:
   stage: package
   image: registry.gitlab.com/opentap/buildrunners/signrunner:latest
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Build-x86
      - Build-Linux64
@@ -261,10 +261,10 @@ Installer-Windows:
   stage: deploy
   image: registry.gitlab.com/opentap/buildrunners/inno
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Build-x64
      - Package-Windows
@@ -287,10 +287,10 @@ Installer-Linux:
   stage: deploy
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+#  only:
+#    - tags
+#    - /^release.*$/
+#    - master
   dependencies:
      - Package-Linux
   script:
@@ -341,8 +341,8 @@ PublishPackages-RC:
 
 PublishPackages-Beta:
   extends: .PublishPackage
-  only:
-    - master
+#  only:
+#    - master
   when: manual
 
 
