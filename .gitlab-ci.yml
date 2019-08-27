@@ -242,7 +242,7 @@ Package-Linux:
          -  ../../Release/tap package download --os Linux --architecture x64 -f -r $env:PACKAGE_REPO_URL -t . Demonstration
          -  mv "Demonstration*.TapPackage" "Demonstration.TapPackage"
          -  ../../Release/tap package install -f "/repo/Sign.TapPackage"
-         -  cmd /C "..\..\Release\tap package create -v ../../../opentap_linux64.package.xml -o Packages/OpenTAP.Linux.TapPackage --install"
+         -  cmd /C "..\..\Release\tap package create -v ../../../opentap_linux64.package.xml -o Packages/OpenTAP.Linux.TapPackage"
          -  cp Packages/OpenTAP.Linux.TapPackage ../../../OpenTAP.Linux.TapPackage
   artifacts:
     when: on_success
