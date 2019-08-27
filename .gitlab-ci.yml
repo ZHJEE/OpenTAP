@@ -218,12 +218,13 @@ Package-Windows:
          - cd bin/Release64
          - .\tap.exe package install -f "/repo/Sign.TapPackage"
          - cmd /C ".\tap.exe package create -v ../../opentapCE.package.xml -o Packages/OpenTAP/OpenTAP.Windows.TapPackage --install"
-         - copy-item Packages/OpenTAP/OpenTAP.Windows.TapPackage ../../OpenTAP.Windows.TapPackage
+         - $version=$(./tap sdk gitversion)
+         - copy-item Packages/OpenTAP/OpenTAP.Windows.TapPackage ../../OpenTAP.$version.Windows.TapPackage
   artifacts:
     when: on_success
     expire_in: 1 day
     paths:
-       - OpenTAP.Windows.TapPackage
+       - OpenTAP.*.Windows.TapPackage
 
 Package-Linux:
   stage: package
@@ -237,18 +238,19 @@ Package-Linux:
      - Build-x86
      - Build-Linux64
   script:
-         -  mv bin\Release\linux-x64 bin\linux-x64
-         -  pushd bin\linux-x64\publish
-         -  ../../Release/tap package download --os Linux --architecture x64 -f -r $env:PACKAGE_REPO_URL -t . Demonstration
-         -  mv "Demonstration*.TapPackage" "Demonstration.TapPackage"
-         -  ../../Release/tap package install -f "/repo/Sign.TapPackage"
-         -  cmd /C "..\..\Release\tap package create -v ../../../opentap_linux64.package.xml -o Packages/OpenTAP.Linux.TapPackage"
-         -  cp Packages/OpenTAP.Linux.TapPackage ../../../OpenTAP.Linux.TapPackage
+         - mv bin\Release\linux-x64 bin\linux-x64
+         - pushd bin\linux-x64\publish
+         - ../../Release/tap package download --os Linux --architecture x64 -f -r $env:PACKAGE_REPO_URL -t . Demonstration
+         - mv "Demonstration*.TapPackage" "Demonstration.TapPackage"
+         - ../../Release/tap package install -f "/repo/Sign.TapPackage"
+         - cmd /C "..\..\Release\tap package create -v ../../../opentap_linux64.package.xml -o Packages/OpenTAP.Linux.TapPackage --install"
+         - $version=$(./tap sdk gitversion)
+         - cp Packages/OpenTAP.Linux.TapPackage ../../../OpenTAP.$version.Linux.TapPackage
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
-       - OpenTAP.Linux.TapPackage
+       - OpenTAP.*.Linux.TapPackage
 
 
 # #############################################
@@ -309,24 +311,39 @@ Installer-Linux:
     paths:
        - "OpenTAP.tar"
 
-Publish-Packages:
+
+.PublishPackage:
   stage: deploy
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
+  variables:
+    GIT_STRATEGY: none
   dependencies:
      - Build-x64
      - Package-Windows
      - Package-Linux
-  only:
-    - tags
   script:
       - cd bin/Release64
-      - $version=$(./tap sdk gitversion)
       - ./tap package install -f PackagePublish
-      - Move-Item ../../OpenTAP.Linux.TapPackage OpenTAP.$version.Linux.TapPackage
-      - Move-Item ../../OpenTAP.Windows.TapPackage OpenTAP.$version.Windows.TapPackage
       - tap package publish -r http://packages.opentap.io -k $PUBLIC_REPO_PASS OpenTAP*.Linux.TapPackage
       - tap package publish -r http://packages.opentap.io -k $PUBLIC_REPO_PASS OpenTAP*.Windows.TapPackage
+
+
+PublishPackages-Release:
+  extends: .PublishPackage
+  only:
+    - tags
+
+PublishPackages-RC:
+  extends: .PublishPackage
+  only:
+    - /^release.*$/
+
+PublishPackages-Beta:
+  extends: .PublishPackage
+  only:
+    - master
+  when: manual
 
 
 # #############################################
