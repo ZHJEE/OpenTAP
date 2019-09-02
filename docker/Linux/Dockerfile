@@ -26,8 +26,8 @@ RUN apt install -y libcurl3
 
 # Install TAP
 RUN apt install unzip -y
-COPY TAPLinux.TapPackage TAPLinux.TapPackage
-RUN unzip TAPLinux.TapPackage -d /opt/tap
+COPY OpenTAP.Linux.TapPackage OpenTAP.Linux.TapPackage
+RUN unzip OpenTAP.Linux.TapPackage -d /opt/tap
 RUN chmod -R +w /opt/tap
 RUN chmod +x /opt/tap/tap
 ENV PATH="/opt/tap:${PATH}"
@@ -36,7 +36,3 @@ ENV TAP_PATH="/opt/tap"
 # Test TAP
 RUN tap -h
 RUN tap package list -v
-
-# Run a test plan
-#COPY ../../Tap/Engine.UnitTests/TestTestPlans .
-#RUN tap run testMultiReferencePlan.TapPlan -v
