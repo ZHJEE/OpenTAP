@@ -33,6 +33,14 @@ namespace OpenTap.Plugins.BasicSteps
         public Verdict TargetVerdict { get; set; }
         [Display("Then", Order: 3)]
         public IfStepAction Action { get; set; }
+
+        [EnabledIf(nameof(Action), IfStepAction.WaitForUser, HideIfDisabled = true)]
+        [Display("Message", "Message to show when waiting for the user.")]
+        public string WaitForUserMessage { get; set; } = "Waiting for user input";
+        [Display("Allow Abort Plan", "Whether to allow the user to stop the plan at the wait.")]
+
+        public bool WaitForUserAllowAbort { get; set; } = true;
+        
         #endregion
 
         public IfStep()
@@ -44,14 +52,28 @@ namespace OpenTap.Plugins.BasicSteps
         
         class Request
         {
-            public string Name => "Waiting for user input";
+            public string Name { get; set; }
+            
             [Browsable(true)]
             [Layout(LayoutMode.FullRow)]
             public string Message { get; private set; } = "Continue?";
+            [Browsable(false)]
+            public bool ShowAbort { get; set; }
             [Submit]
             [Layout(LayoutMode.FloatBottom | LayoutMode.FullRow)]
-
+            [EnabledIf(nameof(ShowAbort), true, HideIfDisabled = true)]
             public WaitForInputResult1 Response { get; set; } = WaitForInputResult1.Yes;
+
+            public enum OkEnum
+            {
+                Ok
+            }
+            [Submit]
+            [Layout(LayoutMode.FloatBottom | LayoutMode.FullRow)]
+            [EnabledIf(nameof(ShowAbort), false, HideIfDisabled = true)]
+
+            public OkEnum Response2 { get; set; } = OkEnum.Ok;
+
         }
 
         public override void Run()
@@ -70,12 +92,13 @@ namespace OpenTap.Plugins.BasicSteps
                         break;
                     case IfStepAction.AbortTestPlan:
                         Log.Info("Condition is true, aborting TestPlan run.");
-                        string msg = String.Format("TestPlan aborted by \"If\" Step ({2} of {0} was {1})", InputVerdict.Step.Name, InputVerdict.Value, InputVerdict.PropertyName);
                         PlanRun.MainThread.Abort();
                         break;
                     case IfStepAction.WaitForUser:
                         Log.Info("Condition is true, waiting for user input.");
                         var req = new Request();
+                        req.Name = WaitForUserMessage;
+                        req.ShowAbort = WaitForUserAllowAbort;
                         UserInput.Request(req, false);
                         if (req.Response == WaitForInputResult1.No)
                         {
@@ -89,6 +112,8 @@ namespace OpenTap.Plugins.BasicSteps
                         {
                             loopStep.BreakLoop();
                         }
+                        
+                        StepRun.SuggestedNextStep = GetParent<ITestStep>()?.Id;
                         break;
                     default:
                         throw new NotImplementedException();
@@ -99,6 +124,5 @@ namespace OpenTap.Plugins.BasicSteps
                 Log.Info("Condition is false.");
             }
         }
-
     }
 }

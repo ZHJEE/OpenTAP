@@ -850,7 +850,7 @@ namespace OpenTap
         void read()
         {
             if (annotation.Source == null) return;
-            var m = annotation.Get<IMemberAnnotation>();
+            var m = annotation.Get<IMemberAnnotation>(from: this);
             currentValue = m.Member.GetValue(annotation.Source);
         }
         public void Read(object source)
@@ -938,14 +938,9 @@ namespace OpenTap
                 availableValuesMember = available;
                 this.annotation = annotation;
             }
-
-            public void Annotate(AnnotationCollection anntotation)
-            {
-                //annotation.
-            }
         }
         
-        class InputStepAnnotation : IAvailableValuesAnnotation, IObjectValueAnnotation
+        class InputStepAnnotation : IAvailableValuesAnnotation, IObjectValueAnnotation, IReflectionAnnotation
         {
             struct InputThing
             {
@@ -1053,6 +1048,8 @@ namespace OpenTap
             {
                 this.annotation = annotation;
             }
+
+            public ITypeData ReflectionInfo => TypeData.FromType(typeof(InputThing));
         }
 
         class EnumValuesAnnotation : IAvailableValuesAnnotation

@@ -9,6 +9,7 @@ using System.ComponentModel;
 using NUnit.Framework;
 using OpenTap.Plugins.BasicSteps;
 using OpenTap;
+using OpenTap.Engine.UnitTests.TestTestSteps;
 
 namespace OpenTap.Engine.UnitTests
 {
@@ -437,6 +438,25 @@ namespace OpenTap.Engine.UnitTests
                 System.Threading.Thread.CurrentThread.CurrentCulture = culture;
             }
         }
+
+        [Test]
+        public void BreakSequence()
+        {
+            var seq = new SequenceStep();
+            seq.ChildTestSteps.Add(new VerdictStep(){VerdictOutput = Verdict.Pass});
+            var ifstep = new IfStep();
+            ifstep.InputVerdict.Step = seq.ChildTestSteps[0];
+            ifstep.InputVerdict.Property = TypeData.GetTypeData(seq.ChildTestSteps[0]).GetMember("Verdict");
+            ifstep.Action = IfStep.IfStepAction.BreakLoop;
+            ifstep.TargetVerdict = Verdict.Pass;
+            seq.ChildTestSteps.Add(ifstep);
+            seq.ChildTestSteps.Add(new VerdictStep() {VerdictOutput = Verdict.Fail});
+            var plan = new TestPlan();
+            plan.ChildTestSteps.Add(seq);
+            var run = plan.Execute();
+            Assert.AreEqual(Verdict.Pass, run.Verdict);
+        }
+        
 
     }
 }

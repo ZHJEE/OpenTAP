@@ -280,9 +280,9 @@ namespace OpenTap
                         IList list = ComponentSettingsList.GetContainer(prop.PropertyType);
                         if (list != null)
                         {
-                            object value = list.Cast<object>()
-                               .Where(o => o != null && o.GetType().DescendsTo(propType))
-                               .FirstOrDefault();
+                            object value = list
+                               .Cast<object>()
+                               .FirstOrDefault(o => o != null && ReflectionHelper.DescendsTo(o.GetType(), propType));
 
                             try
                             {
@@ -598,6 +598,8 @@ namespace OpenTap
                     // note: The following is copied inside TestPlanExecution.cs
                     if (run.SuggestedNextStep != null)
                     {
+                        if (run.SuggestedNextStep == Step.Id)
+                            break;
                         var stepidx = steps.IndexWhen(x => x.Id == run.SuggestedNextStep);
                         if (stepidx != -1)
                             i = stepidx - 1;

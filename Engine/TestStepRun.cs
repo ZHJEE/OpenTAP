@@ -137,6 +137,9 @@ namespace OpenTap
         /// <summary>
         /// If possible, the next step executed. This can be implemented to support 'jump-to' functionality.
         /// It requires that the suggested next step ID belongs to one of the sibling steps of TestStepId.
+        /// It can also be used to break out of a running sequence of steps, this is done by suggesting the
+        /// parent step as the next step. It is however up to the implementation of the parent step to handle
+        /// the suggested next step. This cannot be done at the test plan level.
         /// </summary>
         [XmlIgnore]
         public Guid? SuggestedNextStep { get; set; }

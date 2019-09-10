@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Xml.Serialization;
 using System.ComponentModel;
+using OpenTap.Engine.UnitTests.TestTestSteps;
 
 namespace OpenTap.Engine.UnitTests
 {
@@ -302,7 +303,8 @@ namespace OpenTap.Engine.UnitTests
             public Data1[] DataArray { get; set; } = new Data1[] { new Data1 { X = "5" }, new Data1 { X = "Y" } };
 
             [DirectoryPath]
-            public Enabled<string> EnabledDirectoryString { get; set; }
+            public Enabled<string> EnabledDirectoryString { get; set; } =
+                new Enabled<string> {Value = "5", IsEnabled = true};
         }
         
         [Test]
@@ -799,5 +801,27 @@ namespace OpenTap.Engine.UnitTests
             mems[0].Write();
             mems[1].Write();
         }
-    }
+
+        class StepWithInput : TestStep
+        {
+            public Input<Verdict> Input { get; set; }  = new Input<Verdict>();
+            public override void Run()
+            {
+                
+            }
+            
+        }
+        [Test]
+        public void AnnotationInputProperty()
+        {
+            var plan = new TestPlan { };
+            var verdict = new VerdictStep();
+            plan.ChildTestSteps.Add(verdict);
+            var step = new StepWithInput();
+            plan.ChildTestSteps.Add(step);
+            var annotation = AnnotationCollection.Annotate(step);
+            var inputmember = annotation.Get<IMembersAnnotation>().Members.First(x => x.Get<IMemberAnnotation>().Member.Name == "Input");
+            inputmember.Get<IMembersAnnotation>().Members.ToArray();
+        }
+    }   
 }
