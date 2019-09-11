@@ -235,40 +235,57 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(step1.GetType().GetProperty("Instrument1"), arg1.First().References.First().Property, "ResourceReference references unexpected property.");
             Assert.AreEqual(step1.GetType().GetProperty("Instrument2"), arg1.Last().References.First().Property, "ResourceReference references unexpected property.");
         }
-
-        [TestCase(typeof(LazyResourceManager), typeof(OperationCanceledException), Verdict.Aborted)]
-        [TestCase(typeof(LazyResourceManager), typeof(Exception),Verdict.Error)]
-        [TestCase(typeof(ResourceTaskManager), typeof(OperationCanceledException), Verdict.Aborted)]
-        [TestCase(typeof(ResourceTaskManager), typeof(Exception), Verdict.Error)]
-        public void BeforeOpenExceptionTest(Type managerType, Type exceptionType, Verdict expectedVerdict)
+        
+        [TestCase(typeof(LazyResourceManager), typeof(OperationCanceledException), Verdict.Aborted, false)]
+        [TestCase(typeof(LazyResourceManager), typeof(Exception), Verdict.Error, false)]
+        [TestCase(typeof(ResourceTaskManager), typeof(OperationCanceledException), Verdict.Aborted, false)]
+        [TestCase(typeof(ResourceTaskManager), typeof(Exception), Verdict.Error, false)]
+        [TestCase(typeof(LazyResourceManager), typeof(OperationCanceledException), Verdict.Aborted, true)]
+        [TestCase(typeof(LazyResourceManager), typeof(Exception), Verdict.Error, true)]
+        [TestCase(typeof(ResourceTaskManager), typeof(OperationCanceledException), Verdict.Aborted, true)]
+        [TestCase(typeof(ResourceTaskManager), typeof(Exception), Verdict.Error, true)]
+        public void BeforeOpenExceptionTest(Type managerType, Type exceptionType, Verdict expectedVerdict, bool withParallel)
         {
             EngineSettings.Current.ResourceManagerType = (IResourceManager)Activator.CreateInstance(managerType);
             IInstrument instr1 = new SomeInstrument() { Name = "INSTR1" };
             InstrumentSettings.Current.Add(instr1);
-            TestPlan plan = new TestPlan();
-            ITestStep step1 = new InstrumentTestStep() { Instrument = instr1 };
-            plan.Steps.Add(step1);
-            UnitTestingLockManager.Enable();
-            UnitTestingLockManager.BeforeOpenEffect = r => throw (Exception)Activator.CreateInstance(exceptionType,new string[] { "Custom exception message" });
-            var logListener = new TestTraceListener();
-            Log.AddListener(logListener);
             try
             {
-                var run = plan.Execute();
-                Assert.AreEqual(expectedVerdict, run.Verdict);
+                TestPlan plan = new TestPlan();
+                ITestStep step1 = new InstrumentTestStep() { Instrument = instr1 };
+                if (withParallel)
+                {
+                    var par = new ParallelStep();
+                    par.ChildTestSteps.Add(step1);
+                    step1 = par;
+                }
+                plan.Steps.Add(step1);
+                UnitTestingLockManager.Enable();
+                UnitTestingLockManager.BeforeOpenEffect = r => throw (Exception)Activator.CreateInstance(exceptionType, new string[] { "Custom exception message" });
+                var logListener = new TestTraceListener();
+                Log.AddListener(logListener);
+                try
+                {
+                    var run = plan.Execute();
+                    Assert.AreEqual(expectedVerdict, run.Verdict);
+                }
+                finally
+                {
+                    Log.RemoveListener(logListener);
+                    UnitTestingLockManager.Disable();
+                }
+                StringAssert.Contains("Custom exception message", logListener.GetLog());
+                if (expectedVerdict == Verdict.Error)
+                    StringAssert.IsMatch(": Error .+Custom exception message", logListener.GetLog());
+                else
+                    StringAssert.IsMatch(": Warning .+Custom exception message", logListener.GetLog());
             }
             finally
             {
-                Log.RemoveListener(logListener);
-                UnitTestingLockManager.Disable();
+                InstrumentSettings.Current.Remove(instr1);
             }
-            StringAssert.Contains("Custom exception message", logListener.GetLog());
-            if(expectedVerdict == Verdict.Error)
-                StringAssert.IsMatch(": Error .+Custom exception message", logListener.GetLog());
-            else
-                StringAssert.IsMatch(": Warning .+Custom exception message", logListener.GetLog());
-
         }
+
 
         [TestCase(typeof(LazyResourceManager), 3)]
         [TestCase(typeof(ResourceTaskManager), 1)]

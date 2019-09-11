@@ -639,6 +639,8 @@ namespace OpenTap
                 {
                     Log.Warning(String.Format("TestPlan aborted. ({0})", e.Message));
                     execStage.UpgradeVerdict(Verdict.Aborted);
+                    if( steps.Any(s => s.Verdict == Verdict.Error))
+                        execStage.UpgradeVerdict(Verdict.Error);
                 }
                 else if (e is ThreadAbortException)
                 {

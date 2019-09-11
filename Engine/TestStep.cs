@@ -715,10 +715,6 @@ namespace OpenTap
             {
                 throw new OperationCanceledException(String.Format("Verdict of '{0}' was 'Abort'.", Step.Name), TapThread.Current.AbortToken);
             }
-            else
-            {
-                return;
-            }
         }
         
         internal static TestStepRun DoRun(this ITestStep Step, TestPlanRun planRun, TestStepRun parentStepRun, IEnumerable<ResultParameter> attachedParameters = null)
@@ -798,6 +794,12 @@ namespace OpenTap
                         e = a.InnerException;
                 }
                 Step.Verdict = Verdict.Error; //use UpgradeVerdict.
+                if (planRun.AbortOnStepError)
+                {
+                    TestPlan.Log.Error("Error while running {0}. The error was '{1}'.", stepPath, e.Message);
+                    TestPlan.Log.Debug(e);
+                    throw new OperationCanceledException("OpenTAP is currently configured to abort run on verdict Error. This can be changed in Engine Settings.", e);
+                }
                 TestPlan.Log.Error("{0} failed, moving on. The error was '{1}'.", stepPath, e.Message);
                 TestPlan.Log.Debug(e);
             }
@@ -867,7 +869,6 @@ namespace OpenTap
 
                         planRun.AddTestStepRunCompleted(stepRun);
 
-                        checkStepFailure(Step, planRun);
                     }
                 }
 
@@ -876,6 +877,7 @@ namespace OpenTap
                 else
                     completeAction(Task.FromResult(0));
             }
+            checkStepFailure(Step, planRun);
             return stepRun;
         }
         internal static void CheckResources(this ITestStep Step)
