@@ -55,10 +55,12 @@ namespace OpenTap
         Dictionary<string, string> asmlookup = new Dictionary<string, string>();
         public SimpleTapAssemblyResolver()
         {
-            string curAssemblyFolder = Environment.GetEnvironmentVariable("OPENTAP_INIT_DIRECTORY");
-            if(curAssemblyFolder == null)
-                curAssemblyFolder =  new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-            string currentDir = Path.GetDirectoryName(curAssemblyFolder);
+            string currentDir = Environment.GetEnvironmentVariable("OPENTAP_INIT_DIRECTORY");
+            if (currentDir == null)
+            {
+                string curAssemblyFolder = new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath;
+                currentDir = Path.GetDirectoryName(curAssemblyFolder);
+            }
             var assemblies = Directory.EnumerateFiles(currentDir, "*.*", SearchOption.AllDirectories)
                 .Where(s => s.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase) || s.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase))
                 .ToList();
