@@ -364,6 +364,7 @@ namespace OpenTap.Package
                 }
             }
 
+
             return files;
         }
 
@@ -375,6 +376,12 @@ namespace OpenTap.Package
             }
         }
 
+        /// <summary>
+        /// Find additional package dependencies, based on referenced assemblies.
+        /// </summary>
+        /// <param name="pkg"></param>
+        /// <param name="excludeAdd"></param>
+        /// <param name="searchedFiles"></param>
         internal static void findDependencies(this PackageDef pkg, List<string> excludeAdd, List<AssemblyData> searchedFiles)
         {
             bool foundNew = false;
@@ -387,6 +394,10 @@ namespace OpenTap.Package
             List<string> brokenPackageNames = new List<string>();
             var packageAssemblies = new Memorizer<PackageDef, List<AssemblyData>>(pkgDef => pkgDef.Files.SelectMany(f =>
             {
+                if (f.RelativeDestinationPath.StartsWith("Dependencies\\"))
+                {
+                    return new List<AssemblyData>();
+                }
                 var asms = searchedFiles.Where(sf => PathUtils.AreEqual(f.FileName, sf.Location)).ToList();
                 if (asms.Count == 0 && (Path.GetExtension(f.FileName).Equals(".dll", StringComparison.OrdinalIgnoreCase) || Path.GetExtension(f.FileName).Equals(".exe", StringComparison.OrdinalIgnoreCase)))
                 {
