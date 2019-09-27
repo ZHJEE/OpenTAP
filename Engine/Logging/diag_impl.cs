@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 
 namespace OpenTap.Diagnostic
@@ -53,10 +52,7 @@ namespace OpenTap.Diagnostic
 
         private long ProcessedMessages;
 
-        internal long OutstandingMessages
-        {
-            get { return LogQueue.PostedMessages - ProcessedMessages; }
-        }
+        internal long OutstandingMessages => LogQueue.PostedMessages - ProcessedMessages;
 
         public LogContext(bool startProcessor = true)
         {
@@ -67,66 +63,59 @@ namespace OpenTap.Diagnostic
 
             if (startProcessor)
             {
-                var processor = new Thread(ProcessLog) { IsBackground = true, Name = "Log processing" };
-                processor.Start();
+                notify = new Shared.LockFreeFuzzyNotify(processLog);
             }
         }
 
+        OpenTap.Shared.LockFreeFuzzyNotify notify;
         private static LogContext EmptyLogContext()
         {
             return new LogContext(false) { HasListeners = false };
         }
 
-        private ILogTimestampProvider timestamper;
-        private AutoResetEvent FlushBarrier = new AutoResetEvent(false);
-        private void ProcessLog()
+        List<ILogListener> copy = new List<ILogListener>();
+        Event[] bunch = new Event[0];
+        void processLog()
         {
-            var copy = new List<ILogListener>();
-            Event[] bunch = new Event[0];
-            while (true)
+            int count = LogQueue.DequeueBunch(ref bunch);
+
+            if (count > 0)
             {
-                int count = LogQueue.DequeueBunch(ref bunch);
-
-                if (count > 0)
+                lock (Listeners)
                 {
-                    lock (Listeners)
+                    copy.Clear();
+                    copy.AddRange(Listeners);
+                }
+
+                if (copy.Count > 0)
+                {
+                    if (timestamper != null)
+                        for (int i = 0; i < bunch.Length; i++)
+                            bunch[i].Timestamp = timestamper.ConvertToTicks(bunch[i].Timestamp);
+
+
+                    foreach (var listener in copy)
                     {
-                        copy.Clear();
-                        foreach (var thing in Listeners)
-                            copy.Add(thing);
-                    }
-
-                    if (copy.Count > 0)
-                    {
-                        if (timestamper != null)
-                            for (int i = 0; i < bunch.Length; i++)
-                                bunch[i].Timestamp = timestamper.ConvertToTicks(bunch[i].Timestamp);
-
-
-                        foreach (var listener in copy)
+                        try
                         {
-                            try
+                            using (var events = new EventCollection(bunch))
                             {
-                                using (var events = new EventCollection(bunch))
-                                {
-                                    listener.EventsLogged(events);
-                                }
-                            }
-                            catch
-                            {
-                                // ignored
+                                listener.EventsLogged(events);
                             }
                         }
+                        catch
+                        {
+                            // ignored
+                        }
                     }
+                }
 
-                    Interlocked.Add(ref ProcessedMessages, bunch.Length);
-                }
-                else
-                {
-                    FlushBarrier.WaitOne(20);
-                }
+                Interlocked.Add(ref ProcessedMessages, count);
             }
+            TapThread.Sleep(10);
         }
+
+        private ILogTimestampProvider timestamper;
 
         public ILog CreateLog(string source)
         {
@@ -164,67 +153,50 @@ namespace OpenTap.Diagnostic
         {
             long posted = LogQueue.PostedMessages;
 
-            FlushBarrier.Set();
-
+            notify.Flush();
+            
             if (timeoutMs == 0)
             {
-                while (((ProcessedMessages - posted)) < 0)
+                while ((ProcessedMessages - posted) < 0)
                 {
                     Thread.Yield();
-                    FlushBarrier.Set();
+                    notify.Flush();
                 }
 
                 return true;
             }
             else
             {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var sw = Stopwatch.StartNew();
 
-                while ((((ProcessedMessages - posted)) < 0) && (sw.ElapsedMilliseconds < timeoutMs))
+                while (((ProcessedMessages - posted) < 0) && (sw.ElapsedMilliseconds < timeoutMs))
                 {
                     Thread.Yield();
-                    FlushBarrier.Set();
+                    notify.Flush();
                 }
 
-                return (((ProcessedMessages - posted)) < 0);
+                return (ProcessedMessages - posted) < 0;
             }
         }
 
-        public bool Flush(TimeSpan timeout)
-        {
-            return Flush((int)timeout.TotalMilliseconds);
-        }
+        public bool Flush(TimeSpan timeout) => Flush((int)timeout.TotalMilliseconds);
 
         public bool Async
         {
-            get
-            {
-                return IsAsync;
-            }
-
+            get => IsAsync;
             set
             {
-                if (IsAsync != value)
-                {
-                    IsAsync = value;
-                }
+                if (IsAsync != value) IsAsync = value;
             }
         }
 
         public int MessageBufferSize
         {
-            get
-            {
-                return BufferSize;
-            }
-
-            set
-            {
-                BufferSize = value;
-            }
+            get => BufferSize; 
+            set => BufferSize = value;
         }
 
-        public ILogTimestampProvider Timestamper { get { return timestamper; } set { timestamper = value; } }
+        public ILogTimestampProvider Timestamper { get => timestamper; set => timestamper = value; }
 
         internal void InjectEvent(Event @event)
         {
@@ -272,6 +244,7 @@ namespace OpenTap.Diagnostic
                         }
 
                         Context.LogQueue.Enqueue(_source, message, timestamp, 0, eventType);
+                        Context.notify.PushNotification();
                     }
                 }
             }
@@ -303,6 +276,7 @@ namespace OpenTap.Diagnostic
                         }
 
                         Context.LogQueue.Enqueue(_source, string.Format(message, args), timestamp, 0, eventType);
+                        Context.notify.PushNotification();
                     }
                 }
             }
@@ -330,6 +304,7 @@ namespace OpenTap.Diagnostic
                         }
 
                         Context.LogQueue.Enqueue(_source, message, timestamp, durationNs, eventType);
+                        Context.notify.PushNotification();
                     }
                 }
             }
@@ -361,17 +336,12 @@ namespace OpenTap.Diagnostic
                         }
 
                         Context.LogQueue.Enqueue(_source, string.Format(message, args), timestamp, durationNs, eventType);
+                        Context.notify.PushNotification();
                     }
                 }
             }
 
-            string ILog.Source
-            {
-                get
-                {
-                    return _source;
-                }
-            }
+            string ILog.Source => _source;
         }
     }
 }
