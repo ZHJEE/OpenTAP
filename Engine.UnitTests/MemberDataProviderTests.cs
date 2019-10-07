@@ -231,7 +231,7 @@ namespace OpenTap.Engine.UnitTests
         }
 
         [Display("I am a class")]
-        class DataInterfaceTestClass
+        public class DataInterfaceTestClass
         {
             [Unit("Hz")]
             public double SimpleNumber { get; set; }
@@ -643,6 +643,10 @@ namespace OpenTap.Engine.UnitTests
 
             ITypeData desc = TypeData.GetTypeData(testobj);
             IMemberData mem = desc.GetMember("FromAvailable");
+
+            var str = StringConvertProvider.GetString(mem);
+            var obj2 = StringConvertProvider.FromString(str, TypeData.FromType(typeof(IMemberData)), null);
+
             var named = _annotation.Get<INamedMembersAnnotation>();
 
             var annotation = named.GetMember(mem);

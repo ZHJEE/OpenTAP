@@ -60,6 +60,7 @@ namespace OpenTap.Plugins
             {
                 try
                 {
+                    if (t.CanCreateInstance == false) return false;
                     newobj = t.CreateInstance(Array.Empty<object>());
                     t = TypeData.GetTypeData(newobj);
                 }
@@ -580,6 +581,7 @@ namespace OpenTap.Plugins
                 }
                 
                 var _type = TypeData.GetTypeData(obj);
+                if (_type.CanCreateInstance == false) return false;
                 var properties = _type.GetMembers().Where(x => x.HasAttribute<XmlIgnoreAttribute>() == false).ToArray();
                 foreach (IMemberData prop in properties)
                 {
@@ -670,6 +672,34 @@ namespace OpenTap.Plugins
                 if (!cycleDetetionSet.Remove(theobj))
                     throw new InvalidOperationException("obj was modified.");
             }
+        }
+    }
+
+    class FallbackSerializer : ITapSerializerPlugin
+    {
+        public double Order => -2;
+
+        public bool Deserialize(XElement node, ITypeData t, Action<object> setter)
+        {
+            if (node.Value != null && node.HasElements == false)
+            {
+                if (StringConvertProvider.TryFromString(node.Value, t, null, out object r))
+                {
+                    setter(r);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool Serialize(XElement node, object obj, ITypeData expectedType)
+        {
+            if (StringConvertProvider.TryGetString(obj, out string s))
+            {
+                node.Value = s;
+                return true;
+            }
+            return false;
         }
     }
 

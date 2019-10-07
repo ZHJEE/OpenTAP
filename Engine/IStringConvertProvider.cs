@@ -736,5 +736,46 @@ namespace OpenTap
 
         }
 
+        internal class MemberDataConverter : IStringConvertProvider
+        {
+            public object FromString(string stringdata, ITypeData type, object contextObject, CultureInfo culture)
+            {
+                if(type.DescendsTo(TypeData.FromType(typeof(ITypeData))))
+                {
+                    return PluginManager.LocateTypeData(stringdata);
+                }
+                if(type.DescendsTo(TypeData.FromType(typeof(IMemberData))))
+                {
+                    var idx = stringdata.LastIndexOf('.');
+                    if(StringConvertProvider.TryFromString(stringdata.Substring(0,idx), TypeData.FromType(typeof(ITypeData)), contextObject, out object result, culture)){
+
+                        TypeData _result = (TypeData)result;
+                        return _result.GetMember(stringdata.Substring(idx + 1));
+                    }
+                }
+                return null;
+            }
+
+            public string GetString(object value, CultureInfo culture)
+            {
+                if(value is TypeData td)
+                {
+                    return td.Type.FullName;
+                }
+                if(value is MemberData md)
+                {
+                    var type = md.DeclaringType;
+                    if (StringConvertProvider.TryGetString(type, out string typestring, culture))
+                    {
+                        if (typestring != null)
+                        {
+                            return typestring + "." + md.Name;
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+
     }
 }

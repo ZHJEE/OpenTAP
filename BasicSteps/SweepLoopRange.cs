@@ -31,8 +31,7 @@ namespace OpenTap.Plugins.BasicSteps
     {
 
         [Display("Sweep Parameters", Order: -4, Description: "Test step parameters that should be swept. The variable must be a numeric type.")]
-        [XmlIgnore]
-        [Browsable(true)]
+        [DeserializeOrder(1.0)]
         public List<IMemberData> SweepProperties { get; set; }
 
         [Display("Start", Order: -2, Description: "The parameter value where the sweep will start.")]
@@ -75,7 +74,7 @@ namespace OpenTap.Plugins.BasicSteps
         public decimal Current { get; private set; }
 
         [Browsable(false)]
-        [DeserializeOrder(1.0)]
+        [XmlIgnore]
         public string SweepPropertyName
         {
             get => propertyInfosToString(SweepProperties);

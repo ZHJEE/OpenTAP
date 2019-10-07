@@ -219,6 +219,12 @@ namespace OpenTap
         public bool IsVisible => true;
     }
 
+    /// <summary> Annotation to show that something is merged from external parameters.  </summary>
+    public class ExternalParameterAnnotation : IAnnotation
+    {
+        public ExternalParameter ExternalParameter { get; set; }
+    }
+
     class MembersAnnotation : INamedMembersAnnotation,IMembersAnnotation, IOwnedAnnotation
     {
         Dictionary<IMemberData, AnnotationCollection> members = new Dictionary<IMemberData, AnnotationCollection>();
@@ -666,6 +672,7 @@ namespace OpenTap
                 var rdOnly = parentAnnotation.Get<ReadOnlyMemberAnnotation>() == null;
                 AnnotationCollection[] annotatedElements;
                 bool collectAll = rdOnly;
+                var external = parentAnnotation.Get<ExternalParameterAnnotation>();
                 if (c == null)
                 {
                     var members = parentAnnotation.Get<IMembersAnnotation>();

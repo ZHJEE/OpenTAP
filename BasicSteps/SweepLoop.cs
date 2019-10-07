@@ -1012,8 +1012,8 @@ namespace OpenTap.Plugins.BasicSteps
                         }
                     }
                 }
-
-                Selected = (source as SweepLoopRange).SweepProperties.ToArray();
+                var objectValue = fac.Get<IObjectValueAnnotation>()?.Value; 
+                Selected = objectValue as IEnumerable;
             }
 
             void getPropertiesForItem(ITestStep step, Dictionary<IMemberData, object> members)
@@ -1295,13 +1295,10 @@ namespace OpenTap.Plugins.BasicSteps
             else
             {
 
-                string serialized = null;
-
                 serializer = new TapSerializer();
                 try
                 {
-
-                    serialized = serializer.SerializeToString(newValue);
+                    var serialized = serializer.SerializeToString(newValue);
                     newValue = serializer.DeserializeFromString(serialized, TypeData.GetTypeData(newValue));
                 }
                 catch

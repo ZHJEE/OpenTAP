@@ -10,6 +10,8 @@ using System.IO;
 using System.Xml.Serialization;
 using System.Text.RegularExpressions;
 using System.Runtime.CompilerServices;
+using System.Collections.Specialized;
+using System.Collections;
 
 namespace OpenTap.Plugins.BasicSteps
 {
@@ -452,11 +454,102 @@ namespace OpenTap.Plugins.BasicSteps
         }
     }
 
+    
+    class AggregatedTypeData : ITypeData
+    {
+        class ForwardedMember : IMemberData
+        {
+            IMemberData innerMember;
+            object innerObject;
+            public ForwardedMember(IMemberData mem, object obj)
+            {
+                innerMember = mem;
+                innerObject = obj;
+            }
+            public ITypeData DeclaringType => innerMember.DeclaringType;
+            public ITypeData TypeDescriptor => innerMember.TypeDescriptor;
+            public bool Writable => innerMember.Writable;
+            public bool Readable => innerMember.Readable;
+            public IEnumerable<object> Attributes => innerMember.Attributes;
+            public string Name => innerMember.Name;
+            public object GetValue(object owner) => innerMember.GetValue(owner);
+            public void SetValue(object owner, object value) => innerMember.SetValue(owner, value);
+        }
+        public ITypeData BaseType { get; }
+
+        public bool CanCreateInstance => true;
+
+        public IEnumerable<object> Attributes => Array.Empty<object>();
+
+        public string Name => ExpandMemberDataProvider.agg + BaseType.Name;
+
+        public object CreateInstance(object[] arguments)
+        {
+            return BaseType.CreateInstance(arguments);
+        }
+
+        public IMemberData GetMember(string name)
+        {
+            return BaseType.GetMember(name) ?? getAggregatedMember(name);
+        }
+
+        IMemberData getAggregatedMember(string name)
+        {
+            foreach(var agg in Object.Aggregations)
+            {
+                if(agg.Member.Name == name)
+                {
+                    return new ForwardedMember(agg.Member, agg.TestStep);
+                }
+            }
+            return null;
+        }
+
+        List<IMemberData> getAggregatedMembers()
+        {
+            List<IMemberData> members = new List<IMemberData>(Object.Aggregations.Count);
+            foreach (var agg in Object.Aggregations)
+                members.Add(new ForwardedMember(agg.Member, agg.TestStep));   
+            return members;
+        }
+
+
+        public IEnumerable<IMemberData> GetMembers()
+        {
+            return BaseType.GetMembers().Concat(getAggregatedMembers());
+        }
+
+        public AggregatedTypeData()
+        {
+            BaseType = TypeData.FromType(typeof(AggregatorStep));
+        }
+        public AggregatorStep Object { get; set; }
+
+    }
+
+    [AllowAnyChild]
+    public class AggregatorStep : TestStep
+    {
+        public class StepPropertyAggregate
+        {
+            public ITestStep TestStep { get; set; }
+            public IMemberData Member { get; set; }
+        }
+
+        public List<StepPropertyAggregate> Aggregations { get; set; } = new List<StepPropertyAggregate>();
+        
+
+        public override void Run()
+        {
+            RunChildSteps();
+        }
+    }
 
     public class ExpandMemberDataProvider : ITypeDataProvider
     {
         public double Priority => 1;
         internal const string exp = "ref@";
+        internal const string agg = "agg@";
         public ITypeData GetTypeData(string identifier)
         {
             if (identifier.StartsWith(exp))
@@ -464,26 +557,44 @@ namespace OpenTap.Plugins.BasicSteps
                 var tp = TypeData.GetTypeData(identifier.Substring(exp.Length));
                 if (tp != null)
                 {
-                    return new ExpandedTypeData() { InnerDescriptor = tp, Object = null };
+                    return new ExpandedTypeData { InnerDescriptor = tp, Object = null };
+                }
+            }
+            if (identifier.StartsWith(agg))
+            {
+                var tp = TypeData.GetTypeData(identifier.Substring(exp.Length));
+                if (tp != null)
+                {
+                    return new AggregatedTypeData { Object = null };
                 }
             }
             return null;
         }
 
-        static ConditionalWeakTable<TestPlanReference, ExpandedTypeData> types = new ConditionalWeakTable<TestPlanReference, ExpandedTypeData>();
+        static ConditionalWeakTable<object, ITypeData> types = new ConditionalWeakTable<object, ITypeData>();
 
-        ExpandedTypeData getExpandedTypeData(TestPlanReference step)
+        ITypeData getExpandedTypeData(object step)
         {
-            var expDesc = new ExpandedTypeData();
-            expDesc.InnerDescriptor = TypeData.FromType(typeof(TestPlanReference));
-            expDesc.Object = step;
-            return expDesc;
+            if (step is TestPlanReference r)
+            {
+                var expDesc = new ExpandedTypeData();
+                expDesc.InnerDescriptor = TypeData.FromType(typeof(TestPlanReference));
+                expDesc.Object = r;
+                return expDesc;
+            }else if(step is AggregatorStep agg)
+            {
+                return new AggregatedTypeData
+                {
+                    Object = agg
+                };
+            }
+            throw new Exception("Unsupported type");
         }
 
         public ITypeData GetTypeData(object obj)
         {
-            if (obj is TestPlanReference exp)
-                return types.GetValue(exp, getExpandedTypeData);
+            if (obj is TestPlanReference|| obj is AggregatorStep)
+                return types.GetValue(obj, getExpandedTypeData);
             return null;
         }
     }
