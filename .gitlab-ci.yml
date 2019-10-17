@@ -357,32 +357,37 @@ Installer-Windows:
 
 Installer-Linux:
   stage: installer
-  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
-  tags: [ docker, windows ]
-  only:
-    - tags
-    - /^release.*$/
-    - master
+  image: ubuntu:18.04
+  tags: [ docker, gce ]
   dependencies:
      - Package-Linux
+  needs:
+    - Package-Linux
   script:
-         - Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/gnuwin32/tar/1.13-1/tar-1.13-1-bin.exe -Outfile tarsetup.exe
-         - Start-process .\tarsetup.exe -NoNewWindow -Wait -ArgumentList "/SILENT"
-
-         - $path=(get-item -path "./").Fullname
-         - $str=[IO.File]::ReadAllText($path + "/LinuxInstructions/INSTALL.sh") -replace "`r`n", "`n"
-         - ([IO.File]::WriteAllText($path + "/INSTALL.sh", $str))
-
-         - $str=[IO.File]::ReadAllText($path + "/LinuxInstructions/README") -replace "`r`n", "`n"
-         - ([IO.File]::WriteAllText($path + "/README", $str))
-
-         - cmd /C '"C:\Program Files (x86)\GnuWin32\bin\tar.exe" -cf "OpenTAP.tar" OpenTAP.*.Linux.TapPackage INSTALL.sh README'
+         - cat ./LinuxInstructions/INSTALL.sh |tr -d '\r' > INSTALL.sh
+         - cat ./LinuxInstructions/README |tr -d '\r'> README
+         - tar -cf OpenTAP.tar OpenTAP.*.Linux.TapPackage INSTALL.sh README
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
        - "OpenTAP.tar"
 
+Installer-Linux-Test:
+  stage: publish
+  image: buildpack-deps
+  tags: [ docker, gce ]
+  dependencies:
+    - Installer-Linux
+  needs:
+    - Installer-Linux
+  script:
+    - mkdir OpenTAP
+    - cd OpenTAP
+    - tar -xf ../OpenTAP.tar
+    - chmod +x ./INSTALL.sh
+    - echo yes | ./INSTALL.sh
+    - ~/bin/tap package list
 
 #############################################
 # Stage: publish                            #
