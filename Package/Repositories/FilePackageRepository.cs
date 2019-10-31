@@ -70,7 +70,7 @@ namespace OpenTap.Package
             PackageDef packageDef = null;
 
             // If the requested package is a file we do not want to start searching the entire repo.
-            if (package is PackageDef def && File.Exists(def.Location))
+            if (package is PackageDef def && File.Exists(def.DownloadUrl))
             {
                 log.Debug("Downloading file without searching repository.");
                 packageDef = def;
@@ -86,15 +86,15 @@ namespace OpenTap.Package
             {
                 if (packageDef == null)
                     throw new Exception($"Could not download '{package.Name}', because it does not exists");
-                if (PathUtils.AreEqual(packageDef.Location, destination))
+                if (PathUtils.AreEqual(packageDef.DownloadUrl, destination))
                 {
                     finished = true;
                     return; // No reason to copy..
                 }
-                if (Path.GetExtension(packageDef.Location).ToLower() == ".tappackages") // If package is a .TapPackages file, unpack it.
+                if (Path.GetExtension(packageDef.DownloadUrl).ToLower() == ".tappackages") // If package is a .TapPackages file, unpack it.
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var packagesFiles = PluginInstaller.UnpackPackage(packageDef.Location, Path.GetTempPath());
+                    var packagesFiles = PluginInstaller.UnpackPackage(packageDef.DownloadUrl, Path.GetTempPath());
                     string path = null;
                     foreach (var packageFile in packagesFiles)
                     {
@@ -122,7 +122,7 @@ namespace OpenTap.Package
                 else
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    File.Copy(packageDef.Location, destination, true);
+                    File.Copy(packageDef.DownloadUrl, destination, true);
                     finished = true;
                 }
             }
@@ -339,7 +339,12 @@ namespace OpenTap.Package
                     return;
                 }
 
-                packages.ForEach(p => p.Location = packagesFile.FullName);
+                packages.ForEach(p =>
+                {
+                    p.DownloadUrl = packagesFile.FullName;
+                    p.PackageRepositoryUrl = Url;
+                });
+
                 lock (allPackages)
                 {
                     allPackages.AddRange(packages);
@@ -362,7 +367,8 @@ namespace OpenTap.Package
                 {
                     return;
                 }
-                package.Location = pluginFile.FullName;
+                package.DownloadUrl = pluginFile.FullName;
+                package.PackageRepositoryUrl = Url;
 
                 lock (allPackages)
                 {
@@ -394,7 +400,7 @@ namespace OpenTap.Package
                                 allPackages = PackageDef.ManyFromXml(str).ToList();
     
                             // Check if any files has been replaced
-                            if (allPackages.Any(p => !allFiles.Any(f => p?.Location == f)))
+                            if (allPackages.Any(p => !allFiles.Any(f => p?.DownloadUrl == f)))
                                 allPackages = null;
     
                             // Check if the cache is the newest file
