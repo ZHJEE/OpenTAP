@@ -219,6 +219,17 @@ namespace OpenTap
 
         /// <summary> Gets the type info from a string. </summary>
         static public ITypeData GetTypeData(string name) => new TypeDataProviderStack().GetTypeData(name);
+        
+        /// <summary>
+        /// This throws an exception due to the ambiguity of TypeData.FromType vs TypeData.GetTypeData. To get TypeData representing a type use TypeData.FromType.
+        /// Otherwise cast 'type' to an 'object' first.
+        /// </summary>
+        [Obsolete("This overload of GetTypeData should not be used: To get TypeData representing a type use TypeData.FromType. Otherwise cast 'type' to an 'object' first.", true)]
+        static public ITypeData GetTypeData(Type _)
+        {
+            throw new NotSupportedException(@"Ambiguous call to GetTypeData: To get TypeData representing a type use TypeData.FromType."
+                                            + "Otherwise cast 'type' to an 'object' first.");
+        }
     }
 
     /// <summary>
