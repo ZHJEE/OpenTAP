@@ -54,10 +54,12 @@ namespace OpenTap.Cli
             }
             else
             {
-                command.SubCommands.Add(new CliActionTree() { Name = type.GetDisplayAttribute().Name, Type = type, SubCommands = new List<CliActionTree>() });
+                command.SubCommands.Add(new CliActionTree() { Name = type.GetDisplayAttribute().Name, Type = type, SubCommands = new List<CliActionTree>(), Parent = command });
                 command.SubCommands = command.SubCommands.OrderBy(c => c.Name).ToList();
             }
         }
+
+        public CliActionTree Parent { get; internal set; }
 
         public CliActionTree GetSubCommand(string[] args)
         {

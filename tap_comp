@@ -1,0 +1,66 @@
+#!/bin/bash
+
+
+get_tap(){
+
+    local tap_cmd="`which tap`"
+
+    if [ ! -x "$tap_cmd" ]; then
+        local tap_cmd="`which tap.exe`"
+    fi
+
+    printf "%q" "$tap_cmd"
+}
+
+_tap_comp()
+{
+    _init_completion || return
+    local current="${COMP_WORDS[COMP_CWORD]}"
+    local WSLENV="TPM_PIPE=_prevent_tap_from_running_isolated_"
+    local words=''
+
+    if [ -z "$2"  ]; then
+        local words="${COMP_WORDS[@]:1:${#COMP_WORDS[@]}-1}"
+    else
+        local words="${COMP_WORDS[@]:1:${#COMP_WORDS[@]}}"
+    fi
+
+
+    # case "${COMP_WORDS[@]}" in
+    #     *create*)
+    #         _filedir '@(xml)'
+    #         ;;
+    #     *install*)
+    #         _filedir '@(TapPackage)'
+    #         ;;
+    # esac
+
+    # echo
+    # echo "$(get_tap) complete ${words[@]}"
+    # echo
+
+
+    mapfile -t completions < <( compgen -W "$( "$(get_tap)" "complete" ${words[@]} )" -- "$current" )
+    # mapfile -t completions < <( compgen -W "$( "$(get_tap)" "complete" ${words[@]} 2> /dev/null )" -- "$current" )
+
+    # if [ -z "$completions" ]; then
+    #     completions=( "hello" )
+    # fi
+
+        # local CANDIDATES=( $(compgen -W "${TAPCMDS[@]}" -- "$current"))
+        # echo "${TAPCMDS[@]}"
+        # echo "${CANDIDATES[@]}"
+    COMPREPLY+=("${completions[@]}")
+
+}
+
+tap_cmd="$(get_tap)"
+
+if [ -x "$tap_cmd" ]; then
+    echo "got tap $tap_cmd"
+    complete -F _tap_comp tap
+    complete -F _tap_comp tap.exe
+else
+    echo "tap not in PATH." >&2
+    echo "$tap_cmd"
+fi
