@@ -25,15 +25,16 @@ namespace OpenTap.Cli
         /// <summary>
         /// Accepts an OpenTAP CLI command and displays valid subcommands for that command.
         /// </summary>
-        [Display("complete", "Get valid TAP completions for the current command line"), Browsable(false)]
+        [Display("complete", "Get valid TAP completions for the current command line")]
+        [Browsable(false)]
         public class CompleteCliAction : ICliAction
         {
-            //            [CommandLineArgument("help", Description = "Show  setup instructions", ShortName = "h", Visible = false)]
-            //            private bool Help { get; } = false;
-            //
-            //            [CommandLineArgument("dump-config", Description = "Dump a bash script to be sourced for completions",
-            //                ShortName = "d", Visible = false)]
-            //            private bool Dump { get; } = false;
+            [CommandLineArgument("instructions", Description = "Show setup instructions", ShortName = "i")]
+            public bool Help { get; set; } = false;
+            
+            [CommandLineArgument("show-config", Description = "Show a bash script to be sourced for completions",
+                ShortName = "s")]
+            public bool Dump { get; set; } = false;
             private void DebugLog(string input)
             {
                 #if DEBUG
@@ -208,6 +209,17 @@ namespace OpenTap.Cli
             /// <returns>Return 0 on success. Return -1 to indicate parsing error.</returns>
             public int Execute(CancellationToken cancellationToken)
             {
+                if (Help)
+                {
+                    return ShowHelp();
+                }
+                else if (Dump)
+                {
+                    return DumpConfig();
+                }
+                // Print magic string so the bash script knows completions are supported
+                Console.WriteLine("BASH_COMPLETIONS_SUPPORTED");
+                
                 var start = DateTime.Now;
                 if (!Directory.Exists(CacheDir))
                 {
@@ -223,14 +235,7 @@ namespace OpenTap.Cli
                 }
                     
                 List<string> args = argString.Split(new string[] {" "}, StringSplitOptions.RemoveEmptyEntries).ToList();
-//                var parts = line.Split(new string[] {" - "}, StringSplitOptions.None);
                 DebugLog($"Completion called with '{argString}'");
-                
-                var tpmPipe =
-                    Environment.GetEnvironmentVariable("TPM_PIPE"); // test to see if properly overriden by WSL
-                var debugAssembly =
-                    Environment.GetEnvironmentVariable(
-                        "OPENTAP_DEBUGGER_ASSEMBLY"); // test to see if properly overriden by WSL
 
                 CliActionTree cmd = GetCmd(args);
 
@@ -254,6 +259,26 @@ namespace OpenTap.Cli
                 var elapsed = DateTime.Now;                
                 
                 DebugLog($"Provided completions in {(elapsed - start).Milliseconds}ms");
+
+                return 0;
+            }
+            private int ShowHelp()
+            {
+                Console.WriteLine("Bash tab completion is available in bash!");
+                Console.WriteLine("Run `tap complete --show-config` to get the completion script and source it somewhere.");
+
+                return 0;
+            }
+            private int DumpConfig()
+            {
+                
+//                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("OpenTap.Sdk.New.Resources.tasksTemplate.txt"))
+                var files = Assembly.GetExecutingAssembly().GetManifestResourceNames();
+                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("OpenTap.bash_completion_source"))
+                using (var reader = new StreamReader(stream))
+                {
+                    Console.WriteLine(reader.ReadToEnd());                    
+                }
 
                 return 0;
             }
