@@ -266,6 +266,8 @@ namespace OpenTap.Cli
             {
                 Console.WriteLine("Bash tab completion is available in bash!");
                 Console.WriteLine("Run `tap complete --show-config` to get the completion script and source it somewhere.");
+                Console.WriteLine("\nActivate for one session:\neval \"$(tap complete --show-config)\"");
+                Console.WriteLine("\nLoad completions on startup:\ntap complete --show-config | sudo dd  of=/usr/share/bash-completion/completions/tap");
 
                 return 0;
             }
