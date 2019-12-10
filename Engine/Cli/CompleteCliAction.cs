@@ -21,25 +21,41 @@ namespace OpenTap.Cli
             public string name { get; set; }
             public string version { get; set; }
             public bool installed { get; set; }
-
         }
+
         [Display("complete", "Get valid TAP completions for the current command line"), Browsable(false)]
         public class CompleteCliAction : ICliAction
         {
-            [CommandLineArgument("help", Description = "Show  setup instructions", ShortName = "h", Visible = false)]
-            private bool Help { get; } = false;
+            //            [CommandLineArgument("help", Description = "Show  setup instructions", ShortName = "h", Visible = false)]
+            //            private bool Help { get; } = false;
+            //
+            //            [CommandLineArgument("dump-config", Description = "Dump a bash script to be sourced for completions",
+            //                ShortName = "d", Visible = false)]
+            //            private bool Dump { get; } = false;
+            private void DebugLog(string input)
+            {
+                #if DEBUG
+                using (var stream = new StreamWriter(Path.Combine(CacheDir, "CompletionDebug.log"), append: true))
+                {
+                    stream.WriteLine($"{DateTime.Now}: {input}");
+                }
+                #endif
+            }
 
-            [CommandLineArgument("dump-config", Description = "Dump a bash script to be sourced for completions",
-                ShortName = "d", Visible = false)]
-            private bool Dump { get; } = false;
+            private static string CacheDir { get; } = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "TapCompletion");
+
             private void writeCompletion(string completion, bool flag)
             {
                 string prepend = flag ? "--" : "";
-                completion = completion.Contains(' ') && !flag ? $"\"\\\"{completion}\\\"\"" : completion;
-                Console.Write($"{prepend}{completion}\n");
+//                completion = completion.Contains(' ') && !flag ? $"\"{completion}\"" : completion;
+                completion = $"{prepend}{completion.Trim()}";
+                Console.Write($"{completion}\n");
+                DebugLog(completion);
             }
 
-            private void dumpSubCommands(CliActionTree cmd)
+            private void DumpSubCommands(CliActionTree cmd)
             {
                 foreach (CliActionTree subCmd in cmd.SubCommands)
                 {
@@ -50,7 +66,7 @@ namespace OpenTap.Cli
                 }
             }
 
-            private void dumpFlags(CliActionTree cmd)
+            private void DumpFlags(CliActionTree cmd)
             {
                 foreach (IMemberData member in cmd.Type.GetMembers())
                 {
@@ -60,45 +76,32 @@ namespace OpenTap.Cli
                     }
                 }
             }
-            
-            private void dumpSpecialCases(CliActionTree cmd)
+
+            private void DumpSpecialCases(CliActionTree cmd)
             {
-                List<MyPackage> packageList;
-                if (cmd.Parent?.Name == "package")
-                {
-                    switch (cmd.Name)
-                    {
-                        case "uninstall":
-                        case "test":
-                        case "install":
-                        case "list":
-                            packageList = getPackages();
-                            break;
-                        default:
-                            return;                        
-                    }
-                    switch (cmd.Name)
-                    {
-                        case "uninstall":
-                        case "test":
-                            foreach (var package in packageList)
-                            {
-                                if (package.installed)
-                                {
-                                    writeCompletion(package.name, false);
-                                }
-                            }
-                            break;
-                        case "install":
-                        case "list":
-                            foreach (var package in packageList)
-                            {
-                                writeCompletion(package.name, false);
-                            }
-                            break;
-                    }                    
-                }
+                if (cmd.Parent?.Name != "package") 
+                    return;
                 
+                List<MyPackage> packageList;
+                switch (cmd.Name)
+                {
+                    case "uninstall":
+                    case "test":
+                    case "install":
+                    case "list":
+                        packageList = getPackages();
+                        break;
+                    default:
+                        return;
+                }
+
+                if (cmd.Name == "uninstall" || cmd.Name == "test")
+                    foreach (var package in packageList.Where(package => package.installed))
+                        writeCompletion(package.name, false);
+                
+                else if (cmd.Name == "install" || cmd.Name == "list")
+                    foreach (var package in packageList)
+                        writeCompletion(package.name, false);
             }
 
             private List<MyPackage> queryPackages()
@@ -113,25 +116,25 @@ namespace OpenTap.Cli
                 };
                 var process = new Process()
                 {
-                    StartInfo = pi,                    
+                    StartInfo = pi,
                 };
                 process.Start();
 
                 var packages = new List<MyPackage>();
-                //serializer.Serialize(new StreamWriter(".output_of_package_list", false), (object)packages);
-                
+
                 string line;
                 while ((line = process.StandardOutput.ReadLine()) != null)
                 {
-                    var parts = line.Split(new string[]{" - "}, StringSplitOptions.None);
+                    var parts = line.Split(new string[] {" - "}, StringSplitOptions.None);
                     if (parts.Length == 2)
                     {
-                        packages.Add(new MyPackage() {name = parts[0].Trim(), installed = false, version = parts[1].Trim()});
-
+                        packages.Add(new MyPackage()
+                            {name = parts[0].Trim(), installed = false, version = parts[1].Trim()});
                     }
                     else if (parts.Length == 3)
                     {
-                        packages.Add(new MyPackage() {name = parts[0].Trim(), installed = true, version = parts[1].Trim()});
+                        packages.Add(new MyPackage()
+                            {name = parts[0].Trim(), installed = true, version = parts[1].Trim()});
                     }
                     else
                     {
@@ -140,13 +143,15 @@ namespace OpenTap.Cli
                     }
                 }
 
+
                 return packages;
             }
 
-            private static string packageCache { get; } = ".output_of_package_list";
+            private static string packageCache { get; } = Path.Combine(CacheDir, "output_of_package_list");
 
             private List<MyPackage> getPackages()
             {
+                List<MyPackage> packages;
                 if (File.Exists(packageCache))
                 {
                     DateTime lastWrite = File.GetLastWriteTime(packageCache);
@@ -157,51 +162,89 @@ namespace OpenTap.Cli
                         using (Stream stream = new FileStream(packageCache, FileMode.Open))
                         {
                             var deserializer = new TapSerializer();
-                            return (List<MyPackage>)deserializer.Deserialize(stream);
+                            packages = (List<MyPackage>) deserializer.Deserialize(stream);
+                            DebugLog("Using package cache");
+                            return packages;
                         }
                     }
-                    
                 }
 
-                using (Stream stream = new FileStream("serialized_struct.txt", FileMode.Create))
+                packages = queryPackages();
+
+                using (Stream stream = new FileStream(packageCache, FileMode.Create))
                 {
                     var serializer = new TapSerializer();
-                    serializer.Serialize(stream, new MyPackage(){name="test", version="1.2.3", installed=false});
+                    serializer.Serialize(stream, packages);
+                    DebugLog($"Wrote package cache to {CacheDir}");
                 }
 
-                var packages = queryPackages();
-
                 return packages;
+            }
+            
+            private CliActionTree GetCmd(List<string> args)
+            {
+                CliActionTree root = CliActionTree.Root;
+                CliActionTree cmd;
+                
+                cmd = root.GetSubCommand(args.ToArray()) ??
+                      root.GetSubCommand(args.Take(args.Count - 1).ToArray()) ?? null;
+
+                if (cmd == null && args.Count <= 1)
+                    cmd = root;
+            
+
+                if (cmd == null)
+                {
+                    DebugLog("Got null command from input");
+                }
+
+                return cmd;
+
             }
 
             public int Execute(CancellationToken cancellationToken)
             {
-                List<string> args = System.Environment.GetCommandLineArgs().ToList();
-                // skip tap.exe and complete
-                args = args.Skip(2).ToList();
-//                args = args.Take(args.Count - 1).ToList();
-                var tpmPipe = Environment.GetEnvironmentVariable("TPM_PIPE"); // test to see if properly overriden by WSL
-                var debugAssembly = Environment.GetEnvironmentVariable("OPENTAP_DEBUGGER_ASSEMBLY"); // test to see if properly overriden by WSL
+                var start = DateTime.Now;
+                if (!Directory.Exists(CacheDir))
+                {
+                    Directory.CreateDirectory(CacheDir);
+                }
+                var argString = System.Environment.GetCommandLineArgs()[2];
+                List<string> args = argString.Split(new string[] {" "}, StringSplitOptions.RemoveEmptyEntries).ToList();
+//                var parts = line.Split(new string[] {" - "}, StringSplitOptions.None);
+                DebugLog($"Completion called with '{argString}'");
+                
+                var tpmPipe =
+                    Environment.GetEnvironmentVariable("TPM_PIPE"); // test to see if properly overriden by WSL
+                var debugAssembly =
+                    Environment.GetEnvironmentVariable(
+                        "OPENTAP_DEBUGGER_ASSEMBLY"); // test to see if properly overriden by WSL
 
-                CliActionTree root = CliActionTree.Root;
-                CliActionTree cmd = root.GetSubCommand(args.ToArray()) ??
-                                    root.GetSubCommand(args.Take(args.Count - 1).ToArray()) ?? root;
+                CliActionTree cmd = GetCmd(args);
+
+                if (cmd == null)
+                {
+                    DebugLog("Got null command from input");
+                    return -1;
+                }
 
                 if (cmd.SubCommands.Count > 0)
                 {
-                    dumpSubCommands(cmd);
+                    DumpSubCommands(cmd);
                 }
                 else
                 {
-                    dumpFlags(cmd);
+                    DumpFlags(cmd);
                 }
 
-                dumpSpecialCases(cmd);
+                DumpSpecialCases(cmd);
+
+                var elapsed = DateTime.Now;                
+                
+                DebugLog($"Provided completions in {(elapsed - start).Milliseconds}ms");
 
                 return 0;
             }
-
-
         }
     }
 }
