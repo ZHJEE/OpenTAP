@@ -1,8 +1,7 @@
 #!/bin/bash
 
 
-get_tap(){
-
+get_tap(){ 
     local tap_cmd="`which tap`"
 
     if [ ! -x "$tap_cmd" ]; then
@@ -49,6 +48,9 @@ _tap_comp()
 tap_cmd="$(get_tap)"
 
 if [ -x "$tap_cmd" ]; then
-    complete -F _tap_comp tap
-    complete -F _tap_comp tap.exe
+    if [[ "$tap_cmd" == *"tap.exe" ]]; then
+        complete -F _tap_comp tap.exe
+        else
+        complete -F _tap_comp tap
+    fi
 fi
