@@ -44,9 +44,7 @@ namespace OpenTap.Cli
                 #endif
             }
 
-            private static string CacheDir { get; } = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "TapCompletion");
+            private static string CacheDir { get; } = Path.Combine(Path.GetTempPath(), "TapCompletion");
 
             private void writeCompletion(string completion, bool flag)
             {
