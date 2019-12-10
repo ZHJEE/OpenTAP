@@ -22,7 +22,9 @@ namespace OpenTap.Cli
             public string version { get; set; }
             public bool installed { get; set; }
         }
-
+        /// <summary>
+        /// Accepts an OpenTAP CLI command and displays valid subcommands for that command.
+        /// </summary>
         [Display("complete", "Get valid TAP completions for the current command line"), Browsable(false)]
         public class CompleteCliAction : ICliAction
         {
@@ -89,7 +91,7 @@ namespace OpenTap.Cli
                     case "test":
                     case "install":
                     case "list":
-                        packageList = getPackages();
+                        packageList = GetPackages();
                         break;
                     default:
                         return;
@@ -104,7 +106,7 @@ namespace OpenTap.Cli
                         writeCompletion(package.name, false);
             }
 
-            private List<MyPackage> queryPackages()
+            private List<MyPackage> QueryPackages()
             {
                 var tap = Assembly.GetEntryAssembly();
                 ProcessStartInfo pi = new ProcessStartInfo()
@@ -147,19 +149,19 @@ namespace OpenTap.Cli
                 return packages;
             }
 
-            private static string packageCache { get; } = Path.Combine(CacheDir, "output_of_package_list");
+            private static string PackageCache { get; } = Path.Combine(CacheDir, "output_of_package_list");
 
-            private List<MyPackage> getPackages()
+            private List<MyPackage> GetPackages()
             {
                 List<MyPackage> packages;
-                if (File.Exists(packageCache))
+                if (File.Exists(PackageCache))
                 {
-                    DateTime lastWrite = File.GetLastWriteTime(packageCache);
+                    DateTime lastWrite = File.GetLastWriteTime(PackageCache);
                     var timeSinceLastWrite = DateTime.Now - lastWrite;
 
                     if (timeSinceLastWrite < TimeSpan.FromDays(1))
                     {
-                        using (Stream stream = new FileStream(packageCache, FileMode.Open))
+                        using (Stream stream = new FileStream(PackageCache, FileMode.Open))
                         {
                             var deserializer = new TapSerializer();
                             packages = (List<MyPackage>) deserializer.Deserialize(stream);
@@ -169,9 +171,9 @@ namespace OpenTap.Cli
                     }
                 }
 
-                packages = queryPackages();
+                packages = QueryPackages();
 
-                using (Stream stream = new FileStream(packageCache, FileMode.Create))
+                using (Stream stream = new FileStream(PackageCache, FileMode.Create))
                 {
                     var serializer = new TapSerializer();
                     serializer.Serialize(stream, packages);
@@ -201,7 +203,11 @@ namespace OpenTap.Cli
                 return cmd;
 
             }
-
+            
+            /// <summary>
+            /// The code to be executed by the action.
+            /// </summary>
+            /// <returns>Return 0 on success. Return -1 to indicate parsing error.</returns>
             public int Execute(CancellationToken cancellationToken)
             {
                 var start = DateTime.Now;
