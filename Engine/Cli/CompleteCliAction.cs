@@ -248,7 +248,7 @@ namespace OpenTap.Cli
                 {
                     DumpFlags(cmd);
                 }
-
+                
                 DumpSpecialCases(cmd);
 
                 var elapsed = DateTime.Now;                
