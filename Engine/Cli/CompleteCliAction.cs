@@ -213,7 +213,15 @@ namespace OpenTap.Cli
                 {
                     Directory.CreateDirectory(CacheDir);
                 }
-                var argString = System.Environment.GetCommandLineArgs()[2];
+
+                var cliArgs = Environment.GetCommandLineArgs();
+
+                string argString = "";
+                if (cliArgs.Length > 2)
+                {
+                    argString = cliArgs[2];
+                }
+                    
                 List<string> args = argString.Split(new string[] {" "}, StringSplitOptions.RemoveEmptyEntries).ToList();
 //                var parts = line.Split(new string[] {" - "}, StringSplitOptions.None);
                 DebugLog($"Completion called with '{argString}'");
