@@ -248,7 +248,7 @@ namespace OpenTap.Cli
                 try
                 {
                     using (var stream = Assembly.GetExecutingAssembly()
-                        .GetManifestResourceStream("OpenTap.bash_completion_source"))
+                        .GetManifestResourceStream("OpenTap.Package.bash_completion_source"))
                     using (var reader =
                         new StreamReader(stream ?? throw new Exception("Bash completions script not embedded.")))
                     {

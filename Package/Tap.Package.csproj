@@ -9,7 +9,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="PackageSchema.xsd" />
+    <EmbeddedResource Include="bash_completion_source" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="DotNet.Glob" Version="3.0.1" />
     <PackageReference Include="LibGit2Sharp" Version="0.25.4" />

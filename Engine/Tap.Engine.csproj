@@ -44,11 +44,6 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Remove="bash_completion_source" />
-    <EmbeddedResource Include="bash_completion_source" />
-  </ItemGroup>
-
   <Import Project="..\Shared\Tap.Shared.projitems" Label="Shared" />
 
 </Project>
