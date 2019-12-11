@@ -12,7 +12,7 @@ get_tap(){
 }
 
 quote_if_needed(){
-    # Quote input if it contains spaces, otherwise return it
+    # Quote input if it contains spaces, otherwise return it as is
     awk '/ / { print "\""$0"\"" } /^[^ ]+$/ { print $0 }'
 }
 
@@ -20,6 +20,8 @@ _tap_comp()
 {
     _init_completion || return
     local current="${COMP_WORDS[COMP_CWORD]}"
+    
+    # Locally prevent OpenTAP from attaching the debugger, and from running in "isolated" mode 
     local WSLENV="TPM_PIPE=_prevent_tap_from_running_isolated_:OPENTAP_DEBUGGER_ASSEMBLY"
     declare -a words
 
@@ -30,11 +32,6 @@ _tap_comp()
     local MAGIC=( ${completions[@]:0:1} ); completions=( "${completions[@]:1}" )
 
     if [[ ! "$MAGIC" == "BASH_COMPLETIONS_SUPPORTED"* ]]; then
-        # echo
-        # echo
-        # echo
-        # echo "Bash completion is available in OpenTAP 9.5 and above"
-        # echo
        return 1
     fi
 
@@ -55,12 +52,17 @@ _tap_comp()
 
 }
 
+# Fails if PATH does not contain either tap or tap.exe
 if [ -x "$(get_tap)" ]; then
     if [[ "$(get_tap)" == *"tap.exe" ]]; then
         complete -F _tap_comp tap.exe
-        else
+    else
         complete -F _tap_comp tap
     fi
-# else
-    # echo "Tap not found."
+else
+    if [[ "$(uname --kernel-version)" == *Microsoft* ]]; then
+        complete -F _tap_comp tap.exe
+    else
+        complete -F _tap_comp tap
+    fi
 fi

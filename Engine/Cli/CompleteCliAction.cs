@@ -16,44 +16,87 @@ namespace OpenTap.Cli
 
     namespace TapBashCompletion
     {
-        internal class MyPackage
+        internal class TapPackage
         {
             public string name { get; set; }
             public string version { get; set; }
             public bool installed { get; set; }
         }
+
         /// <summary>
         /// Accepts an OpenTAP CLI command and displays valid subcommands for that command.
         /// </summary>
-        [Display("complete", "Get valid TAP completions for the current command line")]
+        [Display("complete", "Get valid OpenTAP completions for the current command line")]
         [Browsable(false)]
         public class CompleteCliAction : ICliAction
         {
+            private TraceSource log = OpenTap.Log.CreateSource("CompleteCliAction");
+
             [CommandLineArgument("instructions", Description = "Show setup instructions", ShortName = "i")]
-            public bool Help { get; set; } = false;
-            
-            [CommandLineArgument("show-config", Description = "Show a bash script to be sourced for completions",
-                ShortName = "s")]
-            public bool Dump { get; set; } = false;
-            private void DebugLog(string input)
+            public bool Instructions { get; set; } = false;
+
+            [CommandLineArgument("show-config", Description = "Show a bash script to be sourced for completions", ShortName = "s")]
+            public bool ShowConfig { get; set; } = false;
+
+            private static string PackageCache { get; } = Path.Combine(ExecutorClient.ExeDir, ".TapCompletion.cache");
+
+            /// <summary>
+            /// The code to be executed by the action.
+            /// </summary>
+            /// <returns>Return 0 on success. Return -1 to indicate parsing error.</returns>
+            public int Execute(CancellationToken cancellationToken)
             {
-                #if DEBUG
-                using (var stream = new StreamWriter(Path.Combine(CacheDir, "CompletionDebug.log"), append: true))
+                if (Instructions)
                 {
-                    stream.WriteLine($"{DateTime.Now}: {input}");
+                    return ShowHelp();
                 }
-                #endif
+                else if (ShowConfig)
+                {
+                    return DumpConfig();
+                }
+
+                // Print magic string so the bash script knows completions are supported
+                Console.WriteLine("BASH_COMPLETIONS_SUPPORTED");
+
+                var cliArgs = Environment.GetCommandLineArgs();
+
+                string argString = "";
+                if (cliArgs.Length > 2)
+                {
+                    argString = cliArgs[2];
+                }
+
+                List<string> args = argString.Split(new string[] {" "}, StringSplitOptions.RemoveEmptyEntries).ToList();
+                log.Debug($"Completion called with '{argString}'");
+
+                CliActionTree cmd = GetCmd(args);
+
+                if (cmd == null)
+                {
+                    log.Debug("Got null command from input");
+                    return -1;
+                }
+
+                if (cmd.SubCommands.Count > 0)
+                {
+                    DumpSubCommands(cmd);
+                }
+                else
+                {
+                    DumpFlags(cmd);
+                }
+
+                DumpSpecialCases(cmd);
+
+                return 0;
             }
 
-            private static string CacheDir { get; } = Path.Combine(Path.GetTempPath(), "TapCompletion");
-
-            private void writeCompletion(string completion, bool flag)
+            private void WriteCompletion(string completion, bool flag)
             {
                 string prepend = flag ? "--" : "";
-//                completion = completion.Contains(' ') && !flag ? $"\"{completion}\"" : completion;
                 completion = $"{prepend}{completion.Trim()}";
                 Console.Write($"{completion}\n");
-                DebugLog(completion);
+                log.Debug(completion);
             }
 
             private void DumpSubCommands(CliActionTree cmd)
@@ -62,7 +105,7 @@ namespace OpenTap.Cli
                 {
                     if (subCmd.IsGroup || subCmd.Type.IsBrowsable())
                     {
-                        writeCompletion(subCmd.Name, false);
+                        WriteCompletion(subCmd.Name, false);
                     }
                 }
             }
@@ -73,17 +116,17 @@ namespace OpenTap.Cli
                 {
                     foreach (var attr in member.Attributes.OfType<CommandLineArgumentAttribute>())
                     {
-                        writeCompletion(attr.Name, true);
+                        WriteCompletion(attr.Name, true);
                     }
                 }
             }
 
             private void DumpSpecialCases(CliActionTree cmd)
             {
-                if (cmd.Parent?.Name != "package") 
+                if (cmd.Parent?.Name != "package")
                     return;
-                
-                List<MyPackage> packageList;
+
+                List<TapPackage> packageList;
                 switch (cmd.Name)
                 {
                     case "uninstall":
@@ -98,30 +141,46 @@ namespace OpenTap.Cli
 
                 if (cmd.Name == "uninstall" || cmd.Name == "test")
                     foreach (var package in packageList.Where(package => package.installed))
-                        writeCompletion(package.name, false);
-                
+                        WriteCompletion(package.name, false);
+
                 else if (cmd.Name == "install" || cmd.Name == "list")
                     foreach (var package in packageList)
-                        writeCompletion(package.name, false);
+                        WriteCompletion(package.name, false);
             }
 
-            private List<MyPackage> QueryPackages()
+            private List<TapPackage> QueryPackages()
             {
                 var tap = Assembly.GetEntryAssembly();
-                ProcessStartInfo pi = new ProcessStartInfo()
+                ProcessStartInfo pi;
+
+                if (OpenTap.OperatingSystem.Current == OpenTap.OperatingSystem.Windows)
                 {
-                    FileName = tap.Location,
-                    RedirectStandardOutput = true,
-                    Arguments = "package list",
-                    UseShellExecute = false,
-                };
+                    pi = new ProcessStartInfo()
+                    {
+                        FileName = tap.Location,
+                        RedirectStandardOutput = true,
+                        Arguments = "package list",
+                        UseShellExecute = false,
+                    };
+                }
+                else
+                {
+                    pi = new ProcessStartInfo()
+                    {
+                        FileName = "dotnet",
+                        RedirectStandardOutput = true,
+                        Arguments = $"{tap.Location} package list",
+                        UseShellExecute = false,
+                    };
+                }
+
                 var process = new Process()
                 {
                     StartInfo = pi,
                 };
                 process.Start();
 
-                var packages = new List<MyPackage>();
+                var packages = new List<TapPackage>();
 
                 string line;
                 while ((line = process.StandardOutput.ReadLine()) != null)
@@ -129,16 +188,17 @@ namespace OpenTap.Cli
                     var parts = line.Split(new string[] {" - "}, StringSplitOptions.None);
                     if (parts.Length == 2)
                     {
-                        packages.Add(new MyPackage()
+                        packages.Add(new TapPackage()
                             {name = parts[0].Trim(), installed = false, version = parts[1].Trim()});
                     }
                     else if (parts.Length == 3)
                     {
-                        packages.Add(new MyPackage()
+                        packages.Add(new TapPackage()
                             {name = parts[0].Trim(), installed = true, version = parts[1].Trim()});
                     }
                     else
                     {
+                        log.Debug("Got invalid package line");
                         // red alert
                         continue;
                     }
@@ -148,23 +208,21 @@ namespace OpenTap.Cli
                 return packages;
             }
 
-            private static string PackageCache { get; } = Path.Combine(CacheDir, "output_of_package_list");
-
-            private List<MyPackage> GetPackages()
+            private List<TapPackage> GetPackages()
             {
-                List<MyPackage> packages;
+                List<TapPackage> packages;
                 if (File.Exists(PackageCache))
                 {
                     DateTime lastWrite = File.GetLastWriteTime(PackageCache);
                     var timeSinceLastWrite = DateTime.Now - lastWrite;
 
-                    if (timeSinceLastWrite < TimeSpan.FromDays(1))
+                    if (timeSinceLastWrite < TimeSpan.FromMinutes(5))
                     {
                         using (Stream stream = new FileStream(PackageCache, FileMode.Open))
                         {
                             var deserializer = new TapSerializer();
-                            packages = (List<MyPackage>) deserializer.Deserialize(stream);
-                            DebugLog("Using package cache");
+                            packages = (List<TapPackage>) deserializer.Deserialize(stream);
+                            log.Debug($"Used package cache ({PackageCache})");
                             return packages;
                         }
                     }
@@ -176,110 +234,60 @@ namespace OpenTap.Cli
                 {
                     var serializer = new TapSerializer();
                     serializer.Serialize(stream, packages);
-                    DebugLog($"Wrote package cache to {CacheDir}");
+                    log.Debug($"Wrote new package cache ({PackageCache})");
                 }
 
                 return packages;
             }
-            
+
             private CliActionTree GetCmd(List<string> args)
             {
                 CliActionTree root = CliActionTree.Root;
                 CliActionTree cmd;
-                
+
                 cmd = root.GetSubCommand(args.ToArray()) ??
                       root.GetSubCommand(args.Take(args.Count - 1).ToArray()) ?? null;
 
                 if (cmd == null && args.Count <= 1)
                     cmd = root;
-            
+
 
                 if (cmd == null)
                 {
-                    DebugLog("Got null command from input");
+                    log.Debug("Got null command from input");
                 }
 
                 return cmd;
-
             }
-            
-            /// <summary>
-            /// The code to be executed by the action.
-            /// </summary>
-            /// <returns>Return 0 on success. Return -1 to indicate parsing error.</returns>
-            public int Execute(CancellationToken cancellationToken)
-            {
-                if (Help)
-                {
-                    return ShowHelp();
-                }
-                else if (Dump)
-                {
-                    return DumpConfig();
-                }
-                // Print magic string so the bash script knows completions are supported
-                Console.WriteLine("BASH_COMPLETIONS_SUPPORTED");
-                
-                var start = DateTime.Now;
-                if (!Directory.Exists(CacheDir))
-                {
-                    Directory.CreateDirectory(CacheDir);
-                }
 
-                var cliArgs = Environment.GetCommandLineArgs();
-
-                string argString = "";
-                if (cliArgs.Length > 2)
-                {
-                    argString = cliArgs[2];
-                }
-                    
-                List<string> args = argString.Split(new string[] {" "}, StringSplitOptions.RemoveEmptyEntries).ToList();
-                DebugLog($"Completion called with '{argString}'");
-
-                CliActionTree cmd = GetCmd(args);
-
-                if (cmd == null)
-                {
-                    DebugLog("Got null command from input");
-                    return -1;
-                }
-
-                if (cmd.SubCommands.Count > 0)
-                {
-                    DumpSubCommands(cmd);
-                }
-                else
-                {
-                    DumpFlags(cmd);
-                }
-                
-                DumpSpecialCases(cmd);
-
-                var elapsed = DateTime.Now;                
-                
-                DebugLog($"Provided completions in {(elapsed - start).Milliseconds}ms");
-
-                return 0;
-            }
             private int ShowHelp()
             {
                 Console.WriteLine("Bash tab completion is available in bash!");
-                Console.WriteLine("Run `tap complete --show-config` to get the completion script and source it somewhere.");
+                Console.WriteLine(
+                    "Run `tap complete --show-config` to get the completion script and source it somewhere.");
                 Console.WriteLine("\nActivate for one session:\neval \"$(tap complete --show-config)\"");
-                Console.WriteLine("\nLoad completions on startup:\ntap complete --show-config | sudo dd  of=/usr/share/bash-completion/completions/tap");
+                Console.WriteLine(
+                    "\nLoad completions on startup:\ntap complete --show-config | sudo dd  of=/usr/share/bash-completion/completions/tap");
 
                 return 0;
             }
+
             private int DumpConfig()
             {
-                
-//                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("OpenTap.Sdk.New.Resources.tasksTemplate.txt"))
-                var files = Assembly.GetExecutingAssembly().GetManifestResourceNames();
-                using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("OpenTap.bash_completion_source"))
-                using (var reader = new StreamReader(stream))
+                try
                 {
-                    Console.WriteLine(reader.ReadToEnd());                    
+                    using (var stream = Assembly.GetExecutingAssembly()
+                        .GetManifestResourceStream("OpenTap.bash_completion_source"))
+                    using (var reader =
+                        new StreamReader(stream ?? throw new Exception("Bash completions script not embedded.")))
+                    {
+                        Console.Write(reader.ReadToEnd());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Error(ex.Message);
+                    log.Debug(ex);
                 }
 
                 return 0;

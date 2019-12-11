@@ -25,6 +25,7 @@ namespace OpenTap.Cli
         public List<CliActionTree> SubCommands { get; set; }
 
         public static CliActionTree Root { get; internal set; }
+        public CliActionTree Parent { get; set; }
 
         static CliActionTree()
         {
@@ -58,8 +59,6 @@ namespace OpenTap.Cli
                 command.SubCommands = command.SubCommands.OrderBy(c => c.Name).ToList();
             }
         }
-
-        public CliActionTree Parent { get; internal set; }
 
         public CliActionTree GetSubCommand(string[] args)
         {
