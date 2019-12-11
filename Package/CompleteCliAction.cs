@@ -1,8 +1,12 @@
 ﻿using System.Diagnostics;
+using System.Drawing.Text;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Xml;
+using NuGet.Packaging;
+using OpenTap.Package;
+using OpenTap.Plugins.BasicSteps.Tap.Shared;
 
 namespace OpenTap.Cli
 {
@@ -99,11 +103,24 @@ namespace OpenTap.Cli
                 log.Debug(completion);
             }
 
+            private static bool IsBrowsable(ITypeData type)
+            {                
+                if (type is TypeData td)
+                {
+                    return td.IsBrowsable;
+                }
+                var attr = type.GetAttribute<BrowsableAttribute>();
+                if (attr is null)
+                    return true;
+                
+                return attr.Browsable;
+            }
+            
             private void DumpSubCommands(CliActionTree cmd)
             {
                 foreach (CliActionTree subCmd in cmd.SubCommands)
                 {
-                    if (subCmd.IsGroup || subCmd.Type.IsBrowsable())
+                    if (subCmd.IsGroup || IsBrowsable(subCmd.Type))
                     {
                         WriteCompletion(subCmd.Name, false);
                     }
@@ -150,64 +167,18 @@ namespace OpenTap.Cli
 
             private List<TapPackage> QueryPackages()
             {
-                var tap = Assembly.GetEntryAssembly();
-                ProcessStartInfo pi;
+                List<IPackageRepository> repositories = PackageManagerSettings.Current.Repositories.Where(p => p.IsEnabled).Select(s => s.Manager).ToList();
+                
+                var installed = new Installation(FileSystemHelper.GetCurrentInstallationDirectory()).GetPackages();
+                var packages = PackageRepositoryHelpers.GetPackageNameAndVersionFromAllRepos(repositories, new PackageSpecifier());
+                
+                List<TapPackage> tapPackages = new List<TapPackage>();
+                tapPackages.AddRange(installed.Select(x => new TapPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown", installed = true}));
+                tapPackages.AddRange(packages.Select(x => new TapPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown"}));
 
-                if (OpenTap.OperatingSystem.Current == OpenTap.OperatingSystem.Windows)
-                {
-                    pi = new ProcessStartInfo()
-                    {
-                        FileName = tap.Location,
-                        RedirectStandardOutput = true,
-                        Arguments = "package list",
-                        UseShellExecute = false,
-                    };
-                }
-                else
-                {
-                    pi = new ProcessStartInfo()
-                    {
-                        FileName = "dotnet",
-                        RedirectStandardOutput = true,
-                        Arguments = $"{tap.Location} package list",
-                        UseShellExecute = false,
-                    };
-                }
-
-                var process = new Process()
-                {
-                    StartInfo = pi,
-                };
-                process.Start();
-
-                var packages = new List<TapPackage>();
-
-                string line;
-                while ((line = process.StandardOutput.ReadLine()) != null)
-                {
-                    var parts = line.Split(new string[] {" - "}, StringSplitOptions.None);
-                    if (parts.Length == 2)
-                    {
-                        packages.Add(new TapPackage()
-                            {name = parts[0].Trim(), installed = false, version = parts[1].Trim()});
-                    }
-                    else if (parts.Length == 3)
-                    {
-                        packages.Add(new TapPackage()
-                            {name = parts[0].Trim(), installed = true, version = parts[1].Trim()});
-                    }
-                    else
-                    {
-                        log.Debug("Got invalid package line");
-                        // red alert
-                        continue;
-                    }
-                }
-
-
-                return packages;
+                return tapPackages;
             }
-
+           
             private List<TapPackage> GetPackages()
             {
                 List<TapPackage> packages;
