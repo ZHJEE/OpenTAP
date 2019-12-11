@@ -24,7 +24,7 @@ namespace OpenTap.Cli
         /// </summary>
         [Display("complete", "Get valid OpenTAP completions for the current command line")]
         [Browsable(false)]
-        public class CompleteCliAction : ICliAction
+        internal class CompleteCliAction : ICliAction
         {
             private TraceSource log = OpenTap.Log.CreateSource("CompleteCliAction");
 
