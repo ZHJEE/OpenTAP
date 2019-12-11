@@ -12,7 +12,7 @@ namespace OpenTap.Cli
 {
     namespace TapBashCompletion
     {
-        internal class TapPackage
+        internal class CompletionPackage
         {
             public string name { get; set; }
             public string version { get; set; }
@@ -36,10 +36,6 @@ namespace OpenTap.Cli
 
             private static string PackageCache { get; } = Path.Combine(ExecutorClient.ExeDir, ".TapCompletion.cache");
 
-            /// <summary>
-            /// The code to be executed by the action.
-            /// </summary>
-            /// <returns>Return 0 on success. Return -1 to indicate parsing error.</returns>
             public int Execute(CancellationToken cancellationToken)
             {
                 if (Instructions)
@@ -89,8 +85,7 @@ namespace OpenTap.Cli
 
             private void WriteCompletion(string completion, bool flag)
             {
-                string prepend = flag ? "--" : "";
-                completion = $"{prepend}{completion.Trim()}";
+                completion = $"{(flag ? "--" : "")}{completion.Trim()}";
                 Console.Write($"{completion}\n");
                 log.Debug(completion);
             }
@@ -135,7 +130,7 @@ namespace OpenTap.Cli
                 if (cmd.Parent?.Name != "package")
                     return;
 
-                List<TapPackage> packageList;
+                List<CompletionPackage> packageList;
                 switch (cmd.Name)
                 {
                     case "uninstall":
@@ -157,23 +152,23 @@ namespace OpenTap.Cli
                         WriteCompletion(package.name, false);
             }
 
-            private List<TapPackage> QueryPackages()
+            private List<CompletionPackage> QueryPackages()
             {
                 List<IPackageRepository> repositories = PackageManagerSettings.Current.Repositories.Where(p => p.IsEnabled).Select(s => s.Manager).ToList();
                 
                 var installed = new Installation(FileSystemHelper.GetCurrentInstallationDirectory()).GetPackages();
                 var packages = PackageRepositoryHelpers.GetPackageNameAndVersionFromAllRepos(repositories, new PackageSpecifier());
                 
-                List<TapPackage> tapPackages = new List<TapPackage>();
-                tapPackages.AddRange(installed.Select(x => new TapPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown", installed = true}));
-                tapPackages.AddRange(packages.Select(x => new TapPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown"}));
+                List<CompletionPackage> tapPackages = new List<CompletionPackage>();
+                tapPackages.AddRange(installed.Select(x => new CompletionPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown", installed = true}));
+                tapPackages.AddRange(packages.Select(x => new CompletionPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown"}));
 
                 return tapPackages;
             }
            
-            private List<TapPackage> GetPackages()
+            private List<CompletionPackage> GetPackages()
             {
-                List<TapPackage> packages;
+                List<CompletionPackage> packages;
                 if (File.Exists(PackageCache))
                 {
                     DateTime lastWrite = File.GetLastWriteTime(PackageCache);
@@ -184,7 +179,7 @@ namespace OpenTap.Cli
                         using (Stream stream = new FileStream(PackageCache, FileMode.Open))
                         {
                             var deserializer = new TapSerializer();
-                            packages = (List<TapPackage>) deserializer.Deserialize(stream);
+                            packages = (List<CompletionPackage>) deserializer.Deserialize(stream);
                             log.Debug($"Used package cache ({PackageCache})");
                             return packages;
                         }
@@ -225,12 +220,14 @@ namespace OpenTap.Cli
 
             private int ShowHelp()
             {
-                Console.WriteLine("Bash tab completion is available in bash!");
                 Console.WriteLine(
-                    "Run `tap complete --show-config` to get the completion script and source it somewhere.");
-                Console.WriteLine("\nActivate for one session:\neval \"$(tap complete --show-config)\"");
-                Console.WriteLine(
-                    "\nLoad completions on startup:\ntap complete --show-config | sudo dd  of=/usr/share/bash-completion/completions/tap");
+                    "OpenTAP tab completion is available in bash!\n" +
+                    "Run `tap complete --show-config` to get the completion script and source it somewhere.\n" +
+                    "`tap` must be in PATH, or the script will not work\n" +
+                    "The script has been tested with Windows Subsystem for Linux and GNU/Linux versions of bash\n" +
+                    "\nActivate for one session:\neval \"$(tap complete --show-config)\"\n" +
+                    "\nLoad completions on startup:\ntap complete --show-config | sudo dd  of=/usr/share/bash-completion/completions/tap\n"
+                    );
 
                 return 0;
             }
@@ -244,7 +241,10 @@ namespace OpenTap.Cli
                     using (var reader =
                         new StreamReader(stream ?? throw new Exception("Bash completions script not embedded.")))
                     {
-                        Console.Write(reader.ReadToEnd());
+                        var content = reader.ReadToEnd();
+                        // CR-LF line endings 
+                        content = content.Replace("\r\n", "\n");
+                        Console.Write(content);
                     }
                 }
                 catch (Exception ex)
