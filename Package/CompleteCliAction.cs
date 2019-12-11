@@ -105,23 +105,37 @@ namespace OpenTap.Cli
             
             private void DumpSubCommands(CliActionTree cmd)
             {
+                List<string> commandNames = new List<string>();
                 foreach (CliActionTree subCmd in cmd.SubCommands)
                 {
                     if (subCmd.IsGroup || IsBrowsable(subCmd.Type))
                     {
-                        WriteCompletion(subCmd.Name, false);
+                        commandNames.Add(subCmd.Name);                        
                     }
+                }
+                commandNames.Sort();
+
+                foreach (var name in commandNames)
+                {
+                    WriteCompletion(name, false);                    
                 }
             }
 
             private void DumpFlags(CliActionTree cmd)
             {
+                List<string> flags = new List<string>();
                 foreach (IMemberData member in cmd.Type.GetMembers())
                 {
                     foreach (var attr in member.Attributes.OfType<CommandLineArgumentAttribute>())
                     {
-                        WriteCompletion(attr.Name, true);
+                        flags.Add(attr.Name);                        
                     }
+                }
+                flags.Sort();
+
+                foreach (var flag in flags)
+                {
+                    WriteCompletion(flag, true);
                 }
             }
 
@@ -142,6 +156,7 @@ namespace OpenTap.Cli
                     default:
                         return;
                 }
+                packageList.Sort((p1, p2) => String.Compare(p1.name, p2.name, StringComparison.Ordinal));
 
                 if (cmd.Name == "uninstall" || cmd.Name == "test")
                     foreach (var package in packageList.Where(package => package.installed))
@@ -244,7 +259,8 @@ namespace OpenTap.Cli
                         var content = reader.ReadToEnd();
                         // CR-LF line endings 
                         content = content.Replace("\r\n", "\n");
-                        Console.Write(content);
+                        Console.Write($"{content}\n");
+                        
                     }
                 }
                 catch (Exception ex)
