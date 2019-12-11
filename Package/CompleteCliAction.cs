@@ -1,23 +1,15 @@
-﻿using System.Diagnostics;
-using System.Drawing.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Xml;
-using NuGet.Packaging;
+using System.Threading;
 using OpenTap.Package;
 using OpenTap.Plugins.BasicSteps.Tap.Shared;
 
 namespace OpenTap.Cli
 {
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Linq;
-    using System.Threading;
-    using OpenTap;
-    using OpenTap.Cli;
-
     namespace TapBashCompletion
     {
         internal class TapPackage
