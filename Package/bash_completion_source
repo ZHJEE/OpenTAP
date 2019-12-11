@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi
 
 get_tap(){
     local tap_cmd="`which tap`"
@@ -30,6 +37,7 @@ _tap_comp()
 
     mapfile -t completions < <( "$(get_tap)" "complete" "${words[@]}" )
     local MAGIC=( ${completions[@]:0:1} ); completions=( "${completions[@]:1}" )
+    # local UNNAMED_ARGS=( ${completions[@]:0:1} ); completions=( "${completions[@]:1}" )
 
     if [[ ! "$MAGIC" == "BASH_COMPLETIONS_SUPPORTED"* ]]; then
        return 1
@@ -38,12 +46,15 @@ _tap_comp()
     local escaped_completions="$( printf '%q ' "${completions[@]}" )"
 
     case "${COMP_WORDS[@]}" in
-        *"package create"*)
+        *"package create "*)
             _filedir '@(xml)'
             ;;
-        *"package install"*)
+        *"package install "*)
             _filedir '@(TapPackage)'
             ;;
+        *" run "*)
+            _filedir '@(TapPlan)'
+            ;;            
     esac
 
     mapfile -t final_completions < <( compgen -W "$escaped_completions" -- "$current" | quote_if_needed )
@@ -52,17 +63,8 @@ _tap_comp()
 
 }
 
-# Fails if PATH does not contain either tap or tap.exe
-if [ -x "$(get_tap)" ]; then
-    if [[ "$(get_tap)" == *"tap.exe" ]]; then
-        complete -F _tap_comp tap.exe
-    else
-        complete -F _tap_comp tap
-    fi
+if [[ "$(uname --kernel-version)" == *Microsoft* ]]; then
+    complete -F _tap_comp tap.exe
 else
-    if [[ "$(uname --kernel-version)" == *Microsoft* ]]; then
-        complete -F _tap_comp tap.exe
-    else
-        complete -F _tap_comp tap
-    fi
+    complete -F _tap_comp tap
 fi
