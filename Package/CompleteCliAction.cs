@@ -241,7 +241,7 @@ namespace OpenTap.Cli
                     "The directory containing 'tap' must be in your PATH environment variable in order for completions to work\n" +
                     "The script has been tested with Windows Subsystem for Linux and GNU/Linux versions of bash, and depends on 'bash-completion' (usually bundled with bash)\n" +
                     "\nActivate for one session:\neval \"$(tap complete --show-config)\"\n" +
-                    "\nLoad completions on startup:\ntap complete --show-config | sudo dd  of=/usr/share/bash-completion/completions/tap\n"
+                    "\nAutomatically load completions on startup:\ntap complete --show-config | sudo dd of=/etc/bash_completion.d/tap\n"
                     );
 
                 return 0;
