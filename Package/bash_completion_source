@@ -1,5 +1,7 @@
 #!/bin/bash
 
+declare -A _tap_comp_cache_
+
 get_tap(){
     local tap_cmd="`which tap`"
 
@@ -11,31 +13,45 @@ get_tap(){
 }
 
 quote_if_needed(){
-    # Quote input if it contains spaces, otherwise return it as is
     awk '/ / { print "\""$0"\"" } /^[^ ]+$/ { print $0 }'
 }
+
 
 _tap_comp()
 {
     _init_completion || return
     local current="${COMP_WORDS[COMP_CWORD]}"
-    
-    # Locally prevent OpenTAP from attaching the debugger, and from running in "isolated" mode 
-    local WSLENV="TPM_PIPE=_prevent_tap_from_running_isolated_:OPENTAP_DEBUGGER_ASSEMBLY"
+    local WSLENV="OPENTAP_DEBUGGER_ASSEMBLY"
     declare -a words
 
     # skip tap.exe
     local words="${COMP_WORDS[@]:1}"
 
-    mapfile -t completions < <( "$(get_tap)" "complete" "${words[@]}" )
-    local MAGIC=( ${completions[@]:0:1} ); completions=( "${completions[@]:1}" )
-    # local UNNAMED_ARGS=( ${completions[@]:0:1} ); completions=( "${completions[@]:1}" )
+    local cache_key="${COMP_WORDS[@]}"
+
+    if [ ! -z "$2" ]; then
+        # Remove everything following last space if current word is not yet completed
+        local cache_key="${cache_key% *}"
+    fi
+
+    # Remove everything following a quote or dash
+    local cache_key="${cache_key%%\"*}"
+    local cache_key="${cache_key%%-*}"
+
+    if [ -z "${_tap_comp_cache_[$cache_key]}" ]; then
+        mapfile -t completions < <( "$(get_tap)" "complete" "${words[@]}" )
+        local MAGIC="${completions[0]}"
+        unset 'completions[0]'
+        local escaped_completions="$( printf '%q ' "${completions[@]}" )"
+        _tap_comp_cache_[$cache_key]="$escaped_completions"
+    else
+        local MAGIC="BASH_COMPLETIONS_SUPPORTED"
+        escaped_completions="${_tap_comp_cache_[$cache_key]}"
+    fi
 
     if [[ ! "$MAGIC" == "BASH_COMPLETIONS_SUPPORTED"* ]]; then
        return 1
     fi
-
-    local escaped_completions="$( printf '%q ' "${completions[@]}" )"
 
     case "${COMP_WORDS[@]}" in
         *"package create "*)
