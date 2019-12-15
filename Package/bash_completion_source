@@ -55,6 +55,22 @@ _tap_comp() {
         return 1
     fi
 
+
+    logstuff "escaped: ${escaped_completions[@]}"
+
+    declare -a unique_completions
+    local i=0
+    for word in ${escaped_completions[@]}; do
+        if [[ ! "${COMP_WORDS[@]}" == *"$word"* ]]; then
+            unique_completions[i++]="$word"
+        fi
+    done
+    local unique_completions="${unique_completions[@]}"
+
+    logstuff " unique: ${unique_completions[@]}"
+
+    mapfile -t final_completions < <(compgen -W "$unique_completions" -- "$current" | quote_if_needed)
+
     case "${COMP_WORDS[@]}" in
     *"package create "*)
         _filedir '@(xml)'
@@ -66,10 +82,6 @@ _tap_comp() {
         _filedir '@(TapPlan)'
         ;;
     esac
-
-    local unique_completions=$(comm -13 <(printf '%q\n' ${words[@]} | sort) <(printf '%q\n' ${escaped_completions[@]} | sort))
-
-    mapfile -t final_completions < <(compgen -W "${unique_completions[@]}" -- "$current" | quote_if_needed)
 
     COMPREPLY+=("${final_completions[@]}")
 
