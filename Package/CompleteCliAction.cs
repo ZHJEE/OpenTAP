@@ -91,7 +91,7 @@ namespace OpenTap.Cli
             }
 
             private static bool IsBrowsable(ITypeData type)
-            {                
+            {
                 if (type is TypeData td)
                 {
                     return td.IsBrowsable;
@@ -99,10 +99,10 @@ namespace OpenTap.Cli
                 var attr = type.GetAttribute<BrowsableAttribute>();
                 if (attr is null)
                     return true;
-                
+
                 return attr.Browsable;
             }
-            
+
             private void DumpSubCommands(CliActionTree cmd)
             {
                 List<string> commandNames = new List<string>();
@@ -110,14 +110,14 @@ namespace OpenTap.Cli
                 {
                     if (subCmd.IsGroup || IsBrowsable(subCmd.Type))
                     {
-                        commandNames.Add(subCmd.Name);                        
+                        commandNames.Add(subCmd.Name);
                     }
                 }
                 commandNames.Sort();
 
                 foreach (var name in commandNames)
                 {
-                    WriteCompletion(name, false);                    
+                    WriteCompletion(name, false);
                 }
             }
 
@@ -128,7 +128,7 @@ namespace OpenTap.Cli
                 {
                     foreach (var attr in member.Attributes.OfType<CommandLineArgumentAttribute>())
                     {
-                        flags.Add(attr.Name);                        
+                        flags.Add(attr.Name);
                     }
                 }
                 flags.Sort();
@@ -151,6 +151,7 @@ namespace OpenTap.Cli
                     case "test":
                     case "install":
                     case "list":
+                    case "download":
                         packageList = GetPackages();
                         break;
                     default:
@@ -170,17 +171,17 @@ namespace OpenTap.Cli
             private List<CompletionPackage> QueryPackages()
             {
                 List<IPackageRepository> repositories = PackageManagerSettings.Current.Repositories.Where(p => p.IsEnabled).Select(s => s.Manager).ToList();
-                
+
                 var installed = new Installation(FileSystemHelper.GetCurrentInstallationDirectory()).GetPackages();
                 var packages = PackageRepositoryHelpers.GetPackageNameAndVersionFromAllRepos(repositories, new PackageSpecifier());
-                
+
                 List<CompletionPackage> tapPackages = new List<CompletionPackage>();
                 tapPackages.AddRange(installed.Select(x => new CompletionPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown", installed = true}));
                 tapPackages.AddRange(packages.Select(x => new CompletionPackage() {name = x.Name, version = x.Version?.ToString() ?? "Unknown"}));
 
                 return tapPackages;
             }
-           
+
             private List<CompletionPackage> GetPackages()
             {
                 List<CompletionPackage> packages;
@@ -258,10 +259,10 @@ namespace OpenTap.Cli
                         new StreamReader(stream ?? throw new Exception("Bash completions script not embedded.")))
                     {
                         var content = reader.ReadToEnd();
-                        // CR-LF line endings 
+                        // CR-LF line endings
                         content = content.Replace("\r\n", "\n");
                         Console.Write($"{content}\n");
-                        
+
                     }
                 }
                 catch (Exception ex)
