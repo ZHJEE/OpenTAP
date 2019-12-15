@@ -2,26 +2,25 @@
 
 declare -A _tap_comp_cache_
 
-get_tap(){
-    local tap_cmd="`which tap`"
+get_tap() {
+    local tap_cmd="$(which tap)"
 
     if [ ! -x "$tap_cmd" ]; then
-        local tap_cmd="`which tap.exe`"
+        local tap_cmd="$(which tap.exe)"
     fi
 
     printf "%q" "$tap_cmd"
 }
 
-quote_if_needed(){
+quote_if_needed() {
     awk '/ / { print "\""$0"\"" } /^[^ ]+$/ { print $0 }'
 }
 
-logstuff(){
-    echo "$@" >> ~/.complog
+logstuff() {
+    echo "$@" >>~/.complog
 }
 
-_tap_comp()
-{
+_tap_comp() {
     _init_completion || return
     local current="${COMP_WORDS[COMP_CWORD]}"
     local WSLENV="OPENTAP_DEBUGGER_ASSEMBLY"
@@ -42,10 +41,10 @@ _tap_comp()
     local cache_key="${cache_key%%-*}"
 
     if [ -z "${_tap_comp_cache_[$cache_key]}" ]; then
-        mapfile -t completions < <( "$(get_tap)" "complete" "${words[@]}" )
+        mapfile -t completions < <("$(get_tap)" "complete" "${words[@]}")
         local MAGIC="${completions[0]}"
         unset 'completions[0]'
-        local escaped_completions="$( printf '%q ' "${completions[@]}" )"
+        local escaped_completions="$(printf '%q ' "${completions[@]}")"
         _tap_comp_cache_[$cache_key]="$escaped_completions"
     else
         local MAGIC="BASH_COMPLETIONS_SUPPORTED"
@@ -53,25 +52,24 @@ _tap_comp()
     fi
 
     if [[ ! "$MAGIC" == "BASH_COMPLETIONS_SUPPORTED"* ]]; then
-       return 1
+        return 1
     fi
 
     case "${COMP_WORDS[@]}" in
-        *"package create "*)
-            _filedir '@(xml)'
-            ;;
-        *"package install "*)
-            _filedir '@(TapPackage)'
-            ;;
-        *" run "*)
-            _filedir '@(TapPlan)'
-            ;;
+    *"package create "*)
+        _filedir '@(xml)'
+        ;;
+    *"package install "*)
+        _filedir '@(TapPackage)'
+        ;;
+    *" run "*)
+        _filedir '@(TapPlan)'
+        ;;
     esac
 
     local unique_completions=$(comm -13 <(printf '%q\n' ${words[@]} | sort) <(printf '%q\n' ${escaped_completions[@]} | sort))
 
-
-    mapfile -t final_completions < <( compgen -W "${unique_completions[@]}" -- "$current" | quote_if_needed )
+    mapfile -t final_completions < <(compgen -W "${unique_completions[@]}" -- "$current" | quote_if_needed)
 
     COMPREPLY+=("${final_completions[@]}")
 
