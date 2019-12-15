@@ -9,30 +9,46 @@ get_tap() {
         local tap_cmd="$(which tap.exe)"
     fi
 
-    printf "%q" "$tap_cmd"
-}
-
-quote_if_needed() {
-    awk '/ / { print "\""$0"\"" } /^[^ ]+$/ { print $0 }'
-}
-
-logstuff() {
-    echo "$@" >>~/.complog
+    printf "%q" "$(readlink -f $tap_cmd)"
 }
 
 _tap_comp() {
+
+    quote_if_needed() {
+        # Quote a string if it contains spaces
+        awk '/ / { print "\""$0"\"" } /^[^ ]+$/ { print $0 }'
+    }
+
+    log() {
+        echo "$@" >>~/.complog
+    }
+
     _init_completion || return
     local current="${COMP_WORDS[COMP_CWORD]}"
     local WSLENV="OPENTAP_DEBUGGER_ASSEMBLY"
-    declare -a words
+
+    local tapdir="$(get_tap)"
+    local tapdir="${tapdir%/*}"
+
+    local package_hash="$(tar cP "$tapdir/Packages" | md5sum)"
+
+    # Invalidate cache if the hash has changed
+    if [[ ! "$package_hash" == "${_tap_comp_cache_[package_hash]}" ]]; then
+        # Necessary because bash does not provide a way to clear a global map
+        for i in "${!_tap_comp_cache_[@]}"; do
+            _tap_comp_cache_["$i"]=""
+        done
+
+        _tap_comp_cache_["package_hash"]="$package_hash"
+    fi
 
     # skip tap.exe
     local words="${COMP_WORDS[@]:1}"
 
     local cache_key="${COMP_WORDS[@]}"
 
+    # Remove everything following last space if current word is not yet completed
     if [ ! -z "$2" ]; then
-        # Remove everything following last space if current word is not yet completed
         local cache_key="${cache_key% *}"
     fi
 
@@ -55,9 +71,6 @@ _tap_comp() {
         return 1
     fi
 
-
-    logstuff "escaped: ${escaped_completions[@]}"
-
     declare -a unique_completions
     local i=0
     for word in ${escaped_completions[@]}; do
@@ -66,8 +79,6 @@ _tap_comp() {
         fi
     done
     local unique_completions="${unique_completions[@]}"
-
-    logstuff " unique: ${unique_completions[@]}"
 
     mapfile -t final_completions < <(compgen -W "$unique_completions" -- "$current" | quote_if_needed)
 
