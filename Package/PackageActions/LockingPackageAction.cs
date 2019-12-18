@@ -73,30 +73,37 @@ namespace OpenTap.Package
 
             using (Mutex state = GetMutex(Target))
             {
-                if (Unlocked == false && !state.WaitOne(0))
+                try
                 {
-                    log.Info("Waiting for other package manager operation to complete.");
-                    try
+                    if (Unlocked == false && !state.WaitOne(0))
                     {
-                        switch (WaitHandle.WaitAny(new WaitHandle[] { state, cancellationToken.WaitHandle }, 120000))
+                        log.Info("Waiting for other package manager operation to complete.");
+                        try
                         {
-                            case 0: // we got the mutex
-                                break;
-                            case 1: // user cancelled
-                                throw new ExitCodeException(5, "User aborted while waiting for other package manager operation to complete.");
-                            case WaitHandle.WaitTimeout:
-                                throw new ExitCodeException(6, "Timeout after 2 minutes while waiting for other package manager operation to complete.");
+                            switch (WaitHandle.WaitAny(new WaitHandle[] { state, cancellationToken.WaitHandle }, 120000))
+                            {
+                                case 0: // we got the mutex
+                                    break;
+                                case 1: // user cancelled
+                                    throw new ExitCodeException(5, "User aborted while waiting for other package manager operation to complete.");
+                                case WaitHandle.WaitTimeout:
+                                    throw new ExitCodeException(6, "Timeout after 2 minutes while waiting for other package manager operation to complete.");
+                            }
+                        }
+                        catch (AbandonedMutexException)
+                        {
+                            // Another package manager exited without releasing the mutex. We can should be able to take it now.
+                            if (!state.WaitOne(0))
+                                throw new ExitCodeException(7, "Unable to run while another package manager operation is running.");
                         }
                     }
-                    catch(AbandonedMutexException)
-                    {
-                        // Another package manager exited without releasing the mutex. We can should be able to take it now.
-                        if(!state.WaitOne(0))
-                            throw new ExitCodeException(7, "Unable to run while another package manager operation is running.");
-                    }
-                }
 
-                return LockedExecute(cancellationToken);
+                    return LockedExecute(cancellationToken);
+                }
+                finally
+                {
+                    state.ReleaseMutex();
+                }
             }
         }
 
