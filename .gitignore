@@ -13,3 +13,4 @@ nuget/build/payload
 *.orig
 
 TestResult.xml
+LinuxInstall/package
