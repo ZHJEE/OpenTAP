@@ -402,9 +402,11 @@ Package-Build-Deb:
   script:
     - apt update
     - apt-get install rpm -y
+    - apt-get install alien -y
     - pushd LinuxInstall/package
     - mv ../../OpenTAP*.TapPackage OpenTAP.TapPackage
     - bash create-deb
+    - alien -r OpenTAP.deb
     - mv OpenTAP.deb ../../OpenTAP.deb
     - mv OpenTAP*.rpm ../../OpenTAP.rpm
   artifacts:
