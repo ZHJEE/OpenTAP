@@ -1,6 +1,5 @@
 #!/bin/bash
 # Exit on error
-set -e
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 
@@ -72,13 +71,13 @@ rm -rf ./OpenTAP/var/log/SessionLogs/*
 # RPM does not support dashes in version names
 RELEASE="$(echo $RELEASE | sed "s/-/_/g")"
 
-sed -i "s/@VERSION@/$VERSION/g" OpenTAP.spec 
-sed -i "s/@RELEASE@/$RELEASE/g" OpenTAP.spec
-sed -i "s;@BUILD_ROOT@;$(pwd);g" OpenTAP.spec
+pushd OpenTAP
+sed -i "s/@VERSION@/$VERSION/g" ../OpenTAP.spec 
+sed -i "s/@RELEASE@/$RELEASE/g" ../OpenTAP.spec
+sed -i "s;@BUILD_ROOT@;$(pwd);g" ../OpenTAP.spec
 
 
 # Need to populate the rpm spec file with an index of all files in the package
-pushd OpenTAP
 # Enumerate regular files
 find . -type f -printf '"%h/%f"\n' | sed -e "s;\./;/;g" >> ../OpenTAP.spec
 # Enumerate symbolic links
@@ -88,5 +87,7 @@ cp ../OpenTAP.spec ../FixedOpenTAPSpec
 rpmbuild --target=x86_64 --buildroot "$(pwd)" -bb ../OpenTAP.spec > ../opentap-rpm-build.log
 
 popd
+
+# mv OpenTAP.rpm ../OpenTAP.rpm
 
 echo "Built .rpm package"

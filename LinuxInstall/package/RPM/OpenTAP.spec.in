@@ -1,12 +1,14 @@
-Buildroot: @BUILD_ROOT@
 Name:    OpenTAP
 Version: @VERSION@
 Release: @RELEASE@
 Summary: Simple, scalable, and fast test sequencing framework
 License: MPLv2.0
 URL: opentap.io
+BuildArch: x86_64
+Requires: libunwind, unzip, git, libcurl
+# Depends: libc6-dev, libunwind8, unzip, git, libcurl4
 
-%define _rpmdir ../
+%define _rpmdir ../../
 %define _rpmfilename OpenTAP.rpm
 
 %description
@@ -19,5 +21,13 @@ makes it possible for you to quickly develop plugins tailored for your
 automation needs – plugins that can be shared with the OpenTAP community 
 through the OpenTAP package repository.
 
+%prep
+# empty because we don't bundle source
+
+%changelog
+# would be nice to auto generate this in the future
+
+
 %files
 %dir "/var/log/SessionLogs/"
+%dir "/var/log/SessionLogs/tap"
