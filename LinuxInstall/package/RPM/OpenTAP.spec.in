@@ -1,12 +1,13 @@
+Buildroot: @BUILD_ROOT@
 Name:    OpenTAP
-Version: $(GitVersion)
-Release: $(GitVersion)
-
+Version: @VERSION@
+Release: @RELEASE@
 Summary: Simple, scalable, and fast test sequencing framework
 License: MPLv2.0
 URL: opentap.io
-Source0: gitlab.com/opentap/opentap
 
+%define _rpmdir ../
+%define _rpmfilename OpenTAP.rpm
 
 %description
 OpenTAP is an Open Source project for fast and easy development and execution 
@@ -18,12 +19,5 @@ makes it possible for you to quickly develop plugins tailored for your
 automation needs – plugins that can be shared with the OpenTAP community 
 through the OpenTAP package repository.
 
-%prep
-%setup
-%build
-
-%install
-cp -rfa * %{buildroot}
-
 %files
-/*
+%dir "/var/log/SessionLogs/"
