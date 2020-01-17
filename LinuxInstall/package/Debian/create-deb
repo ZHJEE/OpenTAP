@@ -5,8 +5,6 @@ GIT_ROOT="$(git rev-parse --show-toplevel)"
 
 # Build Deb package
 
-pushd Debian
-
 rm -rf ./OpenTAP
 mkdir -p OpenTAP/DEBIAN
 mkdir -p OpenTAP/usr/bin
@@ -34,7 +32,7 @@ DIVISOR=1024
 SIZE_KB=$(((BYTES - 1) / DIVISOR + 1)) 
 
 # sed control-debian -e "s/@VERSION@/$VERSION/g" -e "s/@SIZE_KB@/$SIZE_KB/g" > OpenTAP/DEBIAN/control
-sed control-debian -e "s/@SIZE_KB@/$SIZE_KB/g" > OpenTAP/DEBIAN/control
+sed control.in -e "s/@SIZE_KB@/$SIZE_KB/g" > OpenTAP/DEBIAN/control
 
 ./OpenTAP/usr/bin/tap sdk gitversion --replace OpenTAP/DEBIAN/control
 # Don't package log file generated from gitversion
