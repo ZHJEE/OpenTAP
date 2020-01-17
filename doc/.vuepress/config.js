@@ -17,7 +17,13 @@ module.exports = {
         ],
         sidebar: [
         	"/",
-            "User Guide/",
+            {
+                title: "User Guide",
+                children: [
+                  ["User Guide/Introduction/", "Introduction"],
+                  ["User Guide/CLI Reference/", "CLI Reference"]
+                ]
+              },
             {
                 title: 'Developer Guide',
                 children: [
