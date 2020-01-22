@@ -7,8 +7,8 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-DEST_DIR=$HOME/.tap
-BIN_DIR=$HOME/bin
+DEST_DIR=$HOME/.local/share/tap
+BIN_DIR=$HOME/.local/bin
 
 echo "TAP will be installed in $DEST_DIR, and shortcuts in $BIN_DIR"
 while true; do
