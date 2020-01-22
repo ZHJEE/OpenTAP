@@ -21,6 +21,8 @@ module.exports = {
                 title: "User Guide",
                 children: [
                   ["User Guide/Introduction/", "Introduction"],
+                  ["User Guide/CLI Usage/", "CLI Usage"],
+                  ["User Guide/Test plan tools/", "Test plan tools"],
                   ["User Guide/CLI Reference/", "CLI Reference"]
                 ]
               },
