@@ -1,6 +1,6 @@
 #!/bin/bash
 # Exit on error
-
+set -e
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 
 # Build Deb package
@@ -46,5 +46,3 @@ dpkg --build OpenTAP
 mv OpenTAP.deb ..
 
 echo "Built .deb package"
-
-popd 
