@@ -1,9 +1,0 @@
-Package: OpenTAP
-Version: @TAP_VERSION@
-Section: custom
-Priority: optional
-Architecture: all
-Essential: no
-Installed-Size: @INSTALLED_SIZE@
-Maintainer: Keysight Technologies
-Description: gitlab.com/opentap/opentap

@@ -4,11 +4,12 @@ set -e
 # create tap group if it doesn't exist
 getent group tap || groupadd tap && echo "created tap group"
 
-echo "Adding user $USER to tap group"
-usermod -a -G tap $USER 
-
 echo "changing permissions of tap folder (/usr/share/tap)"
 chgrp -R tap /usr/share/tap
 chmod -R g+rwx /usr/share/tap
 
+echo "tap group configured."
+echo "Please add users to the tap group to start using OpenTAP!" 
+
+echo "usermod -a -G tap \$USER"
 
