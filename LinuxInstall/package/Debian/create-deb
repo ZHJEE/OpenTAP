@@ -33,6 +33,8 @@ SIZE_KB=$(((BYTES - 1) / DIVISOR + 1))
 
 # sed control-debian -e "s/@VERSION@/$VERSION/g" -e "s/@SIZE_KB@/$SIZE_KB/g" > OpenTAP/DEBIAN/control
 sed control.in -e "s/@SIZE_KB@/$SIZE_KB/g" > OpenTAP/DEBIAN/control
+cp postinst.in OpenTAP/DEBIAN/postinst
+chmod +x OpenTAP/DEBIAN/postinst
 
 ./OpenTAP/usr/bin/tap sdk gitversion --replace OpenTAP/DEBIAN/control
 # Don't package log file generated from gitversion
