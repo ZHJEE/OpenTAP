@@ -1,9 +1,5 @@
-# Introduction
-
-This section is a concise introduction to essential OpenTAP terminology, concepts, and tools.
-It is intended for users as well as developers to get comfortable with the command line interface, and tools for 
-editing test plans. This section of the guide is for anyone. The only real requirement is that you have installed OpenTAP.
-
-If you are already familiar with test plans, DUTs, and instruments, feel free to skip the OpenTAP Overview portion.
-
+# Overview
+This section is a concise introduction to essential OpenTAP terminology, concepts, and tools at a cursory level. The intention is that it should provide non-developers with a sufficient understanding of OpenTAP and its ecosystem to get started,
+We will go into much more technical detail in the Developer's Guide section.
 If you are just looking for a quick reference of CLI options, a comprehensive reference of builtin commands is available [here](../CLI%20Reference).
+
