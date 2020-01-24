@@ -1,6 +1,11 @@
 # CLI Usage
 
-As previously explained, a barebones OpenTAP installation only ships with a few commands. This section covers common usage of these commands. if this is not what you're looking for, check out the [comprehensive reference](../CLI%20Reference/) of built-in CLI options.
+Although this chapter primarily targets users, developers will likely find it helpful as well. The purpose of this document is twofold; first, to familiarize you with the built-in features of the OpenTAP CLI, and get started installing Keysight- and community developed plugins. Second, to introduce you to useful tools in constructing and managing test plans. 
+
+Since a large chunk of the value of OpenTAP as a test automation platform comes from its extensibility through plugins, the application itself only ships with a few essential components:
+
+1. a package manager to browse and install plugins; and
+2. the capability to execute test plans;
 
 
 ## Using the package manager
@@ -10,10 +15,15 @@ The `install` commands installs one or more packages.
 
 `tap package install <package name> [<args>]`
 
-> Note: Updating OpenTAP is simple. Just run `tap package install OpenTAP`
+In order to check what packages are available, run `tap package list`. To see what versions are available of a package, such as OpenTAP itself for instance, try `tap package list OpenTAP`.
+This doesn't tell you much about the packages though. Have a look at [our repository](http://packages.opentap.io/index.html#/?name=OpenTAP) for a full description, and other information, about packages.
+
+By default, the `install` action installs the latest stable release for your platform. Updating any package, including OpenTAP itself, is easy. Just run `tap package install OpenTAP`. Conversely, installing a specific version of any package is also simple. `tap package install OpenTAP --version 9.5.1` installs version 9.5.1; `--version beta` installs the latest beta; `--version rc` installs the latest release candidate. Note, however, that the package manager does not allow you to break dependencies. If you really know what you're doing, you can use the `--force` option to override this behavior.
 
 New plugins may provide their own CLI actions, thus drastically increase the number of options. Luckily, OpenTAP keeps track of installed plugins for you, so you can always verify available CLI actions by running `tap`. Example output for a clean install (version 9.5.1):
 ```
+$ tap
+
 OpenTAP Command Line Interface (9.5.1)
 Usage: tap <command> [<subcommand>] [<args>]
 
@@ -32,6 +42,8 @@ Valid commands are:
 
 Run "tap.exe <command> [<subcommand>] -h" to get additional help for a specific command.specific command.
 ```
+
+
 
 ## Running test plans
 

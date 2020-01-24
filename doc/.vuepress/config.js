@@ -21,16 +21,16 @@ module.exports = {
                 title: "User Guide",
                 children: [
                   ["User Guide/Introduction/", "Introduction"],
+                  ["User Guide/What is OpenTAP/", "OpenTAP Overview"],
                   ["User Guide/CLI Usage/", "CLI Usage"],
-                  ["User Guide/Test plan tools/", "Test plan tools"],
+                  ["User Guide/Test Plan Tools/", "Test Plan Tools"],
                   ["User Guide/CLI Reference/", "CLI Reference"]
                 ]
               },
             {
                 title: 'Developer Guide',
                 children: [
-                    ["/Developer Guide/Introduction/", "Introduction"],
-                    ["/Developer Guide/What is OpenTAP/", "OpenTAP Overview"],
+                    ["/Developer Guide/Introduction/", "Introduction"],                    
                     {
                         title: 'Getting Started',
                         sidebarDepth: 0,
