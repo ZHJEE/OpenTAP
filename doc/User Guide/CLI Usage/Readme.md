@@ -54,3 +54,33 @@ The `run` commands executes a test plan.
 `tap run <file path> [<args>]`
 
 This concludes the CLI portion of the guide. For information regarding the `sdk` subcommand, please see [this section](link) of the Developer Guide.
+
+### External settings
+
+Step settings can be marked as "External". This means they can be set 
+from the CLI, or from a file. To see what external steps a test plan 
+contains, try `tap run My.TapPlan --list-external`. 
+
+If `--list-external` outputs:
+```
+TestPlan: My
+Listing 3 external test plan parameters.
+      value1 = x
+      value2 = y
+      value3 = z
+```
+then you can then set these values from the command line with `tap run My.TapPlan -e value1 hello -e value2 3 -e value3 0.75`.
+Alternatively, you can create a csv file with the contents
+```
+value1,hello
+value2,3
+value3,0.75
+```
+Let's call the file "values.csv". You can then load these values into the external parameters with `tap run My.TapPlan -e values.csv`.
+This makes it possible to reuse the same test plan for a variety
+
+### Metadata
+
+Analogous to external settings, resources settings can be marked as "Metadata". This could be 
+the address of a DUT, for instance. Set this with `tap run My.TapPlan 
+--metadata dut1=123 --metadata dut2=456`.
