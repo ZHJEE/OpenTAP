@@ -1,30 +1,18 @@
 # Overview
-This section is a concise introduction to essential OpenTAP terminology, concepts, and tools at a cursory level. The intention is that it should provide non-developers with a sufficient understanding of OpenTAP and its ecosystem to get started,
-We will go into much more technical detail in the Developer's Guide section.
-If you are just looking for a quick reference of CLI options, a comprehensive reference of builtin commands is available [here](../CLI%20Reference).
+This section is a concise introduction to essential OpenTAP terminology, concepts, and tools. It is intended to provide non-developers with a sufficient understanding of OpenTAP and its ecosystem to get started.
 
-OpenTAP consists of multiple executables, including:
+For a quick reference of CLI options, see the [comprehensive reference](../CLI%20Reference). For a more technical description, see the developer guide.
+
+OpenTAP consists of multiple tools, including:
 -	OpenTAP - core engine
 -	CLI - command line interface for installed plugins, and
 -   Package Manager - a tool to manage installed plugins
 
-After a brief overview of OpenTAP itself, we will delve into the usage of the CLI and the package manager.
+This overview is dedicated to OpenTAP itself; a detailed description, along with common usage scenarios, of the latter two tools will be given in the following chapters.
 
 ### Test plans
 
 A *test plan* is a sequence of test steps and their associated data. They are stored as XML files, and use the ".TapPlan" file extension. Test plans are created with an [editor](../Editors). They can be executed either in an editor, or by using the `tap run` [CLI action](../CLI%20Usage).
-
-A TapPlan always outputs a so called "Verdict". A verdict has one of 6 values with varying "severity", detailed in the table below. 
-
-| Severity | Verdict      | Description                                                        |
-|----------|--------------|--------------------------------------------------------------------|
-| 1        | NotSet       | No verdict was set                                                 |
-| 2        | Pass         | Step or plan passed                                                |
-| 3        | Inconclusive | Insufficient information to make a decision either way             |
-| 4        | Fail         | Step or plan failed                                                |
-| 5        | Aborted      | User aborted test plan                                             |
-| 6        | Error        | An error occurred. Check [logs](#log%20files) for more information |
-
 
 The verdict of the test plan in its entierity is decided by the verdicts of its individual test steps, each of which generate their own verdict.
 It may be useful to consider a tap plan as a tree, and test steps as branches off the tree, that may themselves have branches. Steps added to the top level of a tap plan are simply executed sequentially. 
@@ -35,19 +23,38 @@ Like OpenTAP itself, tap plans are designed for reuse, and minimizing the amount
 
 The way verdicts are propagated can of course be modified by plugins. For instance, creating a sequential step which passes if any of its child steps pass would be trivial, but requires some programming knowledge. This is covered in the [developer guide](../../developer%20guide/test%20step). 
 
-### Instruments and Devices Under Test (DUTs)
+A verdict has one of 6 values with varying "severity", detailed in the table below. 
+| Severity | Verdict      | Description                                                        |
+|----------|--------------|--------------------------------------------------------------------|
+| 1        | NotSet       | No verdict was set                                                 |
+| 2        | Pass         | Step or plan passed                                                |
+| 3        | Inconclusive | Insufficient information to make a decision either way             |
+| 4        | Fail         | Step or plan failed                                                |
+| 5        | Aborted      | User aborted test plan                                             |
+| 6        | Error        | An error occurred. Check [logs](#log%20files) for more information |
 
-The primary mission of OpenTAP as a test sequencer is the automation of hardware testing. Therefore, the concept of Instruments and DUTs are prevalent throughout the documentation and source code, and many plugins are dedicated to vendor-specific hardware. In the classical case, the DUT is the device being tested, calibrated, or controlled, and the instrument is probably something that can make measurements or something I think. (todo: make more clear)
+
+### Resources
+
+OpenTAP is intended for software as well as hardware testing. The concept of Instruments and DUTs are prevalent throughout the documentation and source code because they are essential for hardware interfacing, 
+and many plugins are dedicated to vendor-specific hardware. 
+In the classical case, the DUT is the device being tested, calibrated, or controlled, and an instrument is anything that makes measurements.
 However, OpenTAP is quite flexible, and these entities can therefore be considered more abstractly.
 Depending on your use case, the following scenarios may be perfectly reasonable:
 
  1. Having no DUTs or instruments
  2. Using a single device as a DUT and an instrument simultaneously
- 3. Using software resources as DUTs / instruments
+ 3. Using software resources as DUTs or instruments
  4. Using many DUTs and instruments
 
 Out of the box, OpenTAP does not support any hardware. For that, you need plugins.
 
+### Result listeners
+> Coming soon
+### Test plan editors
+> Coming soon
+### Result viewers
+> Coming soon
 ### Plugins
 
 Plugins are the primary way of extending OpenTAP. Plugins range widely in the additional functionality they provide from GUI editors for creating and running test plans, to SDK plugins to aid in developing plugins, to analyzing test plans in real time to discover performance bottlenecks, to adding a REST interface to OpenTAP to allow you to control it remotely, and much more. Installing, uninstalling, upgrading, downgrading, and dependencies are all managed by OpenTAP's built in package manager. 

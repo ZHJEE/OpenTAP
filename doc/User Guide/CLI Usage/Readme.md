@@ -1,6 +1,6 @@
 # CLI Usage
 
-Although this chapter primarily targets users, developers will likely find it helpful as well. The purpose of this document is twofold; first, to familiarize you with the built-in features of the OpenTAP CLI, and get started installing Keysight- and community developed plugins. Second, to introduce you to useful tools in constructing and managing test plans. 
+Although this chapter primarily targets users, developers will likely find it helpful as well. The purpose of this document is twofold; first, to familiarize you with the built-in features of the OpenTAP CLI, and get started installing plugins. Second, to introduce you to useful tools in constructing and managing test plans. 
 
 Since a large chunk of the value of OpenTAP as a platform comes from its extensibility through plugins, the application itself only ships with a few essential components:
 
@@ -33,6 +33,8 @@ The package manager has 7 subcommands:
 
 The `create` and `test` options are geared towards developers, and will not be covered in this section. The rest will be covered shortly, in sequence.
 
+### Package versioning
+> Semantic versioning, release, prerelease (alpha, beta, rc) (coming soon)
 ### list
 
 In order to check what packages are available, run `tap package list`. To see what versions are available of a package, such as OpenTAP itself for instance, try `tap package list OpenTAP`.
@@ -44,7 +46,7 @@ Basic usage is quite simple, but there are flags for advanced usage that you may
 
 `tap package install <package name> [<args>]`
 
-By default, the `install` action installs the latest stable release for your platform. Updating any package, including OpenTAP itself, is easy. Just run `tap package install OpenTAP`. Installing a specific version of any package is also simple:
+By default, the `install` action installs the latest release for your platform. Updating any package, including OpenTAP itself, is easy. Just run `tap package install OpenTAP`. Installing a specific version of any package is also simple:
 
 `tap package install OpenTAP --version 9.5.1` installs version 9.5.1; 
 
@@ -53,13 +55,14 @@ By default, the `install` action installs the latest stable release for your pla
 ` ... --version rc` installs the latest release candidate. 
 
 Whenever you install a package, the package manager will attempt to resolve the dependencies of your install as a whole.
-If you are missing a dependency, the package manager will prompt you, and install it automatically if you confirm.
+If you are missing a package dependency, the package manager will prompt you, and install it automatically if you confirm.
 To avoid this behavior, you may install a package with the `-y` flag to automatically confirm all prompts.
 If you are trying to install a package which is incompatible with your current install, the package manager will stop.
 This could happen if you have a package installed which depends on OpenTAP ^9.5, and you try to install OpenTAP 9.4.
 If you really know what you're doing, you can use the `--force` option to override this behavior. 
 
 Using the `-r` flag allows you to specify which repository to search for packages. Currently, the only public repository is [packages.opentap.io](http://packages.opentap.io).
+Alternatively to a URL, you can specify a file path, or even a network drive, in order to collaborate locally. `C:\Users\You\MyPlugins`, for example.
 
 The package manager also provides flags for specifying operating systems and CPU architecture, namely `--os` and `--architecture`, respectively.
 

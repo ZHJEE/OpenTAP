@@ -23,7 +23,7 @@ and run it with `tap editor`.
 
 ## TUI
 
-As mentioned in the previous section, `tap package install` installs the latest stable version. Since TUI is still in beta, there is not stable version.
+As mentioned in the previous section, `tap package install` installs the latest stable version. Since TUI is still in beta, there is no stable version.
 Use the following command to install the latest version:
 > tap package install TUI --version any
 
