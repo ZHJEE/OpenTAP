@@ -128,7 +128,7 @@ Listing 3 external test plan parameters.
 ```
 then you can then set these values from the command line with 
 
-> `tap run My.TapPlan -e value1 hello -e value2 3 -e value3 0.75`
+> `tap run My.TapPlan -e value1 hello -e value2=3 -e value3=0.75`
 
 Alternatively, you can create a csv file with the contents
 
