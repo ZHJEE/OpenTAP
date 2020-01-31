@@ -39,7 +39,7 @@ A verdict has one of 6 values with varying "severity", detailed in the table bel
 
 ### Resources
 
-OpenTAP is intended for software as well as hardware testing. The concept of Instruments and DUTs are prevalent throughout the documentation and source code because they are essential for hardware interfacing, 
+OpenTAP is intended for software as well as hardware testing. The concept of Instruments and DUTs are essential for OpenTAP, 
 and many plugins are dedicated to vendor-specific hardware. 
 In the classical case, the DUT is the device being tested, calibrated, or controlled, and an instrument is anything that makes measurements.
 However, OpenTAP is quite flexible, and these entities can therefore be considered more abstractly.
