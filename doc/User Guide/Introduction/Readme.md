@@ -59,7 +59,13 @@ Out of the box, OpenTAP does not support any hardware. For that, you need plugin
 > Coming soon
 ### Plugins
 
-Plugins are the primary way of extending OpenTAP. Plugins range widely in the additional functionality they provide from GUI editors for creating and running test plans, to SDK plugins to aid in developing plugins, to analyzing test plans in real time to discover performance bottlenecks, to adding a REST interface to OpenTAP to allow you to control it remotely, and much more. Installing, uninstalling, upgrading, downgrading, and dependencies are all managed by OpenTAP's built in package manager. 
+OpenTAP can be extended by installing plugins. Plugins range widely in the additional functionality they provide. Some examples are:
+ - GUI editors for creating and running test plans
+ - SDK plugins to aid in developing plugins
+ - Tools for analyzing test plans in real time to discover performance bottlenecks
+ - REST interface to OpenTAP to allow you to control it remotely
+
+Installing, uninstalling, upgrading, downgrading, and dependencies are all managed by the OpenTAP package manager. 
 Usage of the package manager is described in detail in [the next section](../cli%20guide/package%manager). 
 
 The below figure shows the relation between plugins and OpenTAP. OpenTAP is at the center, and plugins, providing a variety of functionality, can be added and removed painlessly.
