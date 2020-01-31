@@ -139,7 +139,6 @@ value3,0.75
 ```
 
 Let's call the file "values.csv". You can then load these values into the external parameters with `tap run My.TapPlan -e values.csv`.
-This makes it possible to reuse the same test plan logic for a variety of tests.
 
 ### Metadata
 
