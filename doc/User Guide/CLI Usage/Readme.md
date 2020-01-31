@@ -111,7 +111,9 @@ The `run` commands executes a test plan.
 ### External settings
 
 Step settings can be marked as "External". This means they can be set 
-from the CLI, or from a file. To see what external steps a test plan 
+from the CLI, or from a file. This makes it possible to reuse the same test plan for a variety of tests.
+
+To see what external steps a test plan 
 contains, try 
 
 > `tap run My.TapPlan --list-external`
