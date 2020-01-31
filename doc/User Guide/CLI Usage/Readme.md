@@ -61,7 +61,7 @@ This could happen if you have a package installed which depends on OpenTAP ^9.5,
 You can overwrite this behavior by using the `--force` option. 
 
 Using the `-r` flag allows you to specify which repository to search for packages. Currently, the only public repository is [packages.opentap.io](http://packages.opentap.io).
-Alternatively to a URL, you can specify a file path, or even a network drive, in order to collaborate locally. `C:\Users\You\MyPlugins`, for example.
+Alternatively to a URL, you can specify a file path, or a network drive (e.g. `C:\Users\You\MyPlugins`), in order to collaborate locally. ```
 
 The package manager also provides flags for specifying operating systems and CPU architecture, namely `--os` and `--architecture`, respectively.
 
