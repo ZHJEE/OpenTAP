@@ -12,6 +12,9 @@ This overview is dedicated to OpenTAP itself; a detailed description, along with
 
 ### Test plans
 
+The below figure highlights the key elements of a test plan, all of which will be covered shortly.
+![](./TestPlanIllustration.png)
+
 A *test plan* is a sequence of test steps and their associated data. They are stored as XML files, and use the ".TapPlan" file extension. Test plans are created with an [editor](../Editors). They can be executed either in an editor, or by using the `tap run` [CLI action](../CLI%20Usage).
 
 The verdict of the test plan in its entierity is decided by the verdicts of its individual test steps, each of which generate their own verdict.
