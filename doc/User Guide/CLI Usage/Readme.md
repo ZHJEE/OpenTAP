@@ -35,7 +35,6 @@ The package manager has 7 subcommands:
 
 The `create` and `test` options are geared towards developers, and will not be covered in this section. The rest will be covered shortly, in sequence.
 
-> Semantic versioning, release, prerelease (alpha, beta, rc) (coming soon)
 ### list
 
 In order to check what packages are available, run `tap package list`. To see what versions are available of a package, such as OpenTAP itself for instance, try `tap package list OpenTAP`.
