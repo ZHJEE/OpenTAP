@@ -41,7 +41,6 @@ In order to check what packages are available, run `tap package list`. To see wh
 
 
 ### install
-The `install` command is probably the most interesting of the package manager subcommands, and likely the one you will find yourself using the most.
 Basic usage is quite simple, but there are flags for advanced usage that you may find interesting.
 
 `tap package install <package name> [<args>]`
