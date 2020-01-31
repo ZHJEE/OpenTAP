@@ -41,7 +41,7 @@ In order to check what packages are available, run `tap package list`. To see wh
 
 
 ### install
-Basic usage is quite simple, but there are flags for advanced usage that you may find interesting.
+Basic usage of `install` is quite simple, but there are flags for advanced usage that you may find interesting.
 
 `tap package install <package name> [<args>]`
 
