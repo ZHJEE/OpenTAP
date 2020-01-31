@@ -39,7 +39,7 @@ Although this table uses Windows variable expansion, OpenTAP behaves in the exac
 | `tap package install <package 1…n>`    | Install one or more packages. Specify repository with `-r <repo url>`. Automatically install dependencies with `-y`. Can either install packages from a [repository](http://packages.opentap.io/) or local TapPackage | `tap package install TestPackage1 TestPackage2 -y`               |
 | `tap package create <package xml dir>` | Create a tap package, or plugin, from an XML description ([package.xml](../../Developer%20Guide/Plugin%20Packaging%20and%20Versioning/#plugin-packaging-and-versioning))                                              | `tap package create /path/to/folder/containing/package.xml/file` |
 
-Other packages add their own CLI actions. Documenting CLI actions provided by other packages is beyond the scope of this guide. Please refer to the package authors' own documentation, or the CLI-provided help options for these packages.
+Other packages can add their own CLI actions. Documentation of these CLI actions is beyond the scope of this guide. Please refer to the documentation of these packages for more information about these CLI actions.
 
 
 <style>
