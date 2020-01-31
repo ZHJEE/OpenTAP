@@ -28,7 +28,7 @@ Although this table uses Windows variable expansion, OpenTAP behaves in the exac
 
 
 ## Package manager commands
-> Note: Package names are case sensitive, and package names containing spaces, such as "Developer's System CE" must be quoted.
+> Note: Package names are case sensitive, and package names containing spaces (such as "Developer's System CE") must be quoted.
 
 | Command                                | Description                                                                                                                                                                                                           | Example                                                          |
 |----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
