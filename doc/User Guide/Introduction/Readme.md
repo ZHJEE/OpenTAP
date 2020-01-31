@@ -17,7 +17,7 @@ The below figure highlights the key elements of a test plan, all of which will b
 
 A *test plan* is a sequence of test steps and their associated data. They are stored as XML files, and use the ".TapPlan" file extension. Test plans are created with an [editor](../Editors). They can be executed either in an editor, or by using the `tap run` [CLI action](../CLI%20Usage).
 
-The verdict of the test plan in its entierity is decided by the verdicts of its individual test steps, each of which generate their own verdict.
+The verdict of the test plan is set based on the verdicts of its individual test steps, each of which generate their own verdict.
 It may be useful to consider a tap plan as a tree, and test steps as branches off the tree, that may themselves have branches. Steps added to the top level of a tap plan are simply executed sequentially. 
 However, steps may be added to the test plan which can have embedded steps themselves. Consider, for instance, a "sequential step". This test step runs all of its child steps in sequence, and selects the most "severe" verdict of its child steps. 
 Typically, but not always, verdicts are propagated upwards in the tree, prioritizing the most severe verdicts. In other words, a test plan outputs the "Fail" verdict if any of its immediate test steps fail, and likewise, a sequential test step fails if any of its immediate children fail.
