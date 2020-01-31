@@ -9,7 +9,7 @@ Although this table uses Windows variable expansion, OpenTAP behaves in the exac
 | `tap <command>`                  | Lists valid subcommands for `<command>`                                                                                                                                     | `tap package`                              |
 | `tap <command> -h`               | Show help information for `<command>`                                                                                                                                       | `tap package --help`                       |
 | `tap <command> (-v | --verbose)` | Show all log output from all sources                                                                                                                                        | `tap package run MyTestPlan.TapPlan -v`    |
-| `tap <command> (-c | --color)`   | Color messages according to their level. Can be used with any of the above commands.Useful in conjunction with `--verbose`. Note that some terminals do not support colors. | `tap package run MyTestPlan.TapPlan -v -c` |
+| `tap <command> (-c | --color)`   | Color messages according to their level. Can be used with any of the above commands. Useful in conjunction with `--verbose`. Note that some terminals do not support colors. | `tap package run MyTestPlan.TapPlan -v -c` |
 
 
 
