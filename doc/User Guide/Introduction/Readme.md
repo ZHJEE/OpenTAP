@@ -8,7 +8,7 @@ OpenTAP consists of multiple tools, including:
 -	CLI - command line interface for installed plugins, and
 -   Package Manager - a tool to manage installed plugins
 
-This overview is dedicated to OpenTAP itself; a detailed description, along with common usage scenarios, of the latter two tools will be given in the following chapters.
+This overview is dedicated to OpenTAP itself. A detailed description, along with common usage scenarios, of the latter two tools will be given in the following chapters.
 
 ### Test plans
 
