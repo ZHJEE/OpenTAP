@@ -1,6 +1,6 @@
 # Editors
 
-As you may have noticed, a test plan consists simply of XML. This language is easy for machines to read, but, unfortunately, horrible for humans to write. You *could* modify and extend test plans by hand, but we recommend using the tools we have developed.
+As you may have noticed, a test plan consists of XML. You *could* modify and extend test plans by hand, but we recommend using the tools we have developed.
 
 You currently have two options:
 1. [Developer’s System Community Edition](https://www.opentap.io/download.html) - mature, feature-rich GUI (recommended)
