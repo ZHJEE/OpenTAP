@@ -118,7 +118,7 @@ contains, try
 
 > `tap run My.TapPlan --list-external`
 
-If `--list-external` outputs:
+If `--list-external-parameters` outputs:
 ```
 TestPlan: My
 Listing 3 external test plan parameters.
