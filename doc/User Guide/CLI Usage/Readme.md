@@ -1,6 +1,8 @@
 # CLI Usage
 
-Although this chapter primarily targets users, developers will likely find it helpful as well. The purpose of this document is twofold; first, to familiarize you with the built-in features of the OpenTAP CLI, and get started installing plugins. Second, to introduce you to useful tools in constructing and managing test plans. 
+Although this chapter primarily targets users, developers will likely find it helpful as well. The purpose of this document is twofold:
+1. to familiarize you with the built-in features of the OpenTAP CLI, and get started installing plugins. 
+2. to introduce you to useful tools in constructing and managing test plans. 
 
 Since a large chunk of the value of OpenTAP as a platform comes from its extensibility through plugins, the application itself only ships with a few essential components:
 
