@@ -24,7 +24,7 @@ Typically, but not always, verdicts are propagated upwards in the tree, prioriti
 
 Like OpenTAP itself, test plans are designed for reuse, and minimizing the amount of work required of the user. For example, it is possible to run a test plan with a range of values using the [sweep loop](todosweep_loop) test step. In addition, many test step attributes can be marked as [external parameters](../cli%20usage/#external-settings), allowing you to assign their values when the plan is loaded, instead of editing the plan itself. It is also possible to add a [Test Plan Reference](todotest-plan-reference-link) as a test step, essentially allowing you to embed another test plan within your plan. This is intended to minimize complexity, and encourage modular, self-contained test plans.
 
-The way verdicts are propagated can of course be modified by plugins. For instance, creating a sequential step which passes if any of its child steps pass would be trivial, but requires some programming knowledge. This is covered in the [developer guide](../../developer%20guide/test%20step). 
+The way verdicts are propagated can of course be modified by plugins. For instance, a custom sequential step which passes if any of its child steps pass can be implemented. This is covered in the [developer guide](../../developer%20guide/test%20step). 
 
 A verdict has one of 6 values with varying "severity", detailed in the table below. 
 | Severity | Verdict      | Description                                                        |
