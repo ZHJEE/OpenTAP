@@ -21,7 +21,7 @@ Every CLI action, whether package subcommands or user provided, share three CLI 
 
 ## Using the package manager
 
-The package manager is meant for installing, uninstalling, and creating packages. It is capable of listing available packages and versions based on CPU architecture and operating system, but it does not provide any *information* about packages beyond a name. For a package description, dependencies, and a list of files provided by a plugin, you will want to browse [our repository](http://packages.opentap.io/index.html#/?name=OpenTAP).
+The package manager is meant for installing, uninstalling, and creating packages. It is capable of listing available packages and versions based on CPU architecture and operating system, but it does not provide any *information* about packages beyond a name. For a package description, dependencies, and a list of files and plugins included in it, you need to browse [our repository](http://packages.opentap.io/index.html#/?name=OpenTAP).
 
 The package manager has 7 subcommands:
 
