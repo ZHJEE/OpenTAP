@@ -103,7 +103,6 @@ Run "tap.exe <command> [<subcommand>] -h" to get additional help for a specific 
 ## Running test plans
 
 
-> `tap package install Demonstration -y`
 
 The `run` commands executes a test plan.
 
