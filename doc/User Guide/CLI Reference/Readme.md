@@ -1,7 +1,7 @@
 CLI Reference
 ============
 
-Although this table uses Windows variable expansion, OpenTAP behaves in the exact same way on Unix. Just mentally replace `%TAP_PATH%` widh `$TAP`
+Although this table uses Windows variable expansion, OpenTAP behaves in the exact same way on Unix. On Unix, you need to replace `%TAP_PATH%` with `$TAP`
 
 ## Generic commands
 | Command                          | Description                                                                                                                                                                 | Example                                    |
