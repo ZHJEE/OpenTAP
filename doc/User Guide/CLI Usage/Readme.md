@@ -102,7 +102,6 @@ Run "tap.exe <command> [<subcommand>] -h" to get additional help for a specific 
 
 ## Running test plans
 
-If you have some test plans of your own lying around, feel free to use them. Otherwise, you can install the [Demonstration](http://packages.opentap.io/index.html#/?name=Demonstration) plugin, which comes with a few mock instruments, DUTs, and test plans preconfigured. Simply run:
 
 > `tap package install Demonstration -y`
 
