@@ -67,7 +67,7 @@ The package manager also provides flags for specifying operating systems and CPU
 
 Finally, the `-t` flag allows you to specify an installation directory. This creates a new tap install in the specified directory with only the plugins required for the packages you requested. This could be useful, for instance, if you need to install a package which is incompatible with your current tap installation. It could also be combined with the `--os` and `--architecture` flags to deploy to a different machine.
 
-New plugins may provide their own CLI actions, thus drastically increase the number of options. Luckily, OpenTAP keeps track of installed plugins for you, so you can always verify available CLI actions by running `tap`. Example output for a clean install (version 9.5.1):
+New plugins may provide their own CLI actions, thus increase the number of options. OpenTAP keeps track of installed plugins for you, so you can always verify available CLI actions by running `tap`. Example output for a clean install (version 9.5.1):
 
 ```
 > tap
