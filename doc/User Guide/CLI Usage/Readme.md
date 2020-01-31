@@ -58,7 +58,7 @@ If you are missing a package dependency, the package manager will prompt you, an
 To avoid this behavior, you may install a package with the `-y` flag to automatically confirm all prompts.
 If you are trying to install a package which is incompatible with your current install, the package manager will stop.
 This could happen if you have a package installed which depends on OpenTAP ^9.5, and you try to install OpenTAP 9.4.
-If you really know what you're doing, you can use the `--force` option to override this behavior. 
+You can overwrite this behavior by using the `--force` option. 
 
 Using the `-r` flag allows you to specify which repository to search for packages. Currently, the only public repository is [packages.opentap.io](http://packages.opentap.io).
 Alternatively to a URL, you can specify a file path, or even a network drive, in order to collaborate locally. `C:\Users\You\MyPlugins`, for example.
