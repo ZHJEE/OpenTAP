@@ -6,7 +6,7 @@ Although this chapter primarily targets users, developers will likely find it he
 
 Since a large chunk of the value of OpenTAP as a platform comes from its extensibility through plugins, the application itself only ships with a few essential components:
 
-1. a package manager to browse and install plugins, and
+1. a package manager to browse and install plugins
 2. the capability to execute test plans.
 
 This keeps the core engine fast, lean, and enables easy deployment in container solutions such as Docker.
