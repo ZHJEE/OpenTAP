@@ -53,7 +53,7 @@ By default, the `install` action installs the latest release for your platform. 
 
 ` ... --version rc` installs the latest release candidate. 
 
-Whenever you install a package, the package manager will attempt to resolve the dependencies of your install as a whole.
+Whenever you install a package, the package manager will attempt to resolve the dependencies.
 If you are missing a package dependency, the package manager will prompt you, and install it automatically if you confirm.
 To avoid this behavior, you may install a package with the `-y` flag to automatically confirm all prompts.
 If you are trying to install a package which is incompatible with your current install, the package manager will stop.
