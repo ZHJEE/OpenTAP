@@ -1,15 +1,33 @@
 #!/bin/bash
 set -e
 
-# create tap group if it doesn't exist
-getent group tap || groupadd tap && echo "created tap group"
+INSTALL_PREFIX="/home/$SUDO_USER"
+TAP_DIR="$INSTALL_PREFIX/.tap"
+BIN_DIR="$INSTALL_PREFIX/bin"
 
-echo "changing permissions of tap folder (/usr/share/tap)"
-chgrp -R tap /usr/share/tap
-chmod -R g+rwx /usr/share/tap
+echo "Using install prefix=$INSTALL_PREFIX" 
+echo "Creating directories:"
+echo "$TAP_DIR"
+echo "$BIN_DIR"
 
-echo "tap group configured."
-echo "Please add users to the tap group to start using OpenTAP!" 
+mkdir -p "$TAP_DIR"
+mkdir -p "$BIN_DIR" 
 
-echo "usermod -a -G tap \$USER"
+echo "Creating user tap install in $TAP_DIR"
 
+/usr/share/tap/tap package install OpenTAP --target "$TAP_DIR" | grep -v "Multiple assemblies"
+
+# Remove symlink if it already exists
+if [ -e "$BIN_DIR/tap" ]; 
+then
+	rm "$BIN_DIR/tap";
+fi
+
+echo "Creating tap shortcut in $BIN_DIR"
+ln -s "$TAP_DIR/tap" "$BIN_DIR/tap"
+
+chown -R $SUDO_USER:$SUDO_USER "$TAP_DIR"
+chown -R $SUDO_USER:$SUDO_USER "$BIN_DIR"
+
+echo "OpenTAP configuration completed."
+echo "Please ensure that $BIN_DIR is in your PATH."
