@@ -13,6 +13,9 @@ running testplans, clearly organizing the output of a testplan. E.g.
 2. Display log output at various points throughout a run
 3. Breaking down the data associated with a test run in a way that empowers the user to analyze the results (results viewer)
 
+### Result viewers
+> Coming soon
+
 ## Developer’s System Community Edition
 
 Install the community edition version of the editor with the following command:
