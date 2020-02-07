@@ -21,11 +21,22 @@ editor, or by using the `tap run` [CLI action](../CLI%20Usage). It may be useful
 test steps as branches off the tree, that may themselves have branches. The execution order of child steps are decided
 by the parent. For example, two typical parent steps are *Parallel* and *Sequential*.
 
-The figure below illustrates the hierarchy of steps in an example test plan.
+The figure below gives a high-level overview of a test plan, and illustrates an example step hierarchy.
 
 <div align="center">
     <img src="./TestPlanIllustration2.png" alt="Illustration of a test plan"/>
 </div>
+
+The step sequence is ordered from top to bottom, and indented steps are children of the previous step at a lesser indentation level.
+
+### Test Steps
+
+A test step is an element which encapsulates some piece of functionality. It should perform a single *step* of the test
+being run. The definition given is intentionally vague, as a step can perform a myriad of actions. It could make a
+measurement using an instrument, or control a piece of hardware such as adjusting fan speed or voltage. It could also
+[pause test exection](../test%20steps#delay-step), [open a dialog window](../test%20steps#dialog-step), make a web
+request, [run a different program](../test%20steps#run-program-step), or [control the execution of other
+steps](../test%20steps#flow-control).
 
 The *associated data* of test steps mentioned previously can be seen in the figure, namely *step settings* and
 *resources*. *Enabled* is a generic setting available on any step indicating whether or not it should be run, useful for
@@ -39,7 +50,7 @@ results guarantees that, say, a new database can be added to store results witho
 get lost, or if the behavior of the test will change. Result listeners are discussed in more detail in the [editor
 section](../Editors).
 
-For further discussion of test steps, see the [test step discussion section](../Test%20Steps).
+<!-- For further discussion of test steps, see the [test step discussion section](../Test%20Steps). -->
 
 ### Verdicts
 
@@ -48,7 +59,7 @@ verdict. A test plan also outputs a verdict according to the verdicts of its ste
 plan is the most *severe* verdict of its child steps. A verdict has one of 6 severities, detailed in the table
 below.
 | Severity | Verdict      | Description                                                        |
-|----------|--------------|--------------------------------------------------------------------|
+|:----------:|:--------------|:--------------------------------------------------------------------|
 | 1        | NotSet       | No verdict was set                                                 |
 | 2        | Pass         | Step or plan passed                                                |
 | 3        | Inconclusive | Insufficient information to make a decision either way             |
@@ -65,8 +76,13 @@ steps decide their own verdict conditions.
 
 OpenTAP is intended for software as well as hardware testing. The concept of Instruments and DUTs are essential for
 OpenTAP, In the classical case, the DUT is the device being tested, calibrated, or controlled, and an instrument is
-anything that makes measurements. However, OpenTAP is quite flexible, and these entities can therefore be considered
-more abstractly. Depending on your use case, all of the following scenarios are valid:
+anything that makes measurements. To integrate resources into test plans, whether to control or measure them, they must
+be connected to test steps that know how to communicate with them. In other words, a resource driver is required.
+Creation of such a driver is described [here](Developer%20Guide/Instrument%20Plugin%20Development/#instrument-plugin-development) in the developer guide.
+
+OpenTAP is quite flexible regarding resources. Typically, they would be local, physical equipment. But they can easily
+be more abstract, such as a virtual resource, or even a remote resource. Depending on your use case, all of the
+following scenarios are valid:
 
  1. Having no DUTs or instruments
  2. Using a single device as a DUT and an instrument simultaneously

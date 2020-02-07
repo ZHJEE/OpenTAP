@@ -1,4 +1,5 @@
-# Basic Steps
+# Test Steps
+## Basic Steps
 Steps may be added to test plans which can have embedded steps themselves. Consider, for instance, a "sequential
 step". This test step runs all of its child steps in sequence, and selects the most "severe" verdict of its child steps.
 The verdict of the test plan is set based on the verdicts of its individual test steps, each of which generate their own
@@ -18,3 +19,11 @@ within your plan. This is intended to minimize complexity, and encourage modular
 The way verdicts are propagated can of course be modified by plugins. For instance, a custom sequential step which
 passes if any of its child steps pass can be implemented. This is covered in the [developer
 guide](../../developer%20guide/test%20step).
+
+#### Delay Step 
+
+#### Dialog Step 
+
+#### Run Program Step 
+
+## Flow control

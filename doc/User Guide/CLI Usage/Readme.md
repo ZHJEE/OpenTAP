@@ -28,18 +28,35 @@ packages and versions based on CPU architecture and operating system, but it doe
 packages beyond a name. For a package description, dependencies, and a list of files and plugins included in it, you
 need to browse [our repository](http://packages.opentap.io/index.html#/?name=OpenTAP).
 
-The package manager has 7 subcommands:
+The package manager has 7 subcommands, which you can verify by running `tap`.
 
-1. [list](#list)
-2. [install](#install)
-3. [uninstall](#uninstall)
-4. [download](#download)
-5. [verify](#verify)
-6. create [[see in developer guide]](../../Developer%20Guide/Plugin%20Packaging%20and%20Versioning/#command-line-use)
-7. test &nbsp; &nbsp; [[see in developer guide]](../../Developer%20Guide/Plugin%20Packaging%20and%20Versioning/#command-line-use)
+Example output for a clean install (version 9.5.1):
+
+```
+> tap
+
+OpenTAP Command Line Interface (9.5.1)
+Usage: tap <command> [<subcommand>] [<args>]
+
+Valid commands are:
+  run                   Runs a Test Plan.
+  package
+    create                Creates a package based on an XML description file.
+    download              Downloads one or more packages.
+    install               Install one or more packages.
+    list                  List installed packages.
+    test                  Runs tests on one or more packages.
+    uninstall             Uninstall one or more packages.
+    verify                Verifies installed packages by checking their hashes.
+  sdk
+    gitversion            Calculates a semantic version number for a specific git commit.
+
+Run "tap.exe <command> [<subcommand>] -h" to get additional help for a specific command.specific command.
+```
+
 
 The `create` and `test` options are geared towards developers, and will not be covered in this section. The rest will be
-covered shortly, in sequence.
+covered shortly.
 
 ### list
 
@@ -70,7 +87,7 @@ behavior by using the `--force` option.
 
 Using the `-r` flag allows you to specify which repository to search for packages. Currently, the only public repository
 is [packages.opentap.io](http://packages.opentap.io). Alternatively to a URL, you can specify a file path, or a network
-drive (e.g. `C:\Users\You\MyPlugins`), in order to collaborate locally. ```
+drive (e.g. `C:\Users\You\MyPlugins`), in order to collaborate locally. 
 
 The package manager also provides flags for specifying operating systems and CPU architecture, namely `--os` and
 `--architecture`, respectively.
@@ -81,30 +98,7 @@ to install a package which is incompatible with your current tap installation. I
 and `--architecture` flags to deploy to a different machine.
 
 New plugins may provide their own CLI actions, thus increase the number of options. OpenTAP keeps track of installed
-plugins for you, so you can always verify available CLI actions by running `tap`. Example output for a clean install
-(version 9.5.1):
-
-```
-> tap
-
-OpenTAP Command Line Interface (9.5.1)
-Usage: tap <command> [<subcommand>] [<args>]
-
-Valid commands are:
-  run                   Runs a Test Plan.
-  package
-    create                Creates a package based on an XML description file.
-    download              Downloads one or more packages.
-    install               Install one or more packages.
-    list                  List installed packages.
-    test                  Runs tests on one or more packages.
-    uninstall             Uninstall one or more packages.
-    verify                Verifies installed packages by checking their hashes.
-  sdk
-    gitversion            Calculates a semantic version number for a specific git commit.
-
-Run "tap.exe <command> [<subcommand>] -h" to get additional help for a specific command.specific command.
-```
+plugins for you, so you can always verify available CLI actions by running `tap`. 
 
 ### uninstall
 
