@@ -23,9 +23,7 @@ by the parent. For example, two typical parent steps are *Parallel* and *Sequent
 
 The figure below gives a high-level overview of a test plan, and illustrates an example step hierarchy.
 
-<div align="center">
-    <img src="./TestPlanIllustration2.png" alt="Illustration of a test plan"/>
-</div>
+![](./TestPlanIllustration2.png)
 
 The step sequence is ordered from top to bottom, and indented steps are children of the previous step at a lesser indentation level.
 
@@ -59,7 +57,7 @@ verdict. A test plan also outputs a verdict according to the verdicts of its ste
 plan is the most *severe* verdict of its child steps. A verdict has one of 6 severities, detailed in the table
 below.
 | Severity | Verdict      | Description                                                        |
-|:----------:|:--------------|:--------------------------------------------------------------------|
+|----------|--------------|--------------------------------------------------------------------|
 | 1        | NotSet       | No verdict was set                                                 |
 | 2        | Pass         | Step or plan passed                                                |
 | 3        | Inconclusive | Insufficient information to make a decision either way             |

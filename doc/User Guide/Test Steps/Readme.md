@@ -1,5 +1,7 @@
 # Test Steps
+
 ## Basic Steps
+
 Steps may be added to test plans which can have embedded steps themselves. Consider, for instance, a "sequential
 step". This test step runs all of its child steps in sequence, and selects the most "severe" verdict of its child steps.
 The verdict of the test plan is set based on the verdicts of its individual test steps, each of which generate their own
@@ -25,5 +27,7 @@ guide](../../developer%20guide/test%20step).
 #### Dialog Step 
 
 #### Run Program Step 
+
+#### Time Guard Step
 
 ## Flow control
