@@ -1,7 +1,7 @@
 # Overview
 This section introduces essential OpenTAP terminology, concepts, and tools. It is intended to provide users with an
- understanding of OpenTAP and its ecosystem to get started. For a more technical description, see the [developer
- guide](../../Developer%20guide/Introduction). For a quick reference of CLI options, see the [comprehensive
+ understanding of OpenTAP and its ecosystem to get started. For a more technical description, see the [Developer
+ Guide](../../Developer%20guide/Introduction). For a quick reference of CLI options, see the [comprehensive
  reference](../CLI%20Reference).
 
 OpenTAP consists of multiple tools, including:
@@ -18,11 +18,16 @@ Test Plans, Test Steps, and Resources
 
 A *test plan* is a sequence of test steps and their associated data. They are stored as XML files, and use the
 ".TapPlan" file extension. Test plans are created with an [editor](../Editors). They can be executed either in an
-editor, or by using the `tap run` [CLI action](../CLI%20Usage). It may be useful to consider a test plan as a tree, and
-test steps as branches off the tree, that may themselves have branches. The execution order of child steps are decided
-by the parent step. For example, two typical parent steps are *Parallel* and *Sequential*, illustrated below. *Nonsense
-Step* is not real, and is given as an example to illustrate that the topology of test execution can be controlled
-entirely by a parent step.
+editor, or by using the `tap run` [CLI action](../CLI%20Usage). A test step can be a child step, a parent step, or both.
+Therefore, a test plan is a recursive structure of test steps. This hierarchy is illustrated in the figure below.
+
+![](./TestPlanIllustration2.png)
+
+The step sequence is ordered from top to bottom, and child steps are indented to indicate that they belong to a parent step.
+
+The execution order of child steps is decided by the parent step. For example, two typical parent steps are *Parallel*
+and *Sequential*, shown below. *Nonsense Step* is not real, and is given as an example to illustrate that the topology
+of test execution can be controlled entirely by a parent step.
 
 
 ``` ascii
@@ -57,12 +62,6 @@ PARALLEL STEP
  -------         -------         -------         -------
 ```
 
-The figure below gives a high-level overview of a test plan, and illustrates an example step hierarchy.
-
-![](./TestPlanIllustration2.png)
-
-The step sequence is ordered from top to bottom, and child steps are indented to indicate that they belong to a parent step.
-<!-- and indented steps are children of the previous step at a lesser indentation level. -->
 
 ## Test Steps
 
@@ -74,10 +73,11 @@ request, [run a different program](../test%20steps#run-program-step), or [contro
 steps](../test%20steps#flow-control).
 
 The *associated data* of test steps mentioned previously can be seen in the figure, namely *step settings* and
-*resources*. *Enabled* is a common setting available on any step indicating whether or not it should be run, useful for
-temporarily disabling certain steps without making destructive changes to a plan. In addition, all steps can be named.
-Test steps all have a verdict. However, this verdict is not a part of the actual test plan. Rather, it is *set* during
-execution of the the test plan. These elements are shown *inside* the test plan because they directly affect execution behavior.
+*resources*. *Enabled* is a common setting available on any step indicating whether or not it should be run. This is
+useful for temporarily disabling certain steps without making destructive changes to a plan. In addition, all steps can
+be named. Test steps all have a verdict. However, this verdict is not a part of the actual test plan. Rather, it is
+*set* during execution of the the test plan. These elements are shown *inside* the test plan because they directly
+affect execution behavior.
 
 On the other hand, *Session Log* and *Result Listeners* are situated outside of the test plan because they interpret the
 output of the test, and do not influence it directly. Ensuring this decoupling between generation and interpretation of
@@ -90,7 +90,7 @@ or their execution. Result listeners are discussed in more detail in the [editor
 
 *NotSet* is the default verdict for all test steps. A step can *set* a verdict during execution to indicate success. If
 everything went as expected, a test step will set the *Pass* verdict. A test plan ouputs a verdict according to the
-verdicts of its steps. Specifically, the verdict of a test plan is the most *severe* verdict of its child steps. A
+verdicts of its steps. The verdict of a test plan is the most *severe* verdict of its child steps. A
 verdict has one of 6 severities, detailed in the table below.
 | Severity | Verdict      | Description                                                        |
 |----------|--------------|--------------------------------------------------------------------|
@@ -99,7 +99,7 @@ verdict has one of 6 severities, detailed in the table below.
 | 3        | Inconclusive | Insufficient information to make a decision either way             |
 | 4        | Fail         | Step or plan failed                                                |
 | 5        | Aborted      | User aborted test plan                                             |
-| 6        | Error        | An error occurred. Check [logs](#log%20files) for more information |
+| 6        | Error        | An error occurred. Check [session logs](#session%20logs) for more information |
 
 This means that, for a test plan to output a *Pass* verdict, at least one step must set their verdict to *Pass*, and
 the rest must either set their verdict to *Pass* or *NotSet* verdict. This is also the most typical behavior for parent steps
@@ -108,11 +108,12 @@ steps decide their own verdict conditions.
 
 ## Resources
 
-OpenTAP is intended for software as well as hardware testing. The concept of Instruments and DUTs (plural of Device Under Test) are essential for
-OpenTAP, In the classical case, a DUT is a device under test, calibration, or control, and an instrument is
-anything that makes measurements. To integrate resources into test plans, whether to control or measure them, they must
-be connected to test steps that know how to communicate with them. In other words, a resource driver is required.
-Creation of such a driver is described [here](Developer%20Guide/Instrument%20Plugin%20Development/#instrument-plugin-development) in the developer guide.
+OpenTAP is intended for software as well as hardware testing. The concept of Instruments and DUTs (plural of Device
+Under Test) are essential for OpenTAP. In the classical case, a DUT is a device under test, calibration, or control, and
+an instrument is anything that makes measurements. To integrate resources into test plans, whether to control them or
+read their measurements, they must be connected to test steps that know how to communicate with them. In other words, a
+resource driver is required. Creation of such a driver is described in the [Developer
+Guide](../../Developer%20Guide/Instrument%20Plugin%20Development/#instrument-plugin-development).
 
 OpenTAP is quite flexible regarding resources. Typically, they would be local, physical equipment. But they can easily
 be more abstract, such as a virtual resource, or even a remote resource. Depending on your use case, all of the
@@ -130,12 +131,12 @@ Out of the box, OpenTAP does not provide any resources for hardware control. For
 Result listeners are notified whenever a test step generates log output, or publishes results.
 
 OpenTAP ships with a simple result listener called *Text Log*, which saves log information from a test plan run to a
-file. Its behavior can be modified by settings, including changing the file name and location of the log, as well as
+file. Its behavior can be modified via settings, including changing the file name and location of the log, as well as
 filtering the log information. There are 4 message categories: Errors, Warnings, Information, and Debug, each of which
 can be checked and unchecked.
 
-Analoguous to *Text Log*, there is a result listener plugin named [*CSV*]. Rather than log information, this plugin
-saves all results published by test steps to a CSV file, which can also be changed by settings.
+Analogous to *Text Log*, there is a result listener plugin named *CSV*. Rather than logging information, this plugin
+saves all results published by test steps to a CSV file, which can also be changed via settings.
 
 There are also PostgreSQL and SQLite result listeners that store all results and logs from a test plan run, as well as a
 copy of the test plan itself, making it possible to restore and run and old version of a test plan. The PostgreSQL
@@ -147,9 +148,9 @@ respectively. There are more result listeners available in the package repositor
 listener plugins](../../Developer%20Guide/Result%20Listener/#custom-result-listeners) to suit their needs, such as
 integrating with a different database technology, or uploading test results to a website.
 
-Note that result listeners are tied to an OpenTAP installation, and not a test plan. Result listener settings are stored
+Result listeners are tied to an OpenTAP installation, and not a test plan. Result listener settings are stored
 in `%TAP_PATH%/Settings/Results.xml`. Like test plans, we do not recommend editing these by hand. However, they can be
-generated and edited using our test plan editors. Therefore, creation and further usage of result listeners will be
+generated and edited using our test plan editors. Creation and further usage of result listeners will be
 covered in more detail in the [editor section](../Editors).
 
 ## Session Logs

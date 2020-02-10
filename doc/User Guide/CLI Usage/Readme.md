@@ -5,11 +5,11 @@ section is twofold:
 1. To familiarize you with the built-in features of the OpenTAP CLI, and get started installing plugins.
 2. To introduce you to useful tools in constructing and managing test plans.
 
-Since a large chunk of the value of OpenTAP comes from its extensibility through plugins, the application
+Since the core value of OpenTAP comes from its extensibility through plugins, the application
 itself ships with a few essential components:
 
-1. a package manager to browse and install packages
-2. the capability to execute test plans.
+1. A package manager to browse and install packages
+2. The capability to execute test plans.
 
 This keeps the core engine fast, lean, and enables easy deployment in container solutions such as Docker.
 The CLI help of a clean OpenTAP install looks something like this:
@@ -43,16 +43,15 @@ Every CLI action, whether package subcommands or user provided, share three CLI 
 | flag        | description                                                                                                                                   |
 |-------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | `--help`    | Output help text for the given command                                                                                                        |
-| `--verbose` | Send all debug output to standard output. The additional output shown here is always available in the [log files](../Introduction/#log-files) |
+| `--verbose` | Send all debug output to standard output. The additional output shown here is always available in the [session logs](../Introduction/#session-logs) |
 | `--color`   | Color standard output according to their severity                                                                                             |
 
 ## Using the package manager
 
 The package manager is meant for installing, uninstalling, and creating packages containing plugins. It is capable of
 listing available packages and versions based on CPU architecture and operating system, but it does not provide any
-*information* about packages beyond a name and available versions. For a package description, dependencies, and a list
-of files and plugins included in it, please visit [our
-repository](http://packages.opentap.io/index.html#/?name=OpenTAP).
+other information. For a package description, dependencies, and a list of files and plugins included in it, please visit
+[our repository](http://packages.opentap.io/index.html#/?name=OpenTAP).
 
 The package manager has 7 subcommands, which you can verify by running `tap package`
 
@@ -77,8 +76,7 @@ Run "tap.exe <command> [<subcommand>] -h" to get additional help for a specific 
 ```
 
 
-The `create` and `test` options are geared towards developers, and will not be covered in this section. The rest will be
-covered shortly.
+The `create` and `test` options are geared towards developers, and will not be covered in this section.
 
 The OpenTAP package manager assumes [semantic versioning](https://semver.org/) is honored in the likely event dependency
 resolution is needed, and OpenTAP itself uses semantic versioning.
