@@ -12,8 +12,6 @@ OpenTAP consists of multiple tools, including:
 This overview is dedicated to OpenTAP itself. A detailed description, along with common usage scenarios, of the latter
 two tools will be given in the following chapters.
 
-Test Plans, Test Steps, and Resources
-
 ## Test Plans
 
 A *test plan* is a sequence of test steps and their associated data. They are stored as XML files, and use the
