@@ -14,9 +14,6 @@ running testplans, clearly organizing the output of a testplan. E.g.
 2. Display log output at various points throughout a run
 3. Breaking down the data associated with a test run in a way that empowers the user to analyze the results (results viewer)
 
-### Result viewers
-> Coming soon
-
 ## Developer’s System Community Edition
 
 Install the community edition version of the editor with the following command:
@@ -28,7 +25,11 @@ and run it with `tap editor`.
 ## TUI
 
 As mentioned in the previous section, `tap package install` installs the latest stable version. Since TUI is still in
-beta, there is no stable version. Use the following command to install the latest version: > tap package install TUI
---version any
+beta, there is no stable version. Use the following command to install the latest available version:
+
+> tap package install TUI --version any
 
 and run the program with `tap tui`.
+
+
+<!-- Result viewers -->

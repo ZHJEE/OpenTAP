@@ -1,28 +1,28 @@
 # CLI Usage
 
-Although this chapter primarily targets users, developers will likely find it helpful as well. The purpose of this
-document is twofold:
+Although this section primarily targets users, developers will likely find it helpful as well. The purpose of this
+section is twofold:
 1. To familiarize you with the built-in features of the OpenTAP CLI, and get started installing plugins.
-2. To introduce you to useful tools in constructing and managing test plans. 
+2. To introduce you to useful tools in constructing and managing test plans.
 
-Since a large chunk of the value of OpenTAP as a platform comes from its extensibility through plugins, the application
-itself only ships with a few essential components:
+Since a large chunk of the value of OpenTAP comes from its extensibility through plugins, the application
+itself ships with a few essential components:
 
-1. a package manager to browse and install plugins
+1. a package manager to browse and install packages
 2. the capability to execute test plans.
 
 This keeps the core engine fast, lean, and enables easy deployment in container solutions such as Docker.
 The CLI help of a clean OpenTAP install looks something like this:
 
 ```
-> tap 
+> tap
 
 OpenTAP Command Line Interface (9.5.2)
 Usage: tap <command> [<subcommand>] [<args>]
 
 Valid commands are:
   run                   Runs a Test Plan.
-  package               
+  package
     create                Creates a package based on an XML description file.
     download              Downloads one or more packages.
     install               Install one or more packages.
@@ -30,7 +30,7 @@ Valid commands are:
     test                  Runs tests on one or more packages.
     uninstall             Uninstall one or more packages.
     verify                Verifies installed packages by checking their hashes.
-  sdk                   
+  sdk
     gitversion            Calculates a semantic version number for a specific git commit.
 
 Run "tap.exe <command> [<subcommand>] -h" to get additional help for a specific command.
@@ -48,10 +48,11 @@ Every CLI action, whether package subcommands or user provided, share three CLI 
 
 ## Using the package manager
 
-The package manager is meant for installing, uninstalling, and creating packages. It is capable of listing available
-packages and versions based on CPU architecture and operating system, but it does not provide any *information* about
-packages beyond a name and available versions. For a package description, dependencies, and a list of files and plugins
-included in it, please visit [our repository](http://packages.opentap.io/index.html#/?name=OpenTAP).
+The package manager is meant for installing, uninstalling, and creating packages containing plugins. It is capable of
+listing available packages and versions based on CPU architecture and operating system, but it does not provide any
+*information* about packages beyond a name and available versions. For a package description, dependencies, and a list
+of files and plugins included in it, please visit [our
+repository](http://packages.opentap.io/index.html#/?name=OpenTAP).
 
 The package manager has 7 subcommands, which you can verify by running `tap package`
 
@@ -107,7 +108,7 @@ The `list` command is used to view information about plugins in your local OpenT
 in the repository.
 
 In order to check what packages are available, run `tap package list`. To see what versions are available of a package,
-such as OpenTAP itself, run `tap package list OpenTAP`. 
+such as OpenTAP itself, run `tap package list OpenTAP`.
 
 To see what packages you currently have installed, use the `tap package list --installed` option. You can view what
 packages are in a specific install directory with `tap package list --installed --target <install path>`. By default, `list` only
@@ -132,11 +133,11 @@ By default, the `install` action installs the latest release of a given package 
 including OpenTAP itself, is easy. Just run `tap package install <package>`. Installing a specific version of any
 package is also simple:
 
-`tap package install OpenTAP --version 9.5.1` installs version 9.5.1; 
+`tap package install OpenTAP --version 9.5.1` installs version 9.5.1;
 
-` ... --version beta` installs the latest beta; 
+` ... --version beta` installs the latest beta;
 
-` ... --version rc` installs the latest release candidate. 
+` ... --version rc` installs the latest release candidate.
 
 Whenever you install a package, the package manager will attempt to resolve the dependencies. If you are missing a
 package dependency, the package manager will prompt you, and install it automatically if you confirm. To avoid this
@@ -154,7 +155,7 @@ incompatible with your current tap installation. You can also install a differen
 with `tap package install OpenTAP --version 9.4.2 --target C:\path\to\other\install`.
 
 New plugins may provide their own CLI actions, thus increase the number of options. OpenTAP keeps track of installed
-plugins for you, so you can always verify available CLI actions by running `tap`. 
+plugins for you, so you can always verify available CLI actions by running `tap`.
 
 ### uninstall
 
@@ -198,7 +199,7 @@ Listing 3 external test plan parameters.
       value2 = y
       value3 = z
 ```
-then you can then set these values from the command line with 
+then you can then set these values from the command line with
 
 > `tap run My.TapPlan -e value1 hello -e value2=3 -e value3=0.75`
 
