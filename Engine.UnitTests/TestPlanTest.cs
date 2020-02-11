@@ -887,6 +887,7 @@ namespace OpenTap.Engine.UnitTests
         [Test]
         public void PromptMetadataTest()
         {
+            UserInputTest.InterfaceMutex.WaitOne(10000);
             UserInput.SetInterface(new DutInfoPrompt());
 
             try
@@ -931,6 +932,7 @@ namespace OpenTap.Engine.UnitTests
             finally
             {
                 UserInput.SetInterface(null);
+                UserInputTest.InterfaceMutex.ReleaseMutex();
             }
         }
 
@@ -1298,6 +1300,7 @@ namespace OpenTap.Engine.UnitTests
                 }
                 requestCount += 1;
             }
+            UserInputTest.InterfaceMutex.WaitOne(10000);
 
             UserInput.SetInterface(new FcnUserInput { F = waitFormInput });
 
@@ -1340,6 +1343,7 @@ namespace OpenTap.Engine.UnitTests
                 
                 EngineSettings.Current.PromptForMetaData = prevWait;
                 UserInput.SetInterface(null);
+                UserInputTest.InterfaceMutex.ReleaseMutex();
                 EngineSettings.Current.ResourceManagerType = prevManager;
             }
 

@@ -11,6 +11,8 @@ namespace OpenTap.Engine.UnitTests
     [TestFixture]
     public class UserInputTest : IUserInputInterface
     {
+        public static Mutex InterfaceMutex = new Mutex();
+
         public void RequestUserInput(object dataObject, TimeSpan Timeout, bool modal)
         {
             
@@ -23,6 +25,7 @@ namespace OpenTap.Engine.UnitTests
         [Test]
         public void TestValuesExtremes()
         {
+            InterfaceMutex.WaitOne(10000);
             var prev = UserInput.GetInterface();
             try
             {
@@ -59,6 +62,7 @@ namespace OpenTap.Engine.UnitTests
             finally
             {
                 UserInput.SetInterface(prev);
+                InterfaceMutex.ReleaseMutex();
             }
         }
     }
