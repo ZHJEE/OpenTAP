@@ -313,7 +313,10 @@ namespace OpenTap
             while (DateTime.Now <= TimeOut)
             {
                 if (lines.TryTake(out string line, 20, TapThread.Current.AbortToken))
+                {
+                    Console.WriteLine("Line=" + line);
                     return line;
+                }
             }
 
             Console.WriteLine();
