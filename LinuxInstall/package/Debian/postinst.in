@@ -17,6 +17,7 @@ if [ ! -z "$SUDO_USER" ]; then
     if [ ! "$SUDO_USER" == "root" ]; then
         usermod -a -G tap "$SUDO_USER"
         echo "Added user $SUDO_USER to tap group"
+        echo "Please log out and back in for group changes to apply"
     fi
 fi
 
