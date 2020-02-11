@@ -28,7 +28,7 @@ and *Sequential*, shown below. *Nonsense Step* is not real, and is given as an e
 of test execution can be controlled entirely by a parent step.
 
 
-``` ascii
+```
 -------------------------- TIME --------------------------->
 
 SEQUENTIAL STEP
