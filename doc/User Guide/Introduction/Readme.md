@@ -66,9 +66,9 @@ PARALLEL STEP
 A test step is an element which encapsulates some piece of functionality. It should perform a single *step* of the test
 being run. The definition given is intentionally vague, as a step can perform a myriad of actions. It could make a
 measurement using an instrument, or control a piece of hardware such as adjusting fan speed or voltage. It could also
-[pause test exection](../test%20steps#delay-step), [open a dialog window](../test%20steps#dialog-step), make a web
-request, [run a different program](../test%20steps#run-program-step), or [control the execution of other
-steps](../test%20steps#flow-control).
+pause test exection, open a dialog window, make a web
+request, run a different program, or control the execution of other
+steps.
 
 The *associated data* of test steps mentioned previously can be seen in the figure, namely *step settings* and
 *resources*. *Enabled* is a common setting available on any step indicating whether or not it should be run. This is
@@ -80,7 +80,8 @@ affect execution behavior.
 On the other hand, *Session Log* and *Result Listeners* are situated outside of the test plan because they interpret the
 output of the test, and do not influence it directly. Ensuring this decoupling between generation and interpretation of
 results guarantees that, say, a new database can be added to store results without making any changes to the test steps,
-or their execution. Result listeners are discussed in more detail in the [editor section](../Editors).
+or their execution.
+<!-- Result listeners are discussed in more detail in the [editor section](../Editors). -->
 
 <!-- For further discussion of test steps, see the [test step discussion section](../Test%20Steps). -->
 
@@ -148,8 +149,8 @@ integrating with a different database technology, or uploading test results to a
 
 Result listeners are tied to an OpenTAP installation, and not a test plan. Result listener settings are stored
 in `%TAP_PATH%/Settings/Results.xml`. Like test plans, we do not recommend editing these by hand. However, they can be
-generated and edited using our test plan editors. Creation and further usage of result listeners will be
-covered in more detail in the [editor section](../Editors).
+generated and edited using our test plan editors.
+<!-- Creation and further usage of result listeners will be covered in more detail in the [editor section](../Editors). -->
 
 ## Session Logs
 
