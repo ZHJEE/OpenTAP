@@ -318,18 +318,20 @@ namespace OpenTap
         TapThread readerThread = null;
         BlockingCollection<string> lines = new BlockingCollection<string>();
         
-        static bool isLoaded = false;
+        static CliUserInputInterface instance;
         
         /// <summary> Loads the CLI user input interface. Note, once it is loaded it cannot be unloaded. </summary>
         public static void Load()
         {
-            if (!isLoaded)
+            if (UserInput.Interface is CliUserInputInterface == false)
             {
-                UserInput.SetInterface(new CliUserInputInterface());
-                isLoaded = true;
+                if (instance == null)
+                    instance = new CliUserInputInterface();
+                UserInput.SetInterface(instance);
             }
         }
 
         static TraceSource log = Log.CreateSource("UserInput");
     }
 }
+
