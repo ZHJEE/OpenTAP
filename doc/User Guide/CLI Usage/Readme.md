@@ -110,7 +110,7 @@ such as OpenTAP itself, run `tap package list OpenTAP`.
 
 To see what packages you currently have installed, use the `tap package list --installed` option. You can view what
 packages are in a specific install directory with `tap package list --installed --target <install path>`. By default, `list` only
-shows packages compatible with your OS and CPU architecture. To see all packages, use the `--all` flag.
+shows packages compatible with your OS and CPU architecture, and your currently installed packages. To see all packages, use the `--all` flag.
 
 
 ### install
