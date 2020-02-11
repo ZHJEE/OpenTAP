@@ -9,14 +9,9 @@ using NUnit.Framework;
 namespace OpenTap.Engine.UnitTests
 {
     [TestFixture]
-    public class UserInputTest : IUserInputInterface
+    public class UserInputTest
     {
         public static Mutex InterfaceMutex = new Mutex();
-
-        public void RequestUserInput(object dataObject, TimeSpan Timeout, bool modal)
-        {
-            
-        }
 
         public class TestObject
         {

@@ -21,6 +21,7 @@ namespace OpenTap
         /// <param name="modal">set to True if a modal request is wanted. This means the user will have to answer before doing anything else.</param>
         public static void Request(object dataObject, TimeSpan Timeout, bool modal = false)
         {
+            Console.WriteLine("InputInterface=" +  inputInterface);
             inputInterface?.RequestUserInput(dataObject, Timeout, modal);
         }
 
@@ -163,7 +164,11 @@ namespace OpenTap
                 var a = AnnotationCollection.Annotate(dataObject);
                 var mems = a.Get<IMembersAnnotation>()?.Members;
 
-                if (mems == null) return;
+                if (mems == null)
+                {
+                    Console.WriteLine("No members");
+                    return;
+                }
                 mems = mems.Concat(a.Get<IForwardedAnnotations>()?.Forwarded ?? Array.Empty<AnnotationCollection>());
                 var title = TypeData.GetTypeData(dataObject)?.GetMember("Name")?.GetValue(dataObject) as string;
                 if (string.IsNullOrWhiteSpace(title) == false)
@@ -295,6 +300,7 @@ namespace OpenTap
             {
                 platforDialogMutex.ReleaseMutex();
             }
+            Console.WriteLine("RequestUserInput end");
         }
 
         /// <summary>
