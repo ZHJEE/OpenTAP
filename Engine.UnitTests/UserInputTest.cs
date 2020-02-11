@@ -24,6 +24,7 @@ namespace OpenTap.Engine.UnitTests
             var prev = UserInput.GetInterface();
             try
             {
+                while (Console.Read() != -1) { }
                 CliUserInputInterface.Load();
                 TestObject obj = new TestObject();
                 var sem = new SemaphoreSlim(0);
