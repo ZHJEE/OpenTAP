@@ -24,20 +24,16 @@ Therefore, a test plan is a recursive structure of test steps. This hierarchy is
 The step sequence is ordered from top to bottom, and child steps are indented to indicate that they belong to a parent step.
 
 The execution order of child steps is decided by the parent step. For example, two typical parent steps are *Parallel*
-and *Sequential*, shown below. *Nonsense Step* is not real, and is given as an example to illustrate that the topology
+and *Sequential*, shown below. *Random Step* is not real, and is given as an example to illustrate that the topology
 of test execution can be controlled entirely by a parent step.
 
 
-``` ascii
--------------------------- TIME --------------------------->
-
-SEQUENTIAL STEP
+``` asciiart
+ ==================== SEQUENTIAL STEP =====================
  ---------   ---------   ---------   ---------   ---------
 | Child 1 | | Child 2 | | Child 3 | | Child 4 | | Child 5 |
  ---------   ---------   ---------   ---------   ---------
-
-
-PARALLEL STEP
+ ===================== PARALLEL STEP ======================
  ---------
 | Child 1 |
  ---------
@@ -47,28 +43,26 @@ PARALLEL STEP
  ---------
 | Child 3 |
  ---------
-
- NONSENSE STEP
- -------         -------         -------         -------
-| Child |       | Child |       | Child |       | Child |
- -------         -------         -------         -------
-         -------         -------         -------
-        | Child |       | Child |       | Child |
-         -------         -------         -------
- -------         -------         -------         -------
-| Child |       | Child |       | Child |       | Child |
- -------         -------         -------         -------
+ ===================== RANDOM STEP ========================
+      -------               -------
+     | Child |             | Child |
+      -------               -------
+ -------   -------    -------
+| Child | | Child |  | Child |
+ -------   -------    -------
+        -------  -------  -------  -------
+       | Child || Child || Child || Child |
+        -------  -------  -------  -------
+ >>>>>>>>>>>>>>>>>>>>>>>>> TIME >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ```
-
 
 ## Test Steps
 
 A test step is an element which encapsulates some piece of functionality. It should perform a single *step* of the test
 being run. The definition given is intentionally vague, as a step can perform a myriad of actions. It could make a
 measurement using an instrument, or control a piece of hardware such as adjusting fan speed or voltage. It could also
-pause test exection, open a dialog window, make a web
-request, run a different program, or control the execution of other
-steps.
+pause test exection, open a dialog window, make a web request, run a different program, or control the execution of
+other steps.
 
 The *associated data* of test steps mentioned previously can be seen in the figure, namely *step settings* and
 *resources*. *Enabled* is a common setting available on any step indicating whether or not it should be run. This is
@@ -104,6 +98,10 @@ This means that, for a test plan to output a *Pass* verdict, at least one step m
 the rest must either set their verdict to *Pass* or *NotSet* verdict. This is also the most typical behavior for parent steps
 containing child steps; a *Sequential* step passes if all of its children pass. However, this is not a rule. Parent
 steps decide their own verdict conditions.
+
+
+## Breaking conditions
+
 
 ## Resources
 
@@ -185,3 +183,6 @@ variety of functionality, can be added and removed painlessly. ![](./TAParchitec
 
 Check out our public package repository [here](http://packages.opentap.io/index.html#/?name=OpenTAP) to browse available
 plugins.
+
+
+<script>
