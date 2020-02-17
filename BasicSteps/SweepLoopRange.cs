@@ -34,6 +34,7 @@ namespace OpenTap.Plugins.BasicSteps
         [XmlIgnore]
         [Browsable(true)]
         [Unsweepable]
+        [NonMultiEditable]
         public List<IMemberData> SweepProperties { get; set; }
 
         [Display("Start", Order: -2, Description: "The parameter value where the sweep will start.")]

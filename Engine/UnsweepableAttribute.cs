@@ -10,7 +10,6 @@ namespace OpenTap
     [AttributeUsage(AttributeTargets.Property)]
     public class UnsweepableAttribute : Attribute
     {
-        /// <summary> Set this to true if the property is unsweepable mostly for usability reasons. </summary>
-        public bool MultiEditable { get; set; }
+        
     }
 }

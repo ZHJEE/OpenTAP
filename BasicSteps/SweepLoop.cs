@@ -58,6 +58,7 @@ namespace OpenTap.Plugins.BasicSteps
 
         List<SweepParam> sweepParameters = new List<SweepParam>();
         [Unsweepable]
+        [NonMultiEditable]
         [Display("Sweep Values", Order: 2, Description: "Select the ranges of values to sweep.")]
         [EnabledIf(nameof(SweepParametersEnabled), true)]
         [DeserializeOrder(1)]
@@ -103,6 +104,7 @@ namespace OpenTap.Plugins.BasicSteps
         [XmlIgnore]
         [Browsable(true)]
         [Unsweepable]
+        [NonMultiEditable]
         [Display("Sweep Parameters", Order: 1, Description: "Select which child step settings to sweep.")]
         public IEnumerable<IMemberData> SweepMembers
         {

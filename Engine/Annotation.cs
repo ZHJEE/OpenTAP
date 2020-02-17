@@ -711,7 +711,7 @@ namespace OpenTap
                     foreach (var d in x)
                     {
                         var mem = d.Get<IMemberAnnotation>()?.Member;
-                        if(mem.GetAttribute<UnsweepableAttribute>() is UnsweepableAttribute attr && attr.MultiEditable == false)
+                        if(mem.HasAttribute<NonMultiEditableAttribute>())
                             continue;
                         var key = mem.GetDisplayAttribute().GetFullName() + mem.TypeDescriptor.Name;
                         if (dict.ContainsKey(key) == false)
