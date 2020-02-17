@@ -8,5 +8,9 @@ namespace OpenTap
 {
     /// <summary> Marks a property on a test step that should be fixed during test plan execution. This means it should be excluded from e.g. sweep loops.</summary>
     [AttributeUsage(AttributeTargets.Property)]
-    public class UnsweepableAttribute : Attribute { }
+    public class UnsweepableAttribute : Attribute
+    {
+        /// <summary> Set this to true if the property is unsweepable mostly for usability reasons. </summary>
+        public bool MultiEditable { get; set; }
+    }
 }

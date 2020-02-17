@@ -693,7 +693,6 @@ namespace OpenTap
                 bool collectAll = rdOnly;
                 if (c == null)
                 {
-                    var members = parentAnnotation.Get<IMembersAnnotation>();
                     var merged = parentAnnotation.Get<MergedValueAnnotation>();
                     annotatedElements = merged.Merged.ToArray();
                 }
@@ -702,17 +701,18 @@ namespace OpenTap
                     annotatedElements = c.AnnotatedElements.ToArray();
                 }
 
-                if (annotatedElements == null) return Array.Empty<AnnotationCollection>();
                 var sources = annotatedElements;
                 var mems = sources.Select(x => x.Get<IMembersAnnotation>()?.Members.ToArray() ?? Array.Empty<AnnotationCollection>()).ToArray();
                 if (mems.Length == 0) return Array.Empty<AnnotationCollection>();
-                var fst = mems[0];
+                
                 Dictionary<string, AnnotationCollection>[] dicts = mems.Select(x =>
                 {
                     var dict = new Dictionary<string, AnnotationCollection>(x.Length);
                     foreach (var d in x)
                     {
                         var mem = d.Get<IMemberAnnotation>()?.Member;
+                        if(mem.GetAttribute<UnsweepableAttribute>() is UnsweepableAttribute attr && attr.MultiEditable == false)
+                            continue;
                         var key = mem.GetDisplayAttribute().GetFullName() + mem.TypeDescriptor.Name;
                         if (dict.ContainsKey(key) == false)
                             dict[key] = d;
