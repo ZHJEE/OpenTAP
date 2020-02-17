@@ -129,6 +129,15 @@ namespace OpenTap
     }
 
     /// <summary>
+    /// Specifies that an annotation can be enabled and disabled.  
+    /// </summary>
+    public interface IEnabledAnnotation : IAnnotation
+    {
+        /// <summary> Gets if the element is enabled. </summary>
+        bool IsEnabled { get; }
+    }
+
+    /// <summary>
     /// Owned annotations interacts directly with the source object. It is updated through the Read operation and changes are written with the Write operation. Specialized knowledge about the object is needed for implementation.
     /// </summary>
     public interface IOwnedAnnotation : IAnnotation
@@ -307,7 +316,7 @@ namespace OpenTap
         }
     }
 
-    class EnabledIfAnnotation : IAccessAnnotation, IOwnedAnnotation
+    class EnabledIfAnnotation : IAccessAnnotation, IOwnedAnnotation, IEnabledAnnotation
     {
 
         public bool IsReadOnly => isReadOnly;
@@ -319,7 +328,7 @@ namespace OpenTap
         public void Read(object source)
         {
             isReadOnly = !EnabledIfAttribute
-            .IsEnabled(mem.Member, source, out IMemberData prop, out IComparable val, out bool hidden);
+            .IsEnabled(mem.Member, source, out IMemberData _, out IComparable _, out bool hidden);
             isVisible = !hidden;
         }
 
@@ -333,6 +342,8 @@ namespace OpenTap
         {
             this.mem = mem;
         }
+
+        public bool IsEnabled => !IsReadOnly;
     }
 
     class ValidationErrorAnnotation : IErrorAnnotation, IOwnedAnnotation
