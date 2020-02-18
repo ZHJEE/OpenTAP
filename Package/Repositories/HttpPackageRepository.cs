@@ -77,9 +77,8 @@ namespace OpenTap.Package
             try
             {
                 using (HttpClientHandler hch = new HttpClientHandler() { UseProxy = true, Proxy = WebRequest.GetSystemWebProxy() })
-                using (HttpClient hc = new HttpClient(hch) { Timeout = Timeout.InfiniteTimeSpan })
+                using (HttpClient hc = new HttpClient(hch) {Timeout = Timeout.InfiniteTimeSpan})
                 {
-
                     StringContent content = null;
                     using (Stream stream = new MemoryStream())
                     using (var reader = new StreamReader(stream))
@@ -90,35 +89,35 @@ namespace OpenTap.Package
                         content = new StringContent(cnt);
                     }
 
-                // Download plugin
-                var message = new HttpRequestMessage();
-                message.RequestUri = new Uri(Url + "/" + ApiVersion + "/DownloadPackage");
-                message.Content = content;
-                message.Method = HttpMethod.Post;
-                message.Headers.Add("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString());
+                    // Download plugin
+                    var message = new HttpRequestMessage();
+                    message.RequestUri = new Uri(Url + "/" + ApiVersion + "/DownloadPackage");
+                    message.Content = content;
+                    message.Method = HttpMethod.Post;
+                    message.Headers.Add("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString());
 
-                HttpResponseMessage response;
-                if (string.IsNullOrEmpty(package.DownloadUrl) == false)
-                {
-                    log.Info($"Downloading package directly from: '{package.DownloadUrl}'.");
-                    response = await hc.GetAsync(package.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                }
-                else
-                    response = await hc.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    HttpResponseMessage response;
+                    if (string.IsNullOrEmpty(package.DownloadUrl) == false)
+                    {
+                        log.Info($"Downloading package directly from: '{package.DownloadUrl}'.");
+                        response = await hc.GetAsync(package.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    }
+                    else
+                        response = await hc.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
-                using (var responseStream = await response.Content.ReadAsStreamAsync())
-                using (var fileStream = new FileStream(destination, FileMode.Create))
-                {
-                    if (response.IsSuccessStatusCode == false)
-                        throw new HttpRequestException($"The download request failed with {response.StatusCode}.");
+                    using (var responseStream = await response.Content.ReadAsStreamAsync())
+                    using (var fileStream = new FileStream(destination, FileMode.Create))
+                    {
+                        if (response.IsSuccessStatusCode == false)
+                            throw new HttpRequestException($"The download request failed with {response.StatusCode}.");
 
                         var totalSize = response.Content.Headers.ContentLength ?? -1L;
                         var task = responseStream.CopyToAsync(fileStream, 4096, cancellationToken);
                         ConsoleUtils.PrintProgressTillEnd(task, "Downloading", () => fileStream.Position, () => totalSize);
                     }
-                }
 
-                response.Dispose();
+                    response.Dispose();
+                }
 
                 finished = true;
             }
