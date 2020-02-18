@@ -22,7 +22,7 @@ The parameters are ordered starting with the most frequently used parameters fir
 public string NameAndDescription { get; set; }
 ```
 
-![](appendix_img1.PNG)
+![](./appendix_img1.png)
 
 See the examples in **`TAP_PATH\Packages\SDK\Examples\PluginDevelopment\TestSteps\Attributes`** for different uses of the Display attribute.
 
@@ -35,7 +35,10 @@ Display has the following parameters:
 |**Group/Groups** | Optional |Specifies an item’s group. Use **Group** if the item is in a one-level hierarchy or **Groups** if the item is in a hierarchy with two or more levels. The hierarchy is specified by the left-to-right order of the string array. Use either Group or Groups; do not use both. Groups is preferred. Groups are ordered according to the average order value of their child items. For test steps, the top-level group is always ordered alphabetically. Syntax: `Groups: new[] { "Group" , "Subgroup" }`|
 |**Order**        | Optional |Specifies the display order for an item. Note that **Order** is supported for settings and properties, such as test step settings, DUT settings, and instrument settings. It does not support types: test steps, DUTs, instruments. These items are ordered alphabetically, with groups appearing before ungrouped items. Order is of type double, and can be negative. Order’s behavior matches the Microsoft behavior of the *Display.Order* attribute. If order is not specified, a default value of -10,000 is assumed. Items (ungrouped or within a group) are ranked so that items with lower order values precede those with higher values; alphabetically if order values are equal or not specified. To avoid confusion, we recommend that you set the order value for ungrouped items to negative values so that they appear at the top and Grouped items to a small range of values to avoid conflicts with other items (potentially specified in base classes). For example, if *Item A* has order = 100, and *Item B* has order = 50, *Item B* is ranked first.|
 
-## EnabledIf
+## Embedded Attribute
+The EmbeddedAttribute can be used to embed the members of one object into the owner object. This hides the embedded object from reflection, but shows the embedded objects members instead. This can be used to let objects share common settings and code without using inheritance.
+
+## EnabledIf Attribute
 The **EnabledIf** attribute disables or enables settings properties based on other settings (or other properties) of the same object. The decorated settings reference another property of an object by name, and its value is compared to the value specified in an argument. Properties that are not settings can also be specified, which allows the implementation of more complex behaviors.
 
 For test steps, if instrument, DUTs or other resource properties are disabled, the resources will not be opened when the test plan starts, However, if another step needs them they will still be opened.
@@ -77,7 +80,7 @@ public class EnabledIfExample : TestStep
 
 When **Radio Standard** is set to GSM in the step settings, both **Override Bandwidth** options are then displayed:
 
-![](appendix_img2.PNG)
+![](./appendix_img2.png)
 
 For an example, see `TAP_PATH\Packages\SDK\Examples\PluginDevelopment\TestSteps\Attributes\EnabledIfAttributeExample.cs`.
 
@@ -86,7 +89,7 @@ The **Flags** attribute is a C# attribute used with enumerations. This attribute
 
 Using the Flags attribute results in a multiple select in the Editor, as shown below:
 
-![](appendix_img3.PNG)
+![](./appendix_img3.png)
 
 ## FilePath and DirectoryPath Attributes 
 The FilePath and DirectoryPath attributes can be used on a string-type property to indicate the string is a file or a folder system path. When this attribute is present, the Editor displays a browse button allowing the user to choose a file or folder. These attributes can be used as follows:
@@ -98,7 +101,7 @@ public string MyFilePath { get; set; }
 
 This results in the following user control in the Editor:
 
-![](appendix_img4.PNG)
+![](./appendix_img4.png)
 
 The DirectoryPath attribute works the same as the FilePath attribute, but in the place of a file browse dialog, a directory browse dialog opens when the browse ('...') button is clicked.
 
@@ -113,13 +116,16 @@ It can be done by writing the file extension as such:
 Or it can be done by specifying a more advanced filter expression as shown below.
 
 ```csharp
-[FilePath(FilePathAttribute.BehaviorChoice.Open, "Comma Separated Files (*.csv)|*.csv| Tab Separated Files (*.tsv) | *.tsv| All Files | *.*)]");
+[FilePath(FilePathAttribute.BehaviorChoice.Open, "Comma Separated Files (*.csv)|*.csv| Tab Separated Files (*.tsv) | *.tsv| All Files | *.*")]
 ```
 
 The syntax works as follows:
 ```[Name_1] | [file extensions 1] | [Name_2] | [file extensions 2] ...```
 
-Each filter comes in pairs of two, a name and a list of extensions. The name of a filter can be anything, excluding the '|' character. It normally contains the name of all the included file extensions, for example "Image Files (*.png, *.jpg)". The file extensions is normally not seen by the user, but should contain all the supported file extensions as a semi-colon separated list. Lastly, it is common practice to include the 'AllFiles | *.*' part, which makes it possible for the user to override the known filters and manually select any kind of file.
+Each filter comes in pairs of two, a name and a list of extensions. The name of a filter can be anything, excluding the '|' character. It normally contains the name of all the included file extensions, for example "Image Files (\*.png, \*.jpg)". The file extensions is normally not seen by the user, but should contain all the supported file extensions as a semi-colon separated list. Lastly, it is common practice to include the 'AllFiles | \*.\*' part, which makes it possible for the user to override the known filters and manually select any kind of file.
+
+## Layout Attribute
+LayoutAttribute is used to control how settings are arranged in graphical user interfaces. It can be used to control the height, width and positioning of settings elements. Use this with the Submit attribute to create a dialog with options like OK/Cancel on the bottom. See UserInputExample.cs for an example.
 
 ## MetaData Attribute
 Metadata is a set of data that describes and gives information about other data. The Metadata attribute marks a property as metadata. 

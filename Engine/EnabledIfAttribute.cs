@@ -19,17 +19,23 @@ namespace OpenTap
         /// </summary>
         public bool HideIfDisabled { get; set; }
 
-        private static readonly TraceSource log = Log.CreateSource("EnabledIf");
+        /// <summary> Gets or sets if the enabling value is individual flags from an enum. </summary>
+        public bool Flags { get; set; }
+        
+        /// <summary>  Gets or sets if the value should enable or disable(inverted) the setting. </summary>
+        public bool Invert { get; set; }
+
+        static readonly TraceSource log = Log.CreateSource("EnabledIf");
 
         /// <summary>
         /// Name of the property to enable. Must exactly match a name of a property in the current class. 
         /// </summary>
-        public string PropertyName { get; private set; }
+        public string PropertyName { get; }
         /// <summary>
         /// Value(s) the property must have for the item to be valid/enabled. If multiple values are specified, the item is enabled if just one value is equal. 
         /// If no values are specified, 'true' is the assumed value.
         /// </summary>
-        public IComparable[] PropertyValues { get; private set; }
+        public IComparable[] PropertyValues { get; }
 
         /// <summary>
         /// Identifies settings, properties, or methods that are only valid/enabled when another property or setting has a certain value. 
@@ -46,22 +52,14 @@ namespace OpenTap
                 PropertyValues = propertyValues.Cast<IComparable>().ToArray();
         }
 
-        /// <summary>
-        /// Returns tru if a member is enabled.
-        /// </summary>
-        /// <param name="property"></param>
-        /// <param name="instance"></param>
-        /// <param name="dependentProp"></param>
-        /// <param name="dependentValue"></param>
-        /// <param name="hidden"></param>
-        /// <returns></returns>
+        /// <summary> Returns true if a member is enabled. </summary>
         public static bool IsEnabled(IMemberData property, object instance,
             out IMemberData dependentProp, out IComparable dependentValue, out bool hidden)
         {
             if (property == null)
-                throw new ArgumentNullException("property");
+                throw new ArgumentNullException(nameof(property));
             if (instance == null)
-                throw new ArgumentNullException("instance");
+                throw new ArgumentNullException(nameof(instance));
             ITypeData instanceType = TypeData.GetTypeData(instance);
             var dependencyAttrs = property.GetAttributes<EnabledIfAttribute>();
             dependentProp = null;
@@ -84,22 +82,10 @@ namespace OpenTap
                 }
 
                 var depValue = dependentProp.GetValue(instance);
-                dependentValue = depValue as IComparable;
+                
                 try
                 {
-                    if (depValue is IEnabled)
-                    {
-                        var isEnabled = ((IEnabled)depValue).IsEnabled;
-                        if (!at.PropertyValues.Any(testValue => testValue.CompareTo(isEnabled) == 0))
-                        {
-                            newEnabled = false;
-                        }
-                    }
-                    else if (!at.PropertyValues.Any(testValue => testValue.CompareTo(depValue) == 0) && dependentValue != null)
-                    {
-                        newEnabled = false;
-
-                    }
+                    newEnabled = calcEnabled(at, depValue);
                 }
                 catch (ArgumentException)
                 {
@@ -108,9 +94,44 @@ namespace OpenTap
                 }
                 if (!newEnabled && at.HideIfDisabled)
                     hidden = true;
+                
                 enabled &= newEnabled;
             }
             return enabled;
+        }
+
+        static bool calcEnabled(EnabledIfAttribute at, object value)
+        {
+            if(at.Invert)
+                return !calcEnabled2(at, value);
+            return calcEnabled2(at, value);
+        }
+
+        /// <summary> Calculate if an enabled if is enabled by a given value. </summary>
+        static bool calcEnabled2(EnabledIfAttribute at, object depValue)
+        {
+            if (at.Flags)
+            {
+                int value = (int)Convert.ChangeType(depValue, TypeCode.Int32);
+                foreach (var flag in at.PropertyValues)
+                {
+                    int flagCode = (int) Convert.ChangeType(flag, TypeCode.Int32);
+                    if ((value & flagCode) != 0)
+                        return true;
+                }
+                return false;
+            }
+
+            if (depValue is IEnabled e)
+                depValue = e.IsEnabled;
+
+            foreach (var val in at.PropertyValues)
+            {
+                if (object.Equals(val, depValue))
+                    return true;
+            }
+            
+            return false;
         }
 
 
@@ -119,11 +140,10 @@ namespace OpenTap
             /// </summary>
             /// <param name="at">The attribute enabling this property.</param>
             /// <param name="instance">Instance of the object that has 'property'.</param>
-            /// <param name="property">The property to be checked.</param>
             /// <returns>true if property dependent property has the correct value.</returns>
-            internal static bool IsEnabled(MemberInfo property, EnabledIfAttribute at, object instance)
+            internal static bool IsEnabled(EnabledIfAttribute at, object instance)
         {
-            PropertyInfo depedentProp = instance.GetType().GetProperty(at.PropertyName);
+            IMemberData depedentProp = TypeData.GetTypeData(instance).GetMember(at.PropertyName);
             if (depedentProp == null)
             {
                 // We cannot be sure that the step developer has used this attribute correctly
@@ -133,27 +153,16 @@ namespace OpenTap
                 return false;
             }
 
-            var depValue = depedentProp.GetValue(instance, null);
-            IComparable dependentValue = depValue as IComparable;
+            var depValue = depedentProp.GetValue(instance);
             try
             {
-                if (depValue is IEnabled)
-                {
-                    var isEnabled = ((IEnabled)depValue).IsEnabled;
-                    if (!at.PropertyValues.Any(testValue => testValue.CompareTo(isEnabled) == 0))
-                        return false;
-                }
-                else if (!at.PropertyValues.Any(testValue => testValue.CompareTo(depValue) == 0) && dependentValue != null)
-                {
-                    return false;
-                }
+                return calcEnabled(at, depValue);
             }
             catch(ArgumentException)
             {
                 // CompareTo throws ArgumentException when obj is not the same type as this instance.
                 return false;
             }
-            return true;
         }
 
         /// <summary>
@@ -164,9 +173,7 @@ namespace OpenTap
         /// <returns>True if property is enabled.</returns>
         public static bool IsEnabled(IMemberData property, object instance)
         {
-            IMemberData depedentProp;
-            IComparable dependentValue;
-            return IsEnabled(property, instance, out depedentProp, out dependentValue, out bool hidden);
+            return IsEnabled(property, instance, out _, out _, out _);
         }
     }
 }

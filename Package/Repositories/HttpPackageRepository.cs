@@ -76,20 +76,19 @@ namespace OpenTap.Package
             bool finished = false;
             try
             {
-                HttpClientHandler hch = new HttpClientHandler();
-                hch.UseProxy = true;
-                hch.Proxy = WebRequest.GetSystemWebProxy();
-                HttpClient hc = new HttpClient(hch);
-                
-                StringContent content = null;
-                using (Stream stream = new MemoryStream())
-                using (var reader = new StreamReader(stream))
+                using (HttpClientHandler hch = new HttpClientHandler() { UseProxy = true, Proxy = WebRequest.GetSystemWebProxy() })
+                using (HttpClient hc = new HttpClient(hch) { Timeout = Timeout.InfiniteTimeSpan })
                 {
-                    package.SaveTo(stream);
-                    stream.Seek(0, 0);
-                    string cnt = reader.ReadToEnd().Replace("http://opentap.io/schemas/package", "http://keysight.com/schemas/TAP/Package"); // TODO: remove when server is updated (this is only here for support of the TAP 8.x Repository server that does not yet have a parser that can handle the new name)
-                    content = new StringContent(cnt);
-                }
+
+                    StringContent content = null;
+                    using (Stream stream = new MemoryStream())
+                    using (var reader = new StreamReader(stream))
+                    {
+                        package.SaveTo(stream);
+                        stream.Seek(0, 0);
+                        string cnt = reader.ReadToEnd().Replace("http://opentap.io/schemas/package", "http://keysight.com/schemas/TAP/Package"); // TODO: remove when server is updated (this is only here for support of the TAP 8.x Repository server that does not yet have a parser that can handle the new name)
+                        content = new StringContent(cnt);
+                    }
 
                 // Download plugin
                 var message = new HttpRequestMessage();
@@ -113,9 +112,10 @@ namespace OpenTap.Package
                     if (response.IsSuccessStatusCode == false)
                         throw new HttpRequestException($"The download request failed with {response.StatusCode}.");
 
-                    var totalSize = response.Content.Headers.ContentLength ?? -1L;
-                    var task = responseStream.CopyToAsync(fileStream, 4096, cancellationToken);
-                    ConsoleUtils.PrintProgressTillEnd(task, "Downloading", () => fileStream.Position, () => totalSize);
+                        var totalSize = response.Content.Headers.ContentLength ?? -1L;
+                        var task = responseStream.CopyToAsync(fileStream, 4096, cancellationToken);
+                        ConsoleUtils.PrintProgressTillEnd(task, "Downloading", () => fileStream.Position, () => totalSize);
+                    }
                 }
 
                 response.Dispose();

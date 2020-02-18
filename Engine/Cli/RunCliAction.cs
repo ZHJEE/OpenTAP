@@ -29,9 +29,9 @@ namespace OpenTap.Cli
     public class RunCliAction : ICliAction
     {
         /// <summary>
-        /// Specify a bench settings profile from which to load\nsettings. The parameter given here should correspondto the name of a subdirectory of ./Settings/Bench. If not specified the settings from OpenTAP GUI are used.
+        /// Specify a bench settings profile from which to load\nsettings. The parameter given here should correspond to the name of a subdirectory of %TAP_PATH%/Settings/Bench. If not specified the settings from OpenTAP GUI are used.
         /// </summary>
-        [CommandLineArgument("settings", Description = "Specify a bench settings profile from which to load\nsettings. The parameter given here should correspond\nto the name of a subdirectory of ./Settings/Bench.\nIf not specified the settings from OpenTAP GUI are used.")]
+        [CommandLineArgument("settings", Description = "Specify a bench settings profile from which to load\nsettings. The parameter given here should correspond\nto the name of a subdirectory of %TAP_PATH%/Settings/Bench.\nIf not specified, %TAP_PATH%/Settings/Bench/CurrentProfile is used.")]
         public string Settings { get; set; } = "";
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace OpenTap.Cli
         /// Sets the enabled result listeners for this test plan execution as a comma separated list. An example could be --results SQLite,CSV. To disable all result listeners use --results \"\".
         /// </summary>
         [CommandLineArgument("results", Description = "Sets the enabled result listeners for this test plan execution as a comma separated list. An example could be --results SQLite,CSV. To disable all result listeners use --results \"\".")]
-        public string Results { get; set; } = "";
+        public string Results { get; set; }
 
         /// <summary>
         /// Location of test plan to be executed.
@@ -149,7 +149,7 @@ namespace OpenTap.Cli
             }
 
 
-            if (!string.IsNullOrWhiteSpace(Results))
+            if (Results != null)
             {
                 try
                 {

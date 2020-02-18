@@ -55,7 +55,7 @@ namespace OpenTap.Package
                         break;
                 }
             }
-
+            
             List<IPackageRepository> repositories = new List<IPackageRepository>();
 
             if (Installed == false)
@@ -91,6 +91,20 @@ namespace OpenTap.Package
             else
             {
                 IPackageIdentifier package = installed.FirstOrDefault(p => p.Name == Name);
+
+                if (Installed)
+                {
+                    if (package is null)
+                    {
+                        log.Info($"{Name} is not installed");
+                        return -1;
+                    }
+
+                    log.Info(package.Version.ToString());
+                    return 0;
+                }
+
+
                 List<PackageVersion> versions = null;
 
                 if (All)
@@ -110,14 +124,15 @@ namespace OpenTap.Package
                     {
                         log.Info($"Package '{Name}' does not exists with version '{Version}'.");
                         log.Info($"Package '{Name}' exists in {versionsCount} other versions, please specify a different version.");
+                        return 0;
                     }
-                    else
-                        PrintVersionsReadable(package, versions);
                 }
                 else
                 {
                     var opentap = new Installation(Target).GetOpenTapPackage();
                     versions = PackageRepositoryHelpers.GetAllVersionsFromAllRepos(repositories, Name, opentap).Distinct().ToList();
+
+                    versions = versions.Where(s => s.IsPlatformCompatible(Architecture, OS)).ToList();
 
                     if (versions.Any() == false) // No compatible versions
                     {
@@ -133,7 +148,9 @@ namespace OpenTap.Package
                         return 0;
                     }
 
-                    if (versions.Where(v => versionSpec.IsCompatible(v.Version)).Any() == false) // No versions that are compatible
+
+                    versions = versions.Where(v => versionSpec.IsCompatible(v.Version)).ToList();
+                    if (versions.Any() == false) // No versions that are compatible
                     {
                         if (string.IsNullOrEmpty(Version))
                             log.Warning($"There are no released versions of '{Name}'.");
@@ -147,11 +164,9 @@ namespace OpenTap.Package
 
                         return 0;
                     }
-
-                    PrintVersionsReadable(package, versions);
                 }
+                PrintVersionsReadable(package, versions);
             }
-
             return 0;
         }
 
@@ -192,7 +207,7 @@ namespace OpenTap.Package
 
                 // assuming that all dlls in the package requires has the same or distinct license requirements. 
                 // Duplicates are made if one file requires X|Y and the other X|Z or even Y|X.
-                var licensesRequiredStrings = plugin.Files.Select(p => p.LicenseRequired).Where(l => string.IsNullOrWhiteSpace(l) == false).Select(LicenseBase.FormatFriendly).Distinct();
+                var licensesRequiredStrings = plugin.Files.Select(p => p.LicenseRequired).Where(l => string.IsNullOrWhiteSpace(l) == false).Select(l => LicenseBase.FormatFriendly(l)).Distinct();
 
                 var licenses = string.Join(" & ", licensesRequiredStrings);
 

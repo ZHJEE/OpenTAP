@@ -171,27 +171,27 @@ namespace OpenTap.Package
     {
         public static void DownloadPackage(this IPackageRepository repository, IPackageIdentifier package, string destination)
         {
-            repository.DownloadPackage(package, destination, new CancellationToken());
+            repository.DownloadPackage(package, destination, TapThread.Current.AbortToken);
         }
 
         public static string[] GetPackageNames(this IPackageRepository repository, params IPackageIdentifier[] compatibleWith)
         {
-            return repository.GetPackageNames(new CancellationToken(), compatibleWith);
+            return repository.GetPackageNames(TapThread.Current.AbortToken, compatibleWith);
         }
 
         public static PackageVersion[] GetPackageVersions(this IPackageRepository repository, string packageName, params IPackageIdentifier[] compatibleWith)
         {
-            return repository.GetPackageVersions(packageName, new CancellationToken(), compatibleWith);
+            return repository.GetPackageVersions(packageName, TapThread.Current.AbortToken, compatibleWith);
         }
 
         public static PackageDef[] GetPackages(this IPackageRepository repository, PackageSpecifier package, params IPackageIdentifier[] compatibleWith)
         {
-            return repository.GetPackages(package, new CancellationToken(), compatibleWith);
+            return repository.GetPackages(package, TapThread.Current.AbortToken, compatibleWith);
         }
 
         public static PackageDef[] CheckForUpdates(this IPackageRepository repository, IPackageIdentifier[] packages)
         {
-            return repository.CheckForUpdates(packages, new CancellationToken());
+            return repository.CheckForUpdates(packages, TapThread.Current.AbortToken);
         }
     }
 
@@ -218,11 +218,20 @@ namespace OpenTap.Package
                     if (repo is HttpPackageRepository httprepo && httprepo.Version != null && RequiredApiVersion.IsCompatible(httprepo.Version))
                     {
                         var json = httprepo.Query(query);
-                        foreach (var item in json["packages"])
-                            list.Add(new PackageDef() { Name = item["name"].ToString(), Version = SemanticVersion.Parse(item["version"].ToString()) });
+                        lock (list)
+                        {
+                            foreach (var item in json["packages"])
+                                list.Add(new PackageDef() { Name = item["name"].ToString(), Version = SemanticVersion.Parse(item["version"].ToString()) });
+                        }
                     }
                     else
-                        list.AddRange(repo.GetPackages(id, compatibleWith));
+                    {
+                        var packages = repo.GetPackages(id, compatibleWith);
+                        lock (list)
+                        {
+                            list.AddRange(packages);
+                        }
+                    }
                 });
             }
             catch (AggregateException ex)
@@ -241,7 +250,11 @@ namespace OpenTap.Package
             {
                 Parallel.ForEach(repositories, repo =>
                 {
-                    list.AddRange(repo.GetPackages(id, compatibleWith));
+                    var packages = repo.GetPackages(id, compatibleWith);
+                    lock (list)
+                    {
+                        list.AddRange(packages);
+                    }
                 });
             }
             catch (AggregateException ex)
@@ -260,7 +273,11 @@ namespace OpenTap.Package
             {
                 Parallel.ForEach(repositories, repo =>
                 {
-                    list.AddRange(repo.GetPackageVersions(packageName, compatibleWith));
+                    var packages = repo.GetPackageVersions(packageName, compatibleWith);
+                    lock (list)
+                    {
+                        list.AddRange(packages);
+                    }
                 });
             }
             catch (AggregateException ex)
@@ -274,11 +291,13 @@ namespace OpenTap.Package
 
         internal static IPackageRepository DetermineRepositoryType(string url)
         {
+            if(url.Contains("http://") || url.Contains("https://"))
+                return new HttpPackageRepository(url); // avoid throwing exceptions if it looks a lot like a URL.
             if (Uri.IsWellFormedUriString(url, UriKind.Relative) && Directory.Exists(url))
                 return new FilePackageRepository(url);
-            else if (File.Exists(url))
+            if (File.Exists(url))
                 return new FilePackageRepository(Path.GetDirectoryName(url));
-            else if (Regex.IsMatch(url ?? "", @"^([A-Z|a-z]:)?(\\|/)"))
+            if (Regex.IsMatch(url ?? "", @"^([A-Z|a-z]:)?(\\|/)"))
                 return new FilePackageRepository(url);
             else
                 return new HttpPackageRepository(url);

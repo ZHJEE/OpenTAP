@@ -1,5 +1,6 @@
 variables:
   PACKAGE_REPO_URL: "http://packages.opentap.io"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
 
 stages:
   - build
@@ -18,16 +19,29 @@ Build-DevGuide:
   image: registry.gitlab.com/opentap/buildrunners/documentationgeneration:latest
   tags: [ docker, gce ]
   script: |
-           tap generate-pdf "doc/Developer Guide/Readme.md" --appendix "Appendix C: Migration Guide"="doc/Migration/Migrating from tap 8 to 9/Readme.md" --toc --skip-first-file --out "sdk/Examples/OpenTAP Developer Guide.pdf" --frontpage "doc/Developer Guide/Frontpage.html" --frontpage-file "doc/Developer Guide/Frontpage.png" --notices "doc/Developer Guide/Introduction/Notices.md"
+           tap generate-pdf "doc/Developer Guide/Readme.md" --toc --skip-first-file --out "sdk/Examples/OpenTAP Developer Guide.pdf" --frontpage "doc/Developer Guide/Frontpage.html" --frontpage-file "doc/Developer Guide/Frontpage.png"
   artifacts:
     expire_in: 1 week
     paths:
        - sdk/Examples/OpenTAP Developer Guide.pdf
 
-Doc-API:
+Doc-API-Prepare:
   stage: build
+  image: opentapio/opentap:9.5-ubuntu18.04
+  tags: [ docker, gce ]
+  script:
+        - tap sdk gitversion --replace "doc/API Documentation/Doxyfile" --fields 2
+  artifacts:
+    expire_in: 1 week
+    paths:
+       - "doc/API Documentation/Doxyfile"
+
+Doc-API:
+  stage: test
   image: registry.gitlab.com/opentap/buildrunners/doxygen:latest
   tags: [ docker, gce ]
+  dependencies:
+    - Doc-API-Prepare
   script: 
          - mkdir Help
          - mkdir API
@@ -43,6 +57,22 @@ Doc-API:
     paths:
        - Help/OpenTapApiReference.chm
        - API
+
+pages:
+  stage: build
+  image: node:9.11.1
+  only:
+    - master
+  cache:
+    paths:
+    - doc/node_modules/
+  script:
+    - cd doc
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+    - public
 
 Build-Linux64:
   stage: build
@@ -111,7 +141,7 @@ TestEngine:
      - Build-x86
   script:
          - $ErrorActionPreference = "Stop"
-         - dotnet vstest bin/Release/OpenTap.UnitTests.dll
+         - dotnet vstest bin/Release/OpenTap.UnitTests.dll --logger:"console;verbosity=detailed" -- RunConfiguration.TestSessionTimeout=1200000
   artifacts:
     when: always
     expire_in: 1 week
@@ -269,6 +299,7 @@ Package-Linux:
     paths:
        - OpenTAP.*.Linux.TapPackage
 
+    
 Package-SDK:
   stage: package
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
@@ -287,6 +318,11 @@ Package-SDK:
          - .\tap.exe package create ../../opentap.x86.package.xml --install -v
          - Copy-Item "../../sdk/Examples" "Packages/SDK/Examples" -Recurse
          - Copy-Item "../../Package/PackageSchema.xsd" "Packages/SDK/PackageSchema.xsd"
+         - ./tap sdk gitversion --replace "Packages/SDK/Examples/ExamplePlugin/ExamplePlugin.csproj"
+         - ./tap sdk gitversion --replace "Packages/SDK/Examples/PluginDevelopment/PluginDevelopment.csproj"
+         - ./tap sdk gitversion --replace "Packages/SDK/Examples/PluginDevelopment.Gui/PluginDevelopment.Gui.csproj"
+         - ./tap sdk gitversion --replace "Packages/SDK/Examples/TestPlanExecution/BuildTestPlan.Api/BuildTestPlan.Api.csproj"
+         - ./tap sdk gitversion --replace "Packages/SDK/Examples/TestPlanExecution/RunTestPlan.Api/RunTestPlan.Api.csproj"
          - ./tap package create ../../sdk/sdk.package.xml
          - Move-Item "*.TapPackage" "../.."
   artifacts:
@@ -316,6 +352,7 @@ Package-NuGet:
     - Move-Item "../../OpenTAP.*.Windows.TapPackage" OpenTAP.TapPackage
     - .\tap.exe package install --target "../../nuget/build/payload" OpenTAP.TapPackage -f -v
     - .\tap.exe sdk gitversion --replace ../../nuget/OpenTAP.nuspec --fields 4
+    - Move-Item Keysight.OpenTap.Sdk.MSBuild.dll ../../nuget/build
     - cd ../../nuget/
     - Move-Item ../bin/Linux/tap build/payload/
     - Move-Item ../bin/Linux/tap.dll build/payload/
@@ -370,10 +407,10 @@ Installer-Linux:
          - Start-process .\tarsetup.exe -NoNewWindow -Wait -ArgumentList "/SILENT"
 
          - $path=(get-item -path "./").Fullname
-         - $str=[IO.File]::ReadAllText($path + "/LinuxInstructions/INSTALL.sh") -replace "`r`n", "`n"
+         - $str=[IO.File]::ReadAllText($path + "/LinuxInstall/INSTALL.sh") -replace "`r`n", "`n"
          - ([IO.File]::WriteAllText($path + "/INSTALL.sh", $str))
 
-         - $str=[IO.File]::ReadAllText($path + "/LinuxInstructions/README") -replace "`r`n", "`n"
+         - $str=[IO.File]::ReadAllText($path + "/LinuxInstall/README") -replace "`r`n", "`n"
          - ([IO.File]::WriteAllText($path + "/README", $str))
 
          - cmd /C '"C:\Program Files (x86)\GnuWin32\bin\tar.exe" -cf "OpenTAP.tar" OpenTAP.*.Linux.TapPackage INSTALL.sh README'
@@ -383,6 +420,27 @@ Installer-Linux:
     paths:
        - "OpenTAP.tar"
 
+
+Package-Build-Deb:
+  stage: installer
+  image: opentapio/opentap:9.5-ubuntu18.04
+  tags: [ docker, gce ]
+  dependencies:
+    - Package-Linux
+  needs:
+    - Package-Linux
+  script:
+    - pushd LinuxInstall/package
+    - mv ../../OpenTAP*.TapPackage OpenTAP.TapPackage
+    - pushd Debian
+    - bash create-deb
+    - popd
+    - mv OpenTAP.deb ../../OpenTAP.deb
+  artifacts:
+    when: on_success 
+    expire_in: 1 week
+    paths: 
+      - OpenTAP.deb
 
 #############################################
 # Stage: publish                            #

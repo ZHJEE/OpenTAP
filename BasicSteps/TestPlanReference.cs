@@ -201,8 +201,6 @@ namespace OpenTap.Plugins.BasicSteps
                     }
                     ChildTestSteps.AddRange(tp.ChildTestSteps);
 
-                    var plan = GetParent<TestPlan>();
-
                     foreach (var step in RecursivelyGetChildSteps(TestStepSearch.All))
                     {
                         step.IsReadOnly = true;
@@ -373,20 +371,6 @@ namespace OpenTap.Plugins.BasicSteps
             return InnerDescriptor.CreateInstance(arguments);
         }
         
-        bool validName(string epName)
-        {
-            if (epName == null || epName.Length == 0) return false;
-            if(char.IsDigit(epName[0])) return false;
-            foreach (var c in epName)
-            {
-                if (false == (char.IsLetterOrDigit(c) || c == '_'))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
         private IMemberData ResolveLegacyName(string memberName)
         {
             ExpandedMemberData result = null; // return null if no valid expanded member data gets set

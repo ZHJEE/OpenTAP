@@ -104,7 +104,7 @@ namespace OpenTap.Package
         /// Dependent assemblies.
         /// </summary>
         [XmlIgnore]
-        internal List<AssemblyData> DependentAssemblyNames { get; set; }
+        internal List<AssemblyData> DependentAssemblies { get; set; }
 
         /// <summary>
         /// License required by the plugin file.
@@ -118,7 +118,7 @@ namespace OpenTap.Package
         /// </summary>
         public PackageFile()
         {
-            DependentAssemblyNames = new List<AssemblyData>();
+            DependentAssemblies = new List<AssemblyData>();
             Plugins = new List<PluginFile>();
             IgnoredDependencies = new List<string>();
             CustomData = new List<ICustomPackageData>();
@@ -269,6 +269,26 @@ namespace OpenTap.Package
         [XmlAttribute]
         [DefaultValue("tappackage")]
         public string FileType { get; set; }
+
+        /// <summary>
+        /// Name of the owner of the package. There can be multiple owners of a package, in which case this string will have several entries separated with ','.
+        /// </summary>
+        [DefaultValue(null)]
+        public string Owner { get; set; }
+
+        /// <summary>
+        /// Link to the package source code. This is intended for open sourced projects.
+        /// </summary>
+        [DefaultValue(null)]
+        public string SourceUrl { get; set; }
+
+        /// <summary>
+        /// License(s) required to use this package. During package create all '<see cref="PackageFile.LicenseRequired"/>' attributes from '<see cref="Files"/>' will be concatenated into this property.
+        /// Bundle packages (<see cref="Class"/> is 'bundle') can use this property to show licenses that are required by the bundle dependencies. 
+        /// </summary>
+        [XmlAttribute]
+        [DefaultValue(null)]
+        public string LicenseRequired { get; set; }
 
         /// <summary>
         /// The package class, this can be either 'package', 'bundle' or 'solution'.
@@ -427,9 +447,13 @@ namespace OpenTap.Package
                     {
                         (node as XElement).Save(str);
                         str.Seek(0, 0);
-                        lock (packages)
+                        var package = PackageDef.FromXml(str);
+                        if (package != null)
                         {
-                            packages.Add(PackageDef.FromXml(str));
+                            lock (packages)
+                            {
+                                packages.Add(package);
+                            }
                         }
                     }
                     else
@@ -474,24 +498,32 @@ namespace OpenTap.Package
                 return packageList;
             }
 
-            using (var zip = new ZipArchive(File.OpenRead(path), ZipArchiveMode.Read))
+            try
             {
-                foreach (var part in zip.Entries)
+                using (var zip = new ZipArchive(File.OpenRead(path), ZipArchiveMode.Read))
                 {
-                    FileSystemHelper.EnsureDirectory(part.FullName);
-                    var instream = part.Open();
-                    using (var outstream = File.Create(part.FullName))
+                    foreach (var part in zip.Entries)
                     {
-                        var task = instream.CopyToAsync(outstream, 4096, TapThread.Current.AbortToken);
-                        ConsoleUtils.PrintProgressTillEnd(task, "Decompressing", () => instream.Position, () => instream.Length);
-                    }
-                    
-                    var package = FromPackage(part.FullName);
-                    packageList.Add(package);
+                        FileSystemHelper.EnsureDirectory(part.FullName);
+                        var instream = part.Open();
+                        using (var outstream = File.Create(part.FullName))
+                        {
+                            var task = instream.CopyToAsync(outstream, 4096, TapThread.Current.AbortToken);
+                            ConsoleUtils.PrintProgressTillEnd(task, "Decompressing", () => instream.Position, () => instream.Length);
+                        }
+                        
+                        var package = FromPackage(part.FullName);
+                        packageList.Add(package);
 
-                    if (File.Exists(part.FullName))
-                        File.Delete(part.FullName);
+                        if (File.Exists(part.FullName))
+                            File.Delete(part.FullName);
+                    }
                 }
+            }
+            catch (InvalidDataException)
+            {
+                log.Error($"Could not unpackage '{path}'.");
+                throw;
             }
 
             return packageList;
@@ -649,7 +681,6 @@ namespace OpenTap.Package
 
         internal static string GetMetadataFromPackage(string path)
         {
-            var filesInPackage = PluginInstaller.FilesInPackage(path);
             string metaFilePath = PluginInstaller.FilesInPackage(path)
                 .Where(p => p.Contains(PackageDef.PackageDefDirectory) && p.EndsWith(PackageDef.PackageDefFileName))
                 .OrderBy(p => p.Length).FirstOrDefault(); // Find the xml file in the most top level
@@ -746,8 +777,7 @@ namespace OpenTap.Package
         /// <returns></returns>
         public static bool CompatibleWith(CpuArchitecture host, CpuArchitecture plugin)
         {
-            if (plugin == CpuArchitecture.AnyCPU || (host == CpuArchitecture.Unspecified)) return true; // TODO: Figure out if this should be allowed in the long term
-            if (plugin == CpuArchitecture.AnyCPU) return true;
+            if (plugin == CpuArchitecture.AnyCPU || host == CpuArchitecture.Unspecified) return true; // TODO: Figure out if this should be allowed in the long term
 
             //if ((host == CpuArchitecture.x64) && (plugin == CpuArchitecture.x86)) return true;
 

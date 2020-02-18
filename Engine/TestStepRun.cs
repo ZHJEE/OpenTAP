@@ -107,6 +107,13 @@ namespace OpenTap
             }
         }
         readonly object upgradeVerdictLock = new object();
+        
+        
+        /// <summary>
+        /// Calculated abort condition...
+        /// </summary>
+        internal BreakCondition AbortCondition { get; set; }
+
     }
 
     /// <summary>
@@ -168,34 +175,40 @@ namespace OpenTap
         private ManualResetEventSlim completedEvent = new ManualResetEventSlim(false);
         
         /// <summary>
-        /// Waits for the teststep run to be entirely done. This includes any deferred processing.
+        /// Waits for the test step run to be entirely done. This includes any deferred processing.
         /// </summary>
         public void WaitForCompletion()
         {
             if (completedEvent.IsSet) return;
-            var waits = new[] { completedEvent.WaitHandle, TapThread.Current.AbortToken.WaitHandle };
+
+            var currentThread = TapThread.Current;
+            if(!WasDeferred && StepThread == currentThread) throw new InvalidOperationException("StepRun.WaitForCompletion called from the thread itself. This will either cause a deadlock or do nothing.");
+            var waits = new[] { completedEvent.WaitHandle, currentThread.AbortToken.WaitHandle };
             WaitHandle.WaitAny(waits);
         }
 
+        /// <summary>  The thread in which the step is running. </summary>
+        public TapThread StepThread { get; private set; }
+
+        /// <summary> Set to true if the step execution has been deferred. </summary>
+        internal bool WasDeferred { get; set; }
+
         #region Internal Members used by the TestPlan
 
-        /// <summary>
-        /// Called by TestStep.DoRun before running the step.
-        /// </summary>
+        /// <summary>  Called by TestStep.DoRun before running the step. </summary>
         internal void StartStepRun()
         {
+            if (Verdict != Verdict.NotSet)
+                throw new ArgumentOutOfRangeException("verdict", "StepRun.StartStepRun has already been called once.");
+            StepThread = TapThread.Current;
             StartTime = DateTime.Now;
             StartTimeStamp = Stopwatch.GetTimestamp();
-
-            if (Verdict != Verdict.NotSet)
-                throw new ArgumentOutOfRangeException("verdict");
         }
 
-        /// <summary>
-        /// Called by TestStep.DoRun after running the step.
-        /// </summary>
+        /// <summary> Called by TestStep.DoRun after running the step. </summary>
         internal void CompleteStepRun(TestPlanRun planRun, ITestStep step, TimeSpan runDuration)
         {
+            StepThread = null;
             // update values in the run. 
             var newparameters = ResultParameters.GetParams(step);
             foreach(var parameter in newparameters)
@@ -231,6 +244,34 @@ namespace OpenTap
             Verdict = Verdict.NotSet;
             if (attachedParameters != null) Parameters.AddRange(attachedParameters);
             Parent = parent;
+            
+        }
+        
+        internal TestStepRun(ITestStep step, TestRun parent, IEnumerable<ResultParameter> attachedParameters = null)
+        {
+            TestStepId = step.Id;
+            TestStepName = step.GetFormattedName();
+            TestStepTypeName = step.GetType().AssemblyQualifiedName;
+            Parameters = ResultParameters.GetParams(step);
+            Verdict = Verdict.NotSet;
+            if (attachedParameters != null) Parameters.AddRange(attachedParameters);
+            Parent = parent.Id;
+            AbortCondition = calculateAbortCondition(step, parent);
+        }
+        
+        
+        static BreakCondition calculateAbortCondition(ITestStep step, TestRun parentStepRun)
+        {
+            BreakCondition abortCondition = BreakConditionProperty.GetBreakCondition(step);
+            
+            if (abortCondition.HasFlag(BreakCondition.Inherit))
+            {
+                // Retry conditions are not inherited.
+                return parentStepRun.AbortCondition | BreakCondition.Inherit;
+            }
+
+            return abortCondition;
+
         }
 
         internal TestStepRun Clone()
@@ -239,6 +280,48 @@ namespace OpenTap
             run.Parameters = run.Parameters.Clone();
             return run;
         }
+        
         #endregion
+
+        internal bool IsBreakCondition()
+        {
+            if (OutOfRetries 
+                || (Verdict == Verdict.Fail && AbortCondition.HasFlag(BreakCondition.BreakOnFail)) 
+                || (Verdict == Verdict.Error && AbortCondition.HasFlag(BreakCondition.BreakOnError))
+                || (Verdict == Verdict.Inconclusive && AbortCondition.HasFlag(BreakCondition.BreakOnInconclusive)))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        
+        internal void CheckBreakCondition()
+        {
+            if(IsBreakCondition())
+                ThrowDueToBreakConditions();
+        }
+        
+        internal bool OutOfRetries { get; set; }
+
+        internal void ThrowDueToBreakConditions()
+        {
+            throw new TestStepBreakException(TestStepName, Verdict);
+        }
+    }
+
+    class TestStepBreakException : OperationCanceledException
+    {
+        public string TestStepName { get; set; }
+        public Verdict Verdict { get; set; }
+
+        public TestStepBreakException(string testStepName, Verdict verdict)
+        {
+            TestStepName = testStepName;
+            Verdict = verdict;
+        }
+
+        public override string Message =>
+            $"Break issued from '{TestStepName}' due to verdict {Verdict}. See Break Conditions settings.";
     }
 }

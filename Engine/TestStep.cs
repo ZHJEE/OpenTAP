@@ -15,7 +15,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Runtime.CompilerServices;
-
 namespace OpenTap
 {
     /// <summary>
@@ -197,41 +196,50 @@ namespace OpenTap
         /// </summary>
         /// <param name="stepType"></param>
         /// <returns></returns>
-        public static string[] GenerateDefaultNames(Type stepType)
+        public static string[] GenerateDefaultNames(ITypeData stepType)
         {
             if (stepType == null)
                 throw new ArgumentNullException(nameof(stepType));
             var disp = stepType.GetDisplayAttribute();
             return disp.Group.Append(disp.Name).ToArray();
         }
-        static ConditionalWeakTable<Type, string> defaultNames = new ConditionalWeakTable<Type, string>();
+
+        /// <summary> Returns a default name for a step type. </summary>
+        /// <param name="stepType"></param>
+        /// <returns></returns>
+        [Obsolete("Use other overload of GenerateDefaultNames instead.")]
+        public static string[] GenerateDefaultNames(Type stepType) => GenerateDefaultNames(TypeData.FromType(stepType));
+        
+        static ConditionalWeakTable<ITypeData, string> defaultNames = new ConditionalWeakTable<ITypeData, string>();
 
         /// <summary>
         /// Initializes a new instance of the TestStep base class.
         /// </summary>
         public TestStep()
         {
-            name = defaultNames.GetValue(GetType(), type => GenerateDefaultNames(type).Last());
+            var t = TypeData.GetTypeData(this);
+            name = defaultNames.GetValue(t, type => GenerateDefaultNames(type).Last());
             
             Enabled = true;
             IsReadOnly = false;
             ChildTestSteps = new TestStepList();
 
-            var things = loaderLookup.GetValue(GetType(), loadDefaultResources);
+            var things = loaderLookup.GetValue(t, loadDefaultResources);
             foreach (var loader in things)
                 loader(this);
             Results = null; // this will be set by DoRun just before calling Run()
         }
 
-        static readonly ConditionalWeakTable<Type, Action<object>[]> loaderLookup = new ConditionalWeakTable<Type, Action<object>[]>();
+        static readonly ConditionalWeakTable<ITypeData, Action<object>[]> loaderLookup = new ConditionalWeakTable<ITypeData, Action<object>[]>();
 
-        static Action<object>[] loadDefaultResources(Type t)
+        static Action<object>[] loadDefaultResources(ITypeData t)
         {
             List<Action<object>> loaders = new List<Action<object>>();
-            var props = t.GetPropertiesTap();
-            foreach (var prop in props.Where(p => p.GetSetMethod() != null))
+            var props = t.GetMembers();
+            foreach (var prop in props.Where(p => p.Writable))
             {
-                Type propType = prop.PropertyType;
+                var propType = (prop.TypeDescriptor as TypeData)?.Load();
+                if (propType == null) continue;
                 if (propType.DescendsTo(typeof(IList)) && propType.IsGenericType)
                 {
                     Type genericType = propType.GetGenericArguments().FirstOrDefault();
@@ -251,7 +259,7 @@ namespace OpenTap
                                     object value = vlist;
                                     try
                                     {
-                                        prop.SetValue(x, value, null);
+                                        prop.SetValue(x, value);
                                     }
                                     catch (Exception ex)
                                     {
@@ -264,21 +272,31 @@ namespace OpenTap
                         
                     }
                 }
-                else if(ComponentSettingsList.HasContainer(prop.PropertyType))
+                else if(ComponentSettingsList.HasContainer(propType))
                 {
 
                     loaders.Add(x =>
                     {
-                        IList list = ComponentSettingsList.GetContainer(prop.PropertyType);
+                        try
+                        {
+                            var currentValue = prop.GetValue(x);
+                            if (currentValue != null)
+                                return; // if the constructor already set a value, don't overwrite it
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Warning("Caught exception while getting default value on {0}.", prop);
+                            Log.Debug(ex);
+                        }
+                        IList list = ComponentSettingsList.GetContainer(propType);
                         if (list != null)
                         {
                             object value = list.Cast<object>()
-                               .Where(o => o != null && o.GetType().DescendsTo(propType))
-                               .FirstOrDefault();
+                                .FirstOrDefault(o => o != null && o.GetType().DescendsTo(propType));
 
                             try
                             {
-                                prop.SetValue(x, value, null);
+                                prop.SetValue(x, value);
                             }
                             catch (Exception ex)
                             {
@@ -289,13 +307,13 @@ namespace OpenTap
                     });
                 }
 
-                if (prop.PropertyType.DescendsTo(typeof(IValidatingObject)))
+                if (propType.DescendsTo(typeof(IValidatingObject)))
                 {
                     // load forwarded validation rules.
                     loaders.Add(x =>
                     {
                         var step = (IValidatingObject)x;
-                        step.Rules.Forward(step, prop.Name);
+                        step.Rules.Forward(prop);
                     });
                 }
             }
@@ -425,9 +443,18 @@ namespace OpenTap
         /// <param name="attachedParameters">Parameters that will be stored together with the actual parameters of the step.</param>
         protected TestStepRun RunChildStep(ITestStep childStep, IEnumerable<ResultParameter> attachedParameters = null)
         {
-            var steprun = this.RunChildStep(childStep, PlanRun, StepRun, attachedParameters);
-            Results.Defer(() => steprun.WaitForCompletion());
-            return steprun;
+            return this.RunChildStep(childStep, PlanRun, StepRun, attachedParameters);
+        }
+        
+        /// <summary>
+        /// Runs the specified child step if enabled. Upgrades parent verdict to the resulting verdict of the child run. Throws an exception if childStep does not belong or isn't enabled.
+        /// </summary>
+        /// <param name="childStep">The child step to run.</param>
+        /// <param name="throwOnError"></param>
+        /// <param name="attachedParameters">Parameters that will be stored together with the actual parameters of the step.</param>
+        protected TestStepRun RunChildStep(ITestStep childStep, bool throwOnError, IEnumerable<ResultParameter> attachedParameters = null)
+        {
+            return this.RunChildStep(childStep, throwOnError, PlanRun, StepRun, attachedParameters);
         }
 
         /// <summary>
@@ -449,6 +476,7 @@ namespace OpenTap
         [Browsable(false)]
         public Guid Id { get; set; } = Guid.NewGuid();
     }
+
 
     /// <summary>
     /// An extension class for the ITestStep interface.
@@ -592,7 +620,7 @@ namespace OpenTap
                             i = stepidx - 1;
                         // if skip to next step, dont add it to the wait queue.
                     }
-                    
+                    run.CheckBreakCondition();
                     TapThread.ThrowIfAborted();
                 }
             }
@@ -601,7 +629,7 @@ namespace OpenTap
 
                 if (runs.Count > 0) // Avoid deferring if there is nothing to do.
                 {
-                    if (Step is TestStep testStep)
+                    if (Step is TestStep testStep && runs.Any(x => x.WasDeferred))
                     {
                         testStep.Results.Defer(() =>
                         {
@@ -629,6 +657,7 @@ namespace OpenTap
 
             return runs;
         }
+
         /// <summary>
         /// Runs the specified child step if enabled. Upgrades parent verdict to the resulting verdict of the child run. Throws an exception if childStep does not belong or isn't enabled.
         /// </summary>
@@ -637,7 +666,24 @@ namespace OpenTap
         /// <param name="currentPlanRun">The current TestPlanRun.</param>
         /// <param name="currentStepRun">The current TestStepRun.</param>
         /// <param name="attachedParameters">Parameters that will be stored together with the actual parameters of the step.</param>
-        public static TestStepRun RunChildStep(this ITestStep Step, ITestStep childStep, TestPlanRun currentPlanRun, TestStepRun currentStepRun, IEnumerable<ResultParameter> attachedParameters = null)
+        public static TestStepRun RunChildStep(this ITestStep Step, ITestStep childStep,
+            TestPlanRun currentPlanRun, TestStepRun currentStepRun,
+            IEnumerable<ResultParameter> attachedParameters = null)
+        {
+            return Step.RunChildStep(childStep, true, currentPlanRun, currentStepRun, attachedParameters);
+        }
+        
+        
+        /// <summary>
+        /// Runs the specified child step if enabled. Upgrades parent verdict to the resulting verdict of the child run. Throws an exception if childStep does not belong or isn't enabled.
+        /// </summary>
+        /// <param name="Step"></param>
+        /// <param name="childStep">The child step to run.</param>
+        /// <param name="throwOnError"></param>
+        /// <param name="currentPlanRun">The current TestPlanRun.</param>
+        /// <param name="currentStepRun">The current TestStepRun.</param>
+        /// <param name="attachedParameters">Parameters that will be stored together with the actual parameters of the step.</param>
+        public static TestStepRun RunChildStep(this ITestStep Step, ITestStep childStep, bool throwOnError, TestPlanRun currentPlanRun, TestStepRun currentStepRun, IEnumerable<ResultParameter> attachedParameters = null)
         {
             if (childStep == null)
                 throw new ArgumentNullException("childStep");
@@ -654,7 +700,7 @@ namespace OpenTap
 
             var run = childStep.DoRun(currentPlanRun, currentStepRun, attachedParameters);
 
-            if (Step is TestStep step)
+            if (Step is TestStep step && run.WasDeferred)
             {
                 step.Results.Defer(() =>
                 {
@@ -665,68 +711,64 @@ namespace OpenTap
             }
             else
             {
-                run.WaitForCompletion();
+                if(run.WasDeferred)
+                    run.WaitForCompletion();
                 if (run.Verdict > Step.Verdict)
                     Step.Verdict = run.Verdict;
             }
+            if(throwOnError)
+                run.CheckBreakCondition();
 
             return run;
         }
 
         internal static string GetStepPath(this ITestStep Step)
         {
-            List<string> names = new List<string>();
-            ITestStep s = Step;
-            while (s != null)
+            var name = Step.GetFormattedName();
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append('"');
+
+            void getParentNames(ITestStep step)
             {
-                bool containsMacro = s.Name.Contains('{') && s.Name.Contains('}');
-                if (containsMacro)
-                    names.Add(s.GetFormattedName());
-                else
-                    names.Add(s.Name);
-                s = s.Parent as ITestStep;
+                if (step.Parent is ITestStep parent2)
+                    getParentNames(parent2);
+
+                sb.Append(step.GetFormattedName());
+                sb.Append(" \\ ");
             }
-            names.Reverse();
-            return '\"'+ string.Join(" \\ ", names) + '\"';
+
+            if (Step.Parent is ITestStep parent)
+                getParentNames(parent);
+            sb.Append(name);
+            sb.Append('"');
+            return sb.ToString();
         }
 
-        static void checkStepFailure(ITestStep Step, TestPlanRun planRun)
-        {
-            if ((Step.Verdict == Verdict.Fail && planRun.AbortOnStepFail) || (Step.Verdict == Verdict.Error && planRun.AbortOnStepError))
-            {
-                TestPlan.Log.Warning("OpenTAP is currently configured to abort run on verdict {0}. This can be changed in Engine Settings.", Step.Verdict);
-                planRun.MainThread.Abort(String.Format("Verdict of '{0}' was '{1}'.", Step.Name, Step.Verdict));
-            }
-            if (Step.Verdict == Verdict.Aborted)
-            {
-                planRun.MainThread.Abort(String.Format("Step '{0}' was aborted.", Step.Name));
-            }
-        }
+
         
-        internal static TestStepRun DoRun(this ITestStep Step, TestPlanRun planRun, TestStepRun parentStepRun, IEnumerable<ResultParameter> attachedParameters = null)
+        internal static TestStepRun DoRun(this ITestStep Step, TestPlanRun planRun, TestRun parentRun, IEnumerable<ResultParameter> attachedParameters = null)
         {
             {
                 // in case the previous action was not completed yet.
                 // this is a problem because StepRun might be set to null later
                 // if its not already the case.
-                var prevRun = Step.StepRun;
-                if (prevRun != null)
-                    prevRun.WaitForCompletion();
+                Step.StepRun?.WaitForCompletion();
                 Debug.Assert(Step.StepRun == null);
             }
-
+            Step.PlanRun = planRun;
             Step.Verdict = Verdict.NotSet;
 
             TapThread.ThrowIfAborted();
             if (!Step.Enabled)
                 throw new Exception("Step not enabled."); // Do not run step if it has been disabled
             planRun.ThrottleResultPropagation();
-            Step.PlanRun = planRun;
-            var stepRun = Step.StepRun = new TestStepRun(Step, parentStepRun == null ? planRun.Id : parentStepRun.Id, attachedParameters);
-            if (parentStepRun == null)
-                stepRun.TestStepPath = stepRun.TestStepName;
-            else
-                stepRun.TestStepPath = parentStepRun.TestStepPath + " \\ " + stepRun.TestStepName;
+            
+            var stepRun = Step.StepRun = new TestStepRun(Step, parentRun,
+                attachedParameters)
+            {
+                TestStepPath = Step.GetStepPath(),
+            };
 
             var stepPath = stepRun.TestStepPath;
             //Raise an event prior to starting the actual run of the TestStep. 
@@ -734,7 +776,7 @@ namespace OpenTap
             if (stepRun.SuggestedNextStep != null) {
                 Step.StepRun = null;
                 stepRun.Skipped = true;
-                return stepRun;
+                return stepRun;    
             }
 
             TapThread.ThrowIfAborted(); // if an OfferBreak handler called TestPlan.Abort, abort now.
@@ -748,26 +790,28 @@ namespace OpenTap
                 try
                 {
                     // Signal step is going to execute
-                    planRun.ExecutionHooks.ForEach(eh => eh.BeforeTestStepExecute(Step));
+                    Step.PlanRun.ExecutionHooks.ForEach(eh => eh.BeforeTestStepExecute(Step));
 
                     try
                     {
                         // tell result listeners the step started.
-                        planRun.ResourceManager.BeginStep(planRun, Step, TestPlanExecutionStage.Run, TapThread.Current.AbortToken);
+                        Step.PlanRun.ResourceManager.BeginStep(Step.PlanRun, Step, TestPlanExecutionStage.Run,
+                            TapThread.Current.AbortToken);
                         try
                         {
                             if (Step is TestStep _step)
-                                resultSource = _step.Results = new ResultSource(stepRun, planRun);
+                                resultSource = _step.Results = new ResultSource(stepRun, Step.PlanRun);
 
                             TestPlan.Log.Info(stepPath + " started.");
                             stepRun.StartStepRun(); // set verdict to running, set Timestamp.
                             planRun.AddTestStepRunStart(stepRun);
                             Step.Run();
+
                             TapThread.ThrowIfAborted();
                         }
                         finally
                         {
-                             planRun.AddTestStepStateUpdate(stepRun.TestStepId, stepRun, StepState.Deferred);   
+                            planRun.AddTestStepStateUpdate(stepRun.TestStepId, stepRun, StepState.Deferred);
                         }
                     }
                     finally
@@ -780,49 +824,62 @@ namespace OpenTap
                     planRun.ExecutionHooks.ForEach(eh => eh.AfterTestStepExecute(Step));
                 }
             }
+            catch (TestStepBreakException e)
+            {
+                TestPlan.Log.Info(e.Message);
+                Step.Verdict = Verdict.Error;
+            }
             catch (Exception e)
             {
                 
-                if (e is ThreadAbortException || e is OperationCanceledException)
+                if (e is ThreadAbortException || (e is OperationCanceledException && TapThread.Current.AbortToken.IsCancellationRequested))
                 {
-                    if (Step.Verdict < Verdict.Aborted)
-                        Step.Verdict = Verdict.Aborted;
+                    Step.Verdict = Verdict.Aborted;
                     if(e.Message == new OperationCanceledException().Message)
-                        TestPlan.Log.Warning("Step '{0}' was canceled.", stepPath);
+                        TestPlan.Log.Warning("Step {0} was canceled.", stepPath);
                     else
-                        TestPlan.Log.Warning("Step '{0}' was canceled with message '{1}'.", stepPath, e.Message);
+                        TestPlan.Log.Warning("Step {0} was canceled with message '{1}'.", stepPath, e.Message);
                 }
                 else
                 {
                     Step.Verdict = Verdict.Error;
-                    TestPlan.Log.Error("{0} failed. The error was '{1}'.", stepPath, e.Message);
+                    TestPlan.Log.Error("Error running {0}: {1}.", stepPath, e.Message);
                 }
                 TestPlan.Log.Debug(e);
             }
             finally
             {
+                // set during complete action.
+                bool completeActionExecuted = false;
+                
                 // if it was a ThreadAbortException we need 'finally'.
                 void completeAction(Task runTask)
                 {
+                    completeActionExecuted = true;
                     try
                     {
                         runTask.Wait();
                     }
+                    catch (TestStepBreakException e)
+                    {
+                        TestPlan.Log.Info(e.Message);
+                        Step.Verdict = Verdict.Error;
+                    }
                     catch (Exception e)
                     {
-                        if (e is ThreadAbortException || e is OperationCanceledException)
+                        if (e is ThreadAbortException || (e is OperationCanceledException && TapThread.Current.AbortToken.IsCancellationRequested) )
                         {
-                            if (Step.Verdict < Verdict.Aborted)
+                            if (TapThread.Current.AbortToken.IsCancellationRequested && Step.Verdict < Verdict.Aborted)
                                 Step.Verdict = Verdict.Aborted;
                             if (e.Message == new OperationCanceledException().Message)
-                                TestPlan.Log.Warning("Step '{0}' was canceled.", stepPath);
+                                TestPlan.Log.Warning("Step {0} was canceled.", stepPath);
                             else
-                                TestPlan.Log.Warning("Step '{0}' was canceled with message '{1}'.", stepPath, e.Message);
+                                TestPlan.Log.Warning("Step {0} was canceled with message '{1}'.", stepPath, e.Message);
                         }
                         else
                         {
                             Step.Verdict = Verdict.Error;
-                            TestPlan.Log.Error("{0} failed. The error was '{1}'.", stepPath, e.Message);
+                            TestPlan.Log.Error("Error running {0}: {1}.", stepPath, e.Message);
                         }
                         TestPlan.Log.Debug(e);
                     }
@@ -833,7 +890,6 @@ namespace OpenTap
                             if (Step.StepRun == stepRun)
                             {
                                 Step.StepRun = null;
-                                Step.PlanRun = null;
                             }
                         }
                         TimeSpan time = swatch.Elapsed;
@@ -848,7 +904,6 @@ namespace OpenTap
                         }
 
                         planRun.AddTestStepRunCompleted(stepRun);
-                        checkStepFailure(Step, planRun);
                     }
                 }
 
@@ -856,10 +911,13 @@ namespace OpenTap
                     resultSource.Finally(completeAction);
                 else
                     completeAction(Task.FromResult(0));
+                
+                stepRun.WasDeferred = !completeActionExecuted; // completeAction was already executed -> not deferred.
             }
             
             return stepRun;
         }
+
         internal static void CheckResources(this ITestStep Step)
         {
             var resProps2 = GetStepSettings<IResource>(new[] { Step }, true);
@@ -906,7 +964,7 @@ namespace OpenTap
                             {
                                 if (onlyEnabled)
                                 {
-                                    bool isenabled = EnabledIfAttribute.IsEnabled(prop, attr, Step);
+                                    bool isenabled = EnabledIfAttribute.IsEnabled(attr, Step);
                                     if (isenabled == false)
                                         goto nextstep;
                                 }
@@ -971,29 +1029,26 @@ namespace OpenTap
             public string Content;
         }
         
-        static Dictionary<Type, Dictionary<string, PropertyInfo>> formatterLutCache 
-            = new Dictionary<Type, Dictionary<string, PropertyInfo>>();
+        static Dictionary<ITypeData, Dictionary<string, IMemberData>> formatterLutCache 
+            = new Dictionary<ITypeData, Dictionary<string, IMemberData>>();
         
-        /// <summary>
-        /// Takes the name of step and replaces properties.
-        /// </summary>
-        /// <param name="step"></param>
-        /// <returns></returns>
+        /// <summary> Takes the name of step and replaces {} tokens with the value of properties. </summary>
         public static string GetFormattedName(this ITestStep step)
         {
-            if(step.Name.Contains('{') == false)
+            if(step.Name.Contains('{') == false || step.Name.Contains('}') == false)
                 return step.Name;
-            Dictionary<string, PropertyInfo> props = null;
-            if (formatterLutCache.ContainsKey(step.GetType()) == false)
+            Dictionary<string, IMemberData> props;
+            var type = TypeData.GetTypeData(step);
+            if (formatterLutCache.TryGetValue(type, out props) == false)
             {
                 // GetProperties potentially slow. GetFormattedName is in test plan exec thread, so the outcome is cached.
                 
-                props = new Dictionary<string, PropertyInfo>();
-                foreach (var item in step.GetType().GetPropertiesTap())
+                props = new Dictionary<string, IMemberData>();
+                foreach (var item in type.GetMembers())
                 {
                     var browsable = item.GetAttribute<BrowsableAttribute>();
                     if (browsable != null && browsable.Browsable == false) continue;
-                    if (!item.CanRead || item.GetGetMethod() == null)
+                    if (item.Readable == false) 
                         continue;
                     var s = item.GetDisplayAttribute();
                     if ((s.Group != null) && (s.Group.Length > 0))
@@ -1011,11 +1066,7 @@ namespace OpenTap
                         props[s.Name.ToLower()] = item;
                     }
                 }
-                formatterLutCache[step.GetType()] = props;
-            }
-            else
-            {
-                props = formatterLutCache[step.GetType()];
+                formatterLutCache[type] = props;
             }
             var name = step.Name;
             if (name == null)
@@ -1044,7 +1095,7 @@ namespace OpenTap
                 if (props.ContainsKey(prop))
                 {
                     var property = props[prop];
-                    var value = props[prop].GetValue(step);
+                    var value = property.GetValue(step);
                     var unitattr = property.GetAttribute<UnitAttribute>();
                     string valueString = null;
                     bool isCollection = value is IEnumerable && false == value is string;
@@ -1065,7 +1116,7 @@ namespace OpenTap
                             valueString = fmt.FormatRange(value as IEnumerable);
                         }else
                         {   // else use ToString.
-                            valueString = string.Join(System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberGroupSeparator + " ", ((IEnumerable)value).Cast<object>().Select(o => o == null ? "NULL" : o));
+                            valueString = string.Join(System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberGroupSeparator + " ", ((IEnumerable)value).Cast<object>().Select(o => o ?? "NULL"));
                         }
                     }
                     else
@@ -1088,4 +1139,7 @@ namespace OpenTap
             return outName.ToString();
         }
     }
+    
+    
+    
 }

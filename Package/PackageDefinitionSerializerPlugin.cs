@@ -78,7 +78,14 @@ namespace OpenTap.Package
                     setter.Invoke(new PackageIdentifier(pkg));
                 else
                     setter.Invoke(pkg);
-                
+
+                // If the Version XML attribute is missing, default to same behavior as if Version="" was specified. We depend on packages having a version.
+                if (pkg.Version is null && string.IsNullOrEmpty(pkg.RawVersion)) {
+                    pkg.RawVersion = "";
+                    if (SemanticVersion.TryParse("0.0.0", out var semver))
+                        pkg.Version = semver;
+                }
+
                 return true;
             }
             return false;
@@ -212,13 +219,22 @@ namespace OpenTap.Package
                     VersionMatchBehavior.Compatible | VersionMatchBehavior.AnyPrerelease);
             }
             // For compatability (pre 9.0 packages may not have correctly formatted version numbers)
-            var plugins = PluginManager.GetPlugins<IVersionConverter>();
+            var plugins = PluginManager.GetPlugins<IVersionTryConverter>().Concat(PluginManager.GetPlugins<IVersionConverter>());
+
             foreach (var plugin in plugins.OrderBy(p => p.GetDisplayAttribute().Order))
             {
                 try
                 {
-                    IVersionConverter cvt = (IVersionConverter)Activator.CreateInstance(plugin);
-                    return new VersionSpecifier(cvt.Convert(Version), VersionMatchBehavior.Compatible);
+                    object cvt = Activator.CreateInstance(plugin);
+                    if (cvt is IVersionTryConverter vc2)
+                    {
+                        if (vc2.TryConvert(Version, out SemanticVersion sv))
+                            return new VersionSpecifier(sv, VersionMatchBehavior.Compatible);
+                    }
+                    else if(cvt is IVersionConverter vc)
+                    {
+                        return new VersionSpecifier(vc.Convert(Version), VersionMatchBehavior.Compatible);
+                    }
                 }
                 catch
                 {

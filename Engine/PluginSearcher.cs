@@ -74,23 +74,75 @@ namespace OpenTap
         private static readonly TraceSource log = Log.CreateSource("Searcher");
         class AssemblyDependencyGraph
         {
+            public AssemblyDependencyGraph()
+            {
+                nameToAsmMap = new Dictionary<AssemblyRef, AssemblyData>();
+
+                nameToAsmMap2 = new Dictionary<string, AssemblyRef>();
+                asmNameToAsmData = new Dictionary<string, AssemblyData>();
+                Assemblies = new List<AssemblyData>();
+                UnfoundAssemblies = new HashSet<AssemblyRef>();
+            }
+
             /// <summary>
             /// Returns a list of assemblies and their dependencies/references. 
             /// The list is sorted such that a dependency is before the assembly/assemblies that depend on it.
             /// </summary>
             public List<AssemblyData> Generate(IEnumerable<string> files)
             {
-                nameToAsmMap = new Dictionary<AssemblyRef, AssemblyData>();
-
-                nameToFileMap = files.ToLookup(Path.GetFileNameWithoutExtension);
-                nameToAsmMap2 = new Dictionary<string, AssemblyRef>();
-                asmNameToAsmData = new Dictionary<string, AssemblyData>();
-                Assemblies = new List<AssemblyData>();
-                UnfoundAssemblies = new HashSet<AssemblyRef>();
-                foreach (string file in files)
+                if (nameToFileMap == null)
+                    nameToFileMap = files.ToLookup(Path.GetFileNameWithoutExtension);
+                else
                 {
-                    AddAssemblyInfo(file);
+                    var existingFiles = nameToFileMap.SelectMany(g => g.Select(s => s));
+                    nameToFileMap = existingFiles.Concat(files).Distinct().ToLookup(Path.GetFileNameWithoutExtension);
                 }
+
+                // print a warning if the same assembly is loaded more than once.
+                foreach (var entry in nameToFileMap)
+                {
+                    var count = entry.Count();
+                    if (count == 1) continue;
+                    var versions = new HashSet<string>();
+                    bool allInDependencies = true;
+                    foreach (var file in entry)
+                    {
+                        try
+                        {
+                            if ((Path.GetDirectoryName(file)?.Contains("Dependencies") ?? false) == false)   
+                                allInDependencies = false;
+                            var fileVersion = FileVersionInfo.GetVersionInfo(file);
+                            versions.Add(fileVersion?.FileVersion ?? "");
+                        }
+                        catch
+                        {
+                            // Accept errors here, this code is only used to print warnings.       
+                        }
+                    }
+
+                    if (allInDependencies) continue; // these were only inside the dependencies folder.
+                    if (versions.Count == 1) continue;
+
+                    log.Warning("Multiple assemblies of different versions named {0} exists ", entry.Key);
+
+                    int i = 0;
+                    foreach (var file in entry)
+                    {
+                        string ver = "unknown";
+                        try
+                        {
+                            ver = FileVersionInfo.GetVersionInfo(file)?.FileVersion ?? "0.0";
+                        }
+                        catch (Exception)
+                        {
+                            log.Debug("Unable to get version of {0}.", file);
+                        }
+
+                        log.Debug("Assembly {2}: {0} version: {1}", file, ver, 1 + i++);
+                    }    
+                }
+                foreach (string file in files)
+                    AddAssemblyInfo(file);
 
                 return Assemblies;
             }
@@ -98,10 +150,11 @@ namespace OpenTap
             private List<AssemblyData> Assemblies;
             private Dictionary<AssemblyRef, AssemblyData> nameToAsmMap;
             private Dictionary<string, AssemblyRef> nameToAsmMap2;
-            private Dictionary<string, AssemblyData> asmNameToAsmData;
-            private static ILookup<string, string> nameToFileMap;
+            private readonly Dictionary<string, AssemblyData> asmNameToAsmData;
+            private ILookup<string, string> nameToFileMap;
             HashSet<AssemblyRef> UnfoundAssemblies; // for assemblies that are not in the files.
 
+            /// <summary> Manually analyze and add an assembly file. </summary>
             private AssemblyData AddAssemblyInfo(string file)
             {
                 var normalizedFile = PathUtils.NormalizePath(file);
@@ -116,94 +169,101 @@ namespace OpenTap
 
                     List<AssemblyRef> refNames = new List<AssemblyRef>();
                     using (FileStream str = new FileStream(file, FileMode.Open, FileAccess.Read))
-                    using (PEReader header = new PEReader(str, PEStreamOptions.LeaveOpen))
                     {
-                        if (!header.HasMetadata)
-                            return null;
-
-                        MetadataReader metadata = header.GetMetadataReader();
-                        AssemblyDefinition def = metadata.GetAssemblyDefinition();
-                        var defAsmName = def.GetAssemblyName().FullName;
-                        if (asmNameToAsmData.TryGetValue(defAsmName, out AssemblyData data))
-                            return data;
-
-                        thisAssembly.Name = metadata.GetString(def.Name);
-                        
-                        if (string.Compare(thisAssembly.Name, Path.GetFileNameWithoutExtension(file),true) != 0)
-                           throw new Exception("Assembly name does not match the file name.");
-                        var thisRef = new AssemblyRef(thisAssembly.Name, def.Version);
-
-                        thisAssembly.Version = def.Version;
-
-                        if (!nameToAsmMap.ContainsKey(thisRef))
+                        if(str.Length > int.MaxValue)
+                            return null; // otherwise PEReader() will throw.
+                        using (PEReader header = new PEReader(str, PEStreamOptions.LeaveOpen))
                         {
-                            nameToAsmMap.Add(thisRef, thisAssembly);
-                            nameToAsmMap2[PathUtils.NormalizePath(thisAssembly.Location)] = thisRef;
-                        }
+                            if (!header.HasMetadata)
+                                return null;
 
-                        asmNameToAsmData[defAsmName] = thisAssembly;
+                            MetadataReader metadata = header.GetMetadataReader();
+                            AssemblyDefinition def = metadata.GetAssemblyDefinition();
 
-                        foreach (var asmRefHandle in metadata.AssemblyReferences)
-                        {
-                            var asmRef = metadata.GetAssemblyReference(asmRefHandle);
-                            var name = metadata.GetString(asmRef.Name);
-                            var newRef = new AssemblyRef(name, asmRef.Version);
-                            if (UnfoundAssemblies.Contains(newRef))
+                            // if we were asked to only prvide distinct assembly names and 
+                            // this assembly name has already been encountered, just return that.
+                            var thisAssemblyFullName = def.GetAssemblyName().FullName;
+                            if (asmNameToAsmData.TryGetValue(thisAssemblyFullName, out AssemblyData data))
+                                return data;
+
+                            thisAssembly.Name = metadata.GetString(def.Name);
+
+                            if (string.Compare(thisAssembly.Name, Path.GetFileNameWithoutExtension(file), true) != 0)
+                                throw new Exception("Assembly name does not match the file name.");
+                            var thisRef = new AssemblyRef(thisAssembly.Name, def.Version);
+
+                            thisAssembly.Version = def.Version;
+
+                            if (!nameToAsmMap.ContainsKey(thisRef))
                             {
-                                continue;
+                                nameToAsmMap.Add(thisRef, thisAssembly);
+                                nameToAsmMap2[PathUtils.NormalizePath(thisAssembly.Location)] = thisRef;
                             }
-                            refNames.Add(new AssemblyRef(name, asmRef.Version));
-                        }
-                    }
 
-                    List<AssemblyData> refList = null;
-                    foreach (var refName in refNames)
-                    {
-                        if (nameToAsmMap.TryGetValue(refName, out AssemblyData asmData2))
-                        {
-                            if (refList == null) refList = new List<AssemblyData>();
-                            refList.Add(asmData2);
-                        }
-                        else
-                        {
-                            if (nameToFileMap.Contains(refName.Name))
+                            asmNameToAsmData[thisAssemblyFullName] = thisAssembly;
+
+                            foreach (var asmRefHandle in metadata.AssemblyReferences)
                             {
-                                AssemblyData asm = null;
-                                foreach (var file2 in nameToFileMap[refName.Name])
+                                var asmRef = metadata.GetAssemblyReference(asmRefHandle);
+                                var name = metadata.GetString(asmRef.Name);
+                                var newRef = new AssemblyRef(name, asmRef.Version);
+                                if (UnfoundAssemblies.Contains(newRef))
                                 {
-                                    var data = AddAssemblyInfo(file2);
-                                    if (data == null) continue;
-                                    if (data.Version == refName.Version)
-                                    {
-                                        asm = data;
-                                        break;
-                                    }
-                                    else if (Utils.Compatible(data.Version, refName.Version))
-                                    {
-                                        asm = data;
-                                    }
+                                    continue;
                                 }
-                                if (asm != null)
+                                refNames.Add(new AssemblyRef(name, asmRef.Version));
+                            }
+                        }
+
+                        List<AssemblyData> refList = null;
+                        foreach (var refName in refNames)
+                        {
+                            if (nameToAsmMap.TryGetValue(refName, out AssemblyData asmData2))
+                            {
+                                if (refList == null) refList = new List<AssemblyData>();
+                                refList.Add(asmData2);
+                            }
+                            else
+                            {
+                                if (nameToFileMap.Contains(refName.Name))
                                 {
-                                    if (refList == null) refList = new List<AssemblyData>();
-                                    refList.Add(asm);
+                                    AssemblyData asm = null;
+                                    foreach (string file2 in nameToFileMap[refName.Name])
+                                    {
+                                        var data = AddAssemblyInfo(file2);
+                                        if (data == null) continue;
+                                        if (data.Version == refName.Version)
+                                        {
+                                            asm = data;
+                                            break;
+                                        }
+                                        else if (Utils.Compatible(data.Version, refName.Version))
+                                        {
+                                            asm = data;
+                                        }
+                                    }
+                                    if (asm != null)
+                                    {
+                                        if (refList == null) refList = new List<AssemblyData>();
+                                        refList.Add(asm);
+                                    }
+                                    else
+                                    {
+                                        UnfoundAssemblies.Add(refName);
+                                    }
                                 }
                                 else
                                 {
                                     UnfoundAssemblies.Add(refName);
                                 }
                             }
-                            else
-                            {
-                                UnfoundAssemblies.Add(refName);
-                            }
                         }
+                        thisAssembly.References = (IEnumerable<AssemblyData>) refList ?? Array.Empty<AssemblyData>();
+                        Assemblies.Add(thisAssembly);
+                        return thisAssembly;
                     }
-                    thisAssembly.References = (IEnumerable<AssemblyData>) refList ?? Array.Empty<AssemblyData>();
-                    Assemblies.Add(thisAssembly);
-                    return thisAssembly;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     // there was an error loading the file. Ignore that file.
                     log.Warning("Skipping assembly '{0}'. {1}", Path.GetFileName(file), ex.Message);
@@ -218,9 +278,13 @@ namespace OpenTap
         /// </summary>
         public IEnumerable<AssemblyData> Assemblies;
 
+        AssemblyDependencyGraph graph = null;
+
         /// <summary>
         /// Searches assembly files and returns all the plugin types found in those.
         /// The search will also populate a complete list of types searched in the AllTypes property
+        /// and all Assemblies found in the Assemblies property.
+        /// Subsequent calls to this method will add to those properties.
         /// </summary>
         public IEnumerable<TypeData> Search(string dir)
         {
@@ -233,11 +297,15 @@ namespace OpenTap
         /// <summary>
         /// Searches assembly files and returns all the plugin types found in those.
         /// The search will also populate a complete list of types searched in the AllTypes property
+        /// and all Assemblies found in the Assemblies property.
+        /// Subsequent calls to this method will add to those properties.
         /// </summary>
         public IEnumerable<TypeData> Search(IEnumerable<string> files)
         {
             Stopwatch timer = Stopwatch.StartNew();
-            Assemblies = new AssemblyDependencyGraph().Generate(files);
+            if (graph == null)
+                graph = new AssemblyDependencyGraph();
+            Assemblies = graph.Generate(files);
             log.Debug(timer, "Ordered {0} assemblies according to references.", Assemblies.Count());
 
             AllTypes = new Dictionary<string, TypeData>();
@@ -441,7 +509,7 @@ namespace OpenTap
                 plugin.AddPluginTypes(iface.PluginTypes);
                 if (iface.Name == PluginMarkerType.Name && plugin.PluginTypes == null)
                 {
-                    plugin.AddPluginType(plugin); // this inherrits directly from ITapPlugin (otherwise it should have been picked up earlier)
+                    plugin.AddPluginType(plugin); // this inherits directly from ITapPlugin (otherwise it should have been picked up earlier)
                 }
             }
             if (plugin.PluginTypes != null)
@@ -712,10 +780,25 @@ namespace OpenTap
         /// </summary>
         public AssemblyData Assembly { get; internal set; }
 
+
+        private DisplayAttribute display = null;
         /// <summary>
         /// Gets.the DisplayAttribute for this type. Null if the type does not have a DisplayAttribute
         /// </summary>
-        public DisplayAttribute Display { get; internal set; }
+        public DisplayAttribute Display
+        {
+            get
+            {
+                if (display is null && attributes is object)
+                    if (attributes.OfType<DisplayAttribute>().FirstOrDefault() is DisplayAttribute displayAttr)
+                        display = displayAttr;
+                return display;
+            }
+            internal set
+            {
+                display = value;
+            }
+        }
 
 
         private HashSet<TypeData> _BaseTypes;
@@ -860,8 +943,9 @@ namespace OpenTap
         /// The name of the assembly. This is the same as the filename without extension
         /// </summary>
         public string Name { get; internal set; }
+
         /// <summary>
-        /// The file from which this assembly can be loaded. The information contained in this object comes from this file.
+        /// The file from which this assembly can be loaded. The information contained in this AssemblyData object comes from this file.
         /// </summary>
         public string Location { get; internal set; }
 
@@ -897,7 +981,7 @@ namespace OpenTap
         /// Gets the version of this Assembly as a <see cref="SemanticVersion"/>
         /// </summary>
         public SemanticVersion SemanticVersion { get; internal set; }
-        
+
         internal AssemblyData()
         {
 
