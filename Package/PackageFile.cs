@@ -220,12 +220,35 @@ namespace OpenTap.Package
         public List<PackageDependency> Dependencies { get; set; } = new List<PackageDependency>();
 
         /// <summary>
-        /// If this package originates from a package repository. This is the URL of that repository. Otherwise null
+        /// If this package originates from a package repository. This is the URL of that repository. Otherwise null.
+        /// This method is obsolete, please use <see cref="PackageRepositoryUrl"/> or <see cref="PackageDef.DirectDownloadPath"/>.
         /// </summary>
-        [XmlElement("PackageRepositoryUrl")] // TODO: This is only for testing, the repo server needs to be updated to also include the 'Location' element in the xml.
         [DefaultValue(null)]
-        public string Location { get; set; }
-        
+        [Obsolete("Use 'PackageRepositoryUrl' or 'DirectDownloadPath' instead.")]
+        public string Location
+        {
+            get
+            {
+                return PackageRepositoryUrl;
+            }
+            set
+            {
+                PackageRepositoryUrl = value;
+            }
+        }
+
+        /// <summary>
+        /// Address of the repository where the package is located. Either a repository url or a file path.
+        /// </summary>
+        [DefaultValue(null)]
+        public string PackageRepositoryUrl { get; set; }
+
+        /// <summary>
+        /// A direct link to downloading or copying the package.
+        /// </summary>
+        [DefaultValue(null)]
+        public string DirectDownloadPath { get; set; }
+
         /// <summary>
         /// A link to get more information.
         /// </summary>
@@ -459,7 +482,7 @@ namespace OpenTap.Package
                 pkgDef = PackageDef.FromXml(metaFileStream);
             }
             //pkgDef.updateVersion();
-            pkgDef.Location = Path.GetFullPath(path);
+            pkgDef.DirectDownloadPath = Path.GetFullPath(path);
             return pkgDef;
         }
 

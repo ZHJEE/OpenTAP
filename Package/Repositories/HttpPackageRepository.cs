@@ -49,6 +49,7 @@ namespace OpenTap.Package
 
         public HttpPackageRepository(string url)
         {
+            defaultUrl = Url;
             url = url.Trim();
             if (Regex.IsMatch(url, "http(s)?://"))
                 this.Url = url;
@@ -57,7 +58,6 @@ namespace OpenTap.Package
 
             // Trim end to fix redirection. E.g. 'plugins.tap.aalborg.keysight.com:8086/' redirects to 'plugins.tap.aalborg.keysight.com'.
             this.Url = this.Url.TrimEnd('/');
-            defaultUrl = this.Url;
             this.Url = CheckUrlRedirect(this.Url);
             
             var macAddr = NetworkInterface.GetAllNetworkInterfaces()
@@ -97,7 +97,25 @@ namespace OpenTap.Package
                     message.Method = HttpMethod.Post;
                     message.Headers.Add("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString());
 
-                    using (var response = await hc.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
+                    HttpResponseMessage response;
+                    if (string.IsNullOrEmpty(package.DirectDownloadPath) == false)
+                    {
+                        log.Info($"Downloading package directly from: '{package.DirectDownloadPath}'.");
+                        try
+                        {
+                            response = await hc.GetAsync(package.DirectDownloadPath, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        }
+                        catch (Exception e)
+                        {
+                            log.Warning($"Could not download package directly from: '{package.DirectDownloadPath}'. Downloading package normally.");
+                            log.Debug(e);
+                            response = await hc.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        }
+                    }
+                    else
+                        response = await hc.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                    
                     using (var responseStream = await response.Content.ReadAsStreamAsync())
                     using (var fileStream = new FileStream(destination, FileMode.Create))
                     {
@@ -108,6 +126,8 @@ namespace OpenTap.Package
                         var task = responseStream.CopyToAsync(fileStream, 4096, cancellationToken);
                         ConsoleUtils.PrintProgressTillEnd(task, "Downloading", () => fileStream.Position, () => totalSize);
                     }
+                    
+                    response.Dispose();
                 }
 
                 finished = true;
@@ -345,7 +365,7 @@ namespace OpenTap.Package
                 DoDownloadPackage(package as PackageDef, destination, cancellationToken).Wait();
             else
             {
-                var packageDef = new PackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, Location = Url };
+                var packageDef = new PackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, PackageRepositoryUrl = Url };
                 DoDownloadPackage(packageDef, destination, cancellationToken).Wait();
             }
         }
