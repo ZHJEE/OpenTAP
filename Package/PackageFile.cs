@@ -221,33 +221,28 @@ namespace OpenTap.Package
 
         /// <summary>
         /// If this package originates from a package repository. This is the URL of that repository. Otherwise null.
-        /// This method is obsolete, please use <see cref="PackageRepositoryUrl"/> or <see cref="PackageDef.DirectDownloadPath"/>.
+        /// This method is obsolete, please use <see cref="PackageRepositoryUri"/> or <see cref="DirectUri"/>.
         /// </summary>
-        [DefaultValue(null)]
-        [Obsolete("Use 'PackageRepositoryUrl' or 'DirectDownloadPath' instead.")]
+        [Obsolete("Use 'PackageRepositoryUri' or 'DirectUri' instead.")]
+        [XmlIgnore]
         public string Location
         {
-            get
-            {
-                return PackageRepositoryUrl;
-            }
-            set
-            {
-                PackageRepositoryUrl = value;
-            }
+            get { return PackageRepositoryUri ?? DirectUri?.LocalPath; }
+            set { PackageRepositoryUri = value; }
         }
 
         /// <summary>
         /// Address of the repository where the package is located. Either a repository url or a file path.
         /// </summary>
         [DefaultValue(null)]
-        public string PackageRepositoryUrl { get; set; }
+        [XmlElement("PackageRepositoryUrl")]
+        public string PackageRepositoryUri { get; set; }
 
         /// <summary>
         /// A direct link to downloading or copying the package.
         /// </summary>
         [DefaultValue(null)]
-        public string DirectDownloadPath { get; set; }
+        public Uri DirectUri { get; set; }
 
         /// <summary>
         /// A link to get more information.
@@ -482,7 +477,7 @@ namespace OpenTap.Package
                 pkgDef = PackageDef.FromXml(metaFileStream);
             }
             //pkgDef.updateVersion();
-            pkgDef.DirectDownloadPath = Path.GetFullPath(path);
+            pkgDef.DirectUri = new Uri(Path.GetFullPath(path), UriKind.RelativeOrAbsolute);
             return pkgDef;
         }
 

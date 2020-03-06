@@ -293,6 +293,8 @@ namespace OpenTap.Package
         {
             if(url.Contains("http://") || url.Contains("https://"))
                 return new HttpPackageRepository(url); // avoid throwing exceptions if it looks a lot like a URL.
+            if(url.Contains("file:///"))
+                return new FilePackageRepository(url);
             if (Uri.IsWellFormedUriString(url, UriKind.Relative) && Directory.Exists(url))
                 return new FilePackageRepository(url);
             if (File.Exists(url))

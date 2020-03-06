@@ -139,7 +139,7 @@ namespace OpenTap.Package
             var installed = installation.GetPackages();
 
             var packages = packagePaths.Select(PackageDef.FromPackage).Select(x => x.Name).ToHashSet();
-            var existingPackages = installed.Where(kvp => packages.Contains(kvp.Name)).Select(x => x.DirectDownloadPath).ToList(); // TODO: Fix this with #2951
+            var existingPackages = installed.Where(kvp => packages.Contains(kvp.Name)).Select(x => x.DirectUri?.LocalPath).ToList(); // TODO: Fix this with #2951
 
             if (existingPackages.Count == 0) return;
 

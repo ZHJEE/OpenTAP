@@ -98,16 +98,16 @@ namespace OpenTap.Package
                     message.Headers.Add("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString());
 
                     HttpResponseMessage response;
-                    if (string.IsNullOrEmpty(package.DirectDownloadPath) == false)
+                    if (package.DirectUri?.IsFile == false)
                     {
-                        log.Info($"Downloading package directly from: '{package.DirectDownloadPath}'.");
+                        log.Info($"Downloading package directly from: '{package.DirectUri}'.");
                         try
                         {
-                            response = await hc.GetAsync(package.DirectDownloadPath, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                            response = await hc.GetAsync(package.DirectUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                         }
                         catch (Exception e)
                         {
-                            log.Warning($"Could not download package directly from: '{package.DirectDownloadPath}'. Downloading package normally.");
+                            log.Warning($"Could not download package directly from: '{package.DirectUri}'. Downloading package normally.");
                             log.Debug(e);
                             response = await hc.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                         }
@@ -365,7 +365,7 @@ namespace OpenTap.Package
                 DoDownloadPackage(package as PackageDef, destination, cancellationToken).Wait();
             else
             {
-                var packageDef = new PackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, PackageRepositoryUrl = Url };
+                var packageDef = new PackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, PackageRepositoryUri = Url };
                 DoDownloadPackage(packageDef, destination, cancellationToken).Wait();
             }
         }

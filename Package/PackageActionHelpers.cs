@@ -63,7 +63,7 @@ namespace OpenTap.Package
             PackageDef package = null;
             if (compatiblePackages.Any())
                 package = compatiblePackages.GroupBy(p => p.Version).OrderByDescending(g => g.Key).FirstOrDefault()
-                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl(p.PackageRepositoryUrl ?? p.DirectDownloadPath))).FirstOrDefault();
+                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl(p.PackageRepositoryUri ?? p.DirectUri?.LocalPath))).FirstOrDefault();
 
             if (package == null)
             {
@@ -308,7 +308,7 @@ namespace OpenTap.Package
                     PackageDef existingPkg = null;
                     try
                     {
-                        if (File.Exists(pkg.DirectDownloadPath) == false && File.Exists(filename))
+                        if (File.Exists(pkg.DirectUri?.LocalPath) == false && File.Exists(filename))
                             existingPkg = PackageDef.FromPackage(filename);
                     }
                     catch (Exception e)
@@ -333,7 +333,7 @@ namespace OpenTap.Package
                     }
                     else
                     {
-                        IPackageRepository rm = PackageRepositoryHelpers.DetermineRepositoryType(pkg.PackageRepositoryUrl ?? pkg.DirectDownloadPath);
+                        IPackageRepository rm = PackageRepositoryHelpers.DetermineRepositoryType(pkg.PackageRepositoryUri ?? pkg.DirectUri?.LocalPath);
                         if (PackageCacheHelper.PackageIsFromCache(pkg))
                         {
                             rm.DownloadPackage(pkg, filename);
@@ -341,7 +341,7 @@ namespace OpenTap.Package
                         }
                         else
                         {
-                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, pkg.PackageRepositoryUrl ?? pkg.DirectDownloadPath);
+                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, pkg.PackageRepositoryUri ?? pkg.DirectUri?.LocalPath);
                             rm.DownloadPackage(pkg, filename);
                             log.Info(timer, "Downloaded '{0}' to '{1}'.", pkg.Name, Path.GetFullPath(filename));
                             PackageCacheHelper.CachePackage(filename);

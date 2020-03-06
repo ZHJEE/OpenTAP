@@ -64,7 +64,10 @@ namespace OpenTap.Package
                             pkg.Description = Regex.Match(elm.ToString().Replace("\r", ""), "^<Description.*?>((?:.|\\n)+)</Description>", RegexOptions.Multiline).Groups[1].Value.Trim();
                             break;
                         case "Location":
-                            pkg.PackageRepositoryUrl = elm.Value;
+                            pkg.PackageRepositoryUri = elm.Value;
+                            break;
+                        case nameof(PackageDef.DirectUri):
+                            pkg.DirectUri = string.IsNullOrWhiteSpace(elm.Value) ? null : new Uri(elm.Value, UriKind.RelativeOrAbsolute);
                             break;
                         default:
                             var prop = pkg.GetType().GetProperty(elm.Name.LocalName);
@@ -111,6 +114,9 @@ namespace OpenTap.Package
                     continue;
                 switch (prop.Name)
                 {
+                    case nameof(PackageDef.DirectUri):
+                        node.SetElementValue(nameof(PackageDef.DirectUri), (val as Uri)?.AbsoluteUri);
+                        break;
                     case "RawVersion":
                         continue;
                     case "Date":
