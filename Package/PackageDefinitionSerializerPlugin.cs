@@ -112,6 +112,11 @@ namespace OpenTap.Package
                 var defaultAttr = prop.GetAttribute<DefaultValueAttribute>();
                 if (defaultAttr != null && object.Equals(defaultAttr.Value, val))
                     continue;
+                
+                // Do not serialize properties with xmlignore attributes
+                if (prop.Attributes.Any(a => a is XmlIgnoreAttribute))
+                    continue;
+                
                 switch (prop.Name)
                 {
                     case nameof(PackageDef.DirectUri):
