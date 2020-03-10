@@ -6,6 +6,7 @@ getent group tap || groupadd tap && echo "created tap group"
 
 echo "changing permissions of tap folder (/usr/share/tap)"
 chgrp -R tap /usr/share/tap
+chgrp tap /usr/bin/tap
 chmod -R g+rwx /usr/share/tap
 
 echo "tap group configured."
@@ -23,5 +24,6 @@ fi
 echo "A user must be a member of the tap group to use OpenTAP."
 echo "Add users to the tap group with the following command:"
 echo "    usermod -a -G tap \$USER"
+echo "You may need to restart your session for group changes to take effect"
 echo "This tap install is global. If this is a multi-user system, consider creating a user-level tap install with"
-echo "    tap package install OpenTAP --target /local/install/dir"
+echo "    tap package install OpenTAP --target <install location>"

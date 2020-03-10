@@ -21,10 +21,10 @@ unzip -q ../OpenTAP.TapPackage -d OpenTAP/usr/share/tap
 
 pushd OpenTAP/usr/share/tap
 chmod +x tap
-ln -s ../../../var/log/SessionLogs
+ln -s ../../../var/log/SessionLogs .
 popd
 pushd OpenTAP/usr/bin
-ln -s ../share/tap/tap
+ln -s ../share/tap/tap .
 popd
 
 BYTES=$(du -sb OpenTAP | cut -f1)
