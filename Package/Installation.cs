@@ -47,7 +47,8 @@ namespace OpenTap.Package
                 var package = installedPackageMemorizer.Invoke(file);
                 if (package != null && !plugins.Any(s => s.Name == package.Name))
                 {
-                    package.DirectUri = new Uri(file, UriKind.RelativeOrAbsolute);
+                    package.PackageRepositoryUrl = TapPath;
+                    package.DirectUrl = file;
                     plugins.Add(package);
                 }
             }

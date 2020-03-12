@@ -63,7 +63,7 @@ namespace OpenTap.Package
             PackageDef package = null;
             if (compatiblePackages.Any())
                 package = compatiblePackages.GroupBy(p => p.Version).OrderByDescending(g => g.Key).FirstOrDefault()
-                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl(p.PackageRepositoryUri ?? p.DirectUri?.LocalPath))).FirstOrDefault();
+                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl(p.PackageRepositoryUrl ?? p.DirectUrl))).FirstOrDefault();
 
             if (package == null)
             {
@@ -305,11 +305,13 @@ namespace OpenTap.Package
 
                 try
                 {
-                    PackageDef existingPkg = null;
+                    PackageDef cachedPackage = null;
                     try
                     {
-                        if (File.Exists(pkg.DirectUri?.LocalPath) == false && File.Exists(filename))
-                            existingPkg = PackageDef.FromPackage(filename);
+                        // If the package to download already exists, we should always use that file instead of a cached package.
+                        // During development a package might not change version but still have different content.
+                        if (File.Exists(pkg.DirectUrl) == false && File.Exists(filename))
+                            cachedPackage = PackageDef.FromPackage(filename);
                     }
                     catch (Exception e)
                     {
@@ -317,11 +319,11 @@ namespace OpenTap.Package
                         File.Delete(filename);
                     }
                     
-                    if (existingPkg != null)
+                    if (cachedPackage != null)
                     {
-                        if (existingPkg.Version == pkg.Version && existingPkg.OS == pkg.OS && existingPkg.Architecture == pkg.Architecture)
+                        if (cachedPackage.Version == pkg.Version && cachedPackage.OS == pkg.OS && cachedPackage.Architecture == pkg.Architecture)
                         {
-                            if(!PackageCacheHelper.PackageIsFromCache(existingPkg))
+                            if(!PackageCacheHelper.PackageIsFromCache(cachedPackage))
                                 log.Info("Package '{0}' already exists in '{1}'.", pkg.Name, destinationDir);
                             else
                                 log.Info("Package '{0}' already exists in cache '{1}'.", pkg.Name, destinationDir);
@@ -333,7 +335,7 @@ namespace OpenTap.Package
                     }
                     else
                     {
-                        IPackageRepository rm = PackageRepositoryHelpers.DetermineRepositoryType(pkg.PackageRepositoryUri ?? pkg.DirectUri?.LocalPath);
+                        IPackageRepository rm = PackageRepositoryHelpers.DetermineRepositoryType(pkg.PackageRepositoryUrl ?? pkg.DirectUrl);
                         if (PackageCacheHelper.PackageIsFromCache(pkg))
                         {
                             rm.DownloadPackage(pkg, filename);
@@ -341,7 +343,7 @@ namespace OpenTap.Package
                         }
                         else
                         {
-                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, pkg.PackageRepositoryUri ?? pkg.DirectUri?.LocalPath);
+                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, pkg.PackageRepositoryUrl ?? pkg.DirectUrl);
                             rm.DownloadPackage(pkg, filename);
                             log.Info(timer, "Downloaded '{0}' to '{1}'.", pkg.Name, Path.GetFullPath(filename));
                             PackageCacheHelper.CachePackage(filename);

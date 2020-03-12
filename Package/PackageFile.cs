@@ -221,28 +221,29 @@ namespace OpenTap.Package
 
         /// <summary>
         /// If this package originates from a package repository. This is the URL of that repository. Otherwise null.
-        /// This method is obsolete, please use <see cref="PackageRepositoryUri"/> or <see cref="DirectUri"/>.
+        /// This method is obsolete, please use <see cref="PackageRepositoryUrl"/> or <see cref="DirectUrl"/>.
         /// </summary>
-        [Obsolete("Use 'PackageRepositoryUri' or 'DirectUri' instead.")]
+        [Obsolete("Use 'PackageRepositoryUrl' or 'DirectUri' instead.")]
         [XmlIgnore]
         public string Location
         {
-            get { return PackageRepositoryUri ?? DirectUri?.LocalPath; }
-            set { PackageRepositoryUri = value; }
+            get { return PackageRepositoryUrl ?? DirectUrl; }
+            set { PackageRepositoryUrl = value; }
         }
 
         /// <summary>
         /// Address of the repository where the package is located. Either a repository url or a file path.
         /// </summary>
         [DefaultValue(null)]
-        [XmlElement("PackageRepositoryUrl")]
-        public string PackageRepositoryUri { get; set; }
+        public string PackageRepositoryUrl { get; set; }
 
         /// <summary>
-        /// A direct link to downloading or copying the package.
+        /// A direct url or path to downloading or copying the package.
+        /// Either a repository url or a file path.
+        /// If the package is installed this is a file path to the package definition (e.g. Package/[package name]/package.xml).
         /// </summary>
         [DefaultValue(null)]
-        public Uri DirectUri { get; set; }
+        public string DirectUrl { get; set; }
 
         /// <summary>
         /// A link to get more information.
@@ -477,7 +478,7 @@ namespace OpenTap.Package
                 pkgDef = PackageDef.FromXml(metaFileStream);
             }
             //pkgDef.updateVersion();
-            pkgDef.DirectUri = new Uri(Path.GetFullPath(path), UriKind.RelativeOrAbsolute);
+            pkgDef.DirectUrl = Path.GetFullPath(path);
             return pkgDef;
         }
 

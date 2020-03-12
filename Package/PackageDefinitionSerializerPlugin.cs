@@ -64,10 +64,10 @@ namespace OpenTap.Package
                             pkg.Description = Regex.Match(elm.ToString().Replace("\r", ""), "^<Description.*?>((?:.|\\n)+)</Description>", RegexOptions.Multiline).Groups[1].Value.Trim();
                             break;
                         case "Location":
-                            pkg.PackageRepositoryUri = elm.Value;
+                            pkg.PackageRepositoryUrl = elm.Value;
                             break;
-                        case nameof(PackageDef.DirectUri):
-                            pkg.DirectUri = string.IsNullOrWhiteSpace(elm.Value) ? null : new Uri(elm.Value, UriKind.RelativeOrAbsolute);
+                        case nameof(PackageDef.DirectUrl):
+                            pkg.DirectUrl = elm.Value;
                             break;
                         default:
                             var prop = pkg.GetType().GetProperty(elm.Name.LocalName);
@@ -113,14 +113,14 @@ namespace OpenTap.Package
                 if (defaultAttr != null && object.Equals(defaultAttr.Value, val))
                     continue;
                 
-                // Do not serialize properties with xmlignore attributes
+                // Do not serialize properties with XmlIgnore attributes
                 if (prop.Attributes.Any(a => a is XmlIgnoreAttribute))
                     continue;
                 
                 switch (prop.Name)
                 {
-                    case nameof(PackageDef.DirectUri):
-                        node.SetElementValue(nameof(PackageDef.DirectUri), (val as Uri)?.AbsoluteUri);
+                    case nameof(PackageDef.DirectUrl):
+                        node.SetElementValue(nameof(PackageDef.DirectUrl), val);
                         break;
                     case "RawVersion":
                         continue;

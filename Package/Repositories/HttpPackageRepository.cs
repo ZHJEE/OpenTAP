@@ -49,14 +49,13 @@ namespace OpenTap.Package
 
         public HttpPackageRepository(string url)
         {
-            defaultUrl = Url;
+            defaultUrl = url;
             url = url.Trim();
             if (Regex.IsMatch(url, "http(s)?://"))
                 this.Url = url;
             else
                 this.Url = "http://" + url;
 
-            // Trim end to fix redirection. E.g. 'plugins.tap.aalborg.keysight.com:8086/' redirects to 'plugins.tap.aalborg.keysight.com'.
             this.Url = this.Url.TrimEnd('/');
             this.Url = CheckUrlRedirect(this.Url);
             
@@ -98,16 +97,16 @@ namespace OpenTap.Package
                     message.Headers.Add("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString());
 
                     HttpResponseMessage response;
-                    if (package.DirectUri?.IsFile == false)
+                    if (string.IsNullOrWhiteSpace(package.DirectUrl) == false)
                     {
-                        log.Info($"Downloading package directly from: '{package.DirectUri}'.");
+                        log.Info($"Downloading package directly from: '{package.DirectUrl}'.");
                         try
                         {
-                            response = await hc.GetAsync(package.DirectUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                            response = await hc.GetAsync(package.DirectUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                         }
                         catch (Exception e)
                         {
-                            log.Warning($"Could not download package directly from: '{package.DirectUri}'. Downloading package normally.");
+                            log.Warning($"Could not download package directly from: '{package.DirectUrl}'. Downloading package normally.");
                             log.Debug(e);
                             response = await hc.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                         }
@@ -365,7 +364,7 @@ namespace OpenTap.Package
                 DoDownloadPackage(package as PackageDef, destination, cancellationToken).Wait();
             else
             {
-                var packageDef = new PackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, PackageRepositoryUri = Url };
+                var packageDef = new PackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, PackageRepositoryUrl = Url };
                 DoDownloadPackage(packageDef, destination, cancellationToken).Wait();
             }
         }

@@ -17,7 +17,7 @@ namespace OpenTap.Package
         }
         internal static bool PackageIsFromCache(PackageDef package)
         {
-            return (package.PackageRepositoryUri ?? package.DirectUri?.LocalPath)?.StartsWith(PackageCacheDirectory) == true;
+            return (package.PackageRepositoryUrl ?? package.DirectUrl)?.StartsWith(PackageCacheDirectory) == true;
         }
         
         internal static void CachePackage(string filename)

@@ -43,7 +43,7 @@ namespace OpenTap.Package
                 PackageDef package = installedPackages.FirstOrDefault(p => p.Name == pack);
 
                 if (package != null)
-                    installer.PackagePaths.Add(package.DirectUri?.LocalPath);
+                    installer.PackagePaths.Add(package.DirectUrl);
                 else if (!IgnoreMissing)
                 {
                     log.Error("Could not find installed plugin named '{0}'", pack);
