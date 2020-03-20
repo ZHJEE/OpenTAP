@@ -136,10 +136,10 @@ namespace OpenTap.Package
 
         private void UninstallExisting(Installation installation, List<string> packagePaths, CancellationToken cancellationToken)
         {
-            var installed = installation.GetPackages();
+            var installed = installation.GetPackagesAndDefinition();
 
             var packages = packagePaths.Select(PackageDef.FromPackage).Select(x => x.Name).ToHashSet();
-            var existingPackages = installed.Where(kvp => packages.Contains(kvp.Name)).Select(x => x.DirectUrl).ToList(); // TODO: Fix this with #2951
+            var existingPackages = installed.Where(kvp => packages.Contains(kvp.PackageDef.Name)).Select(x => x.DefinitionPath).ToList(); // TODO: Fix this with #2951
 
             if (existingPackages.Count == 0) return;
 

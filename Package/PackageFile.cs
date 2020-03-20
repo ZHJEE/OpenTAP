@@ -233,6 +233,7 @@ namespace OpenTap.Package
 
         /// <summary>
         /// Address of the repository where the package is located. Either a repository url or a file path.
+        /// Can be null when coming from an old repository.
         /// </summary>
         [DefaultValue(null)]
         public string PackageRepositoryUrl { get; set; }
@@ -240,7 +241,7 @@ namespace OpenTap.Package
         /// <summary>
         /// A direct url or path to downloading or copying the package.
         /// Either a repository url or a file path.
-        /// If the package is installed this is a file path to the package definition (e.g. Package/[package name]/package.xml).
+        /// Can be null when the package is installed or coming from an old repository.
         /// </summary>
         [DefaultValue(null)]
         public string DirectUrl { get; set; }

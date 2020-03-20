@@ -35,15 +35,16 @@ namespace OpenTap.Package
             installer.ProgressUpdate += RaiseProgressUpdate;
             installer.Error += RaiseError;
 
-            var installedPackages = new Installation(Target).GetPackages();
+            var installation = new Installation(Target);
+            var installedPackages = installation.GetPackagesAndDefinition();
 
             bool anyUnrecognizedPlugins = false;
             foreach (string pack in Packages)
             {
-                PackageDef package = installedPackages.FirstOrDefault(p => p.Name == pack);
+                var installedPackage = installedPackages.FirstOrDefault(p => p.PackageDef.Name == pack);
 
-                if (package != null)
-                    installer.PackagePaths.Add(package.DirectUrl);
+                if (installedPackage != null)
+                    installer.PackagePaths.Add(installedPackage.DefinitionPath);
                 else if (!IgnoreMissing)
                 {
                     log.Error("Could not find installed plugin named '{0}'", pack);
@@ -55,7 +56,7 @@ namespace OpenTap.Package
                 return -2;
 
             if (!Force)
-                if (!CheckPackageAndDependencies(installedPackages, installer.PackagePaths))
+                if (!CheckPackageAndDependencies(installedPackages.Select(p => p.PackageDef).ToList(), installer.PackagePaths))
                     return -3;
 
             return installer.RunCommand("uninstall", Force) ? 0 : -1;

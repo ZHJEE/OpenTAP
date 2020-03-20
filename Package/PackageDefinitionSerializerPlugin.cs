@@ -66,9 +66,6 @@ namespace OpenTap.Package
                         case "Location":
                             pkg.PackageRepositoryUrl = elm.Value;
                             break;
-                        case nameof(PackageDef.DirectUrl):
-                            pkg.DirectUrl = elm.Value;
-                            break;
                         default:
                             var prop = pkg.GetType().GetProperty(elm.Name.LocalName);
                             if (prop != null)

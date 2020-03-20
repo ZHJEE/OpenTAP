@@ -32,28 +32,7 @@ namespace OpenTap.Package
         /// <returns></returns>
         public List<PackageDef> GetPackages()
         {
-            List<PackageDef> plugins = new List<PackageDef>();
-            List<string> package_files = new List<string>();
-
-
-            // Add normal package from OpenTAP folder
-            package_files.AddRange(PackageDef.GetPackageMetadataFilesInTapInstallation(TapPath));
-
-            // Add system wide packages
-            package_files.AddRange(PackageDef.GetSystemWidePackages());
-            
-            foreach (var file in package_files)
-            {
-                var package = installedPackageMemorizer.Invoke(file);
-                if (package != null && !plugins.Any(s => s.Name == package.Name))
-                {
-                    package.PackageRepositoryUrl = TapPath;
-                    package.DirectUrl = file;
-                    plugins.Add(package);
-                }
-            }
-
-            return plugins;
+            return GetPackagesAndDefinition().Select(p => p.PackageDef).ToList();
         }
 
         /// <summary>
@@ -91,6 +70,42 @@ namespace OpenTap.Package
                 File.Move(file, brokenfile);
             }
             return null;
+        }
+
+        internal List<InstalledPackage> GetPackagesAndDefinition()
+        {
+            var packages = new List<InstalledPackage>();
+            var package_files = new List<string>();
+            
+            // Add normal package from OpenTAP folder
+            package_files.AddRange(PackageDef.GetPackageMetadataFilesInTapInstallation(TapPath));
+
+            // Add system wide packages
+            package_files.AddRange(PackageDef.GetSystemWidePackages());
+
+            foreach (var file in package_files)
+            {
+                var packageDef = installedPackageMemorizer.Invoke(file);
+                if (packageDef != null && !packages.Any(s => s.PackageDef.Name == packageDef.Name))
+                {
+                    packageDef.PackageRepositoryUrl = TapPath;
+                    packages.Add(new InstalledPackage(packageDef, file));
+                }
+            }
+
+            return packages;
+        }
+
+        internal class InstalledPackage : PackageDef
+        {
+            public PackageDef PackageDef { get; set; }
+            public string DefinitionPath { get; set; }
+
+            public InstalledPackage(PackageDef package, string definitionPath)
+            {
+                PackageDef = package;
+                DefinitionPath = definitionPath;
+            }
         }
 
         #region Package Change IPC
