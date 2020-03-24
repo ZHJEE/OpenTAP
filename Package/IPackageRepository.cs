@@ -291,7 +291,7 @@ namespace OpenTap.Package
 
         internal static IPackageRepository DetermineRepositoryType(string url)
         {
-            if(url.StartsWith("http://") || url.StartsWith("https://"))
+            if (url.StartsWith("http://") || url.StartsWith("https://"))
                 return new HttpPackageRepository(url); // avoid throwing exceptions if it looks a lot like a URL.
             if (Uri.IsWellFormedUriString(url, UriKind.Relative) && Directory.Exists(url))
                 return new FilePackageRepository(url);

@@ -22,7 +22,8 @@ namespace OpenTap.Package
         public List<PackageDef> Dependencies = new List<PackageDef>();
 
         /// <summary>
-        /// List of the dependencies to the specified packages that are currently not installed
+        /// List of the dependencies to the specified packages that are currently not installed.
+        /// All of these should be of type RepositoryPackageDef
         /// </summary>
         public List<PackageDef> MissingDependencies = new List<PackageDef>();
 
@@ -98,7 +99,7 @@ namespace OpenTap.Package
             return null;
         }
 
-        private PackageDef GetPackageDefFromRepo(List<IPackageRepository> repositories, string name, VersionSpecifier version)
+        private RepositoryPackageDef GetPackageDefFromRepo(List<IPackageRepository> repositories, string name, VersionSpecifier version)
         {
             if (name.ToLower().EndsWith(".tappackage"))
                 name = Path.GetFileNameWithoutExtension(name);

@@ -35,7 +35,7 @@ namespace OpenTap.Package
             public DepResponse Response { get; set; } = DepResponse.Add;
         }
 
-        internal static PackageDef FindPackage(PackageSpecifier packageReference, bool force, Installation installation, List<IPackageRepository> repositories)
+        internal static RepositoryPackageDef FindPackage(PackageSpecifier packageReference, bool force, Installation installation, List<IPackageRepository> repositories)
         {
             IPackageIdentifier[] compatibleWith;
             if (!force)
@@ -60,10 +60,10 @@ namespace OpenTap.Package
             }
 
             // Of the compatible packages, pick the one with the highest version number. If that package is available from several repositories, pick the one with the lowest index in the list in PackageManagerSettings
-            PackageDef package = null;
+            RepositoryPackageDef package = null;
             if (compatiblePackages.Any())
                 package = compatiblePackages.GroupBy(p => p.Version).OrderByDescending(g => g.Key).FirstOrDefault()
-                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl((p as RepositoryPackageDef)?.RepositoryUrl))).FirstOrDefault();
+                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl(p.RepositoryUrl))).FirstOrDefault();
 
             if (package == null)
             {
@@ -132,9 +132,9 @@ namespace OpenTap.Package
 
         }
 
-        internal static List<PackageDef> GatherPackagesAndDependencyDefs(Installation installation, PackageSpecifier[] pkgRefs, string[] packageNames, string Version, CpuArchitecture arch, string OS, List<IPackageRepository> repositories, bool force, bool includeDependencies, bool askToIncludeDependencies)
+        internal static List<RepositoryPackageDef> GatherPackagesAndDependencyDefs(Installation installation, PackageSpecifier[] pkgRefs, string[] packageNames, string Version, CpuArchitecture arch, string OS, List<IPackageRepository> repositories, bool force, bool includeDependencies, bool askToIncludeDependencies)
         {
-            List<PackageDef> gatheredPackages = new List<PackageDef>();
+            List<RepositoryPackageDef> gatheredPackages = new List<RepositoryPackageDef>();
 
             List<PackageSpecifier> packages = new List<PackageSpecifier>();
             if (pkgRefs != null)
@@ -150,10 +150,10 @@ namespace OpenTap.Package
                     {
                         var tempDir = Path.GetTempPath();
                         var bundleFiles = PluginInstaller.UnpackPackage(packageName, tempDir);
-                        var packagesInBundle = bundleFiles.Select(PackageDef.FromPackage);
+                        var packagesInBundle = bundleFiles.Select(PackageDefFactory.FromPackage<FileRepositoryPackageDef>);
 
                         // A packages file may contain the several variants of the same package, try to select one based on OS and Architecture
-                        foreach (IGrouping<string, PackageDef> grp in packagesInBundle.GroupBy(p => p.Name))
+                        foreach (IGrouping<string, FileRepositoryPackageDef> grp in packagesInBundle.GroupBy(p => p.Name))
                         {
                             var selected = grp.ToList();
                             if (selected.Count == 1)
@@ -196,12 +196,12 @@ namespace OpenTap.Package
                 Stopwatch timer = Stopwatch.StartNew();
                 if (File.Exists(packageReference.Name))
                 {
-                    gatheredPackages.Add(PackageDef.FromPackage(packageReference.Name));
+                    gatheredPackages.Add(PackageDefFactory.FromPackage<FileRepositoryPackageDef>(packageReference.Name));
                     log.Debug(timer, "Found package {0} locally.", packageReference.Name);
                 }
                 else
                 {
-                    PackageDef package = PackageActionHelpers.FindPackage(packageReference, force, installation, repositories);
+                    RepositoryPackageDef package = PackageActionHelpers.FindPackage(packageReference, force, installation, repositories);
 
                     if (PackageCacheHelper.PackageIsFromCache(package))
                         log.Debug(timer, "Found package {0} version {1} in local cache", package.Name, package.Version);
@@ -242,6 +242,9 @@ namespace OpenTap.Package
             }
             else if (resolver.MissingDependencies.Any())
             {
+                var sourcableMissingDeps = resolver.MissingDependencies.OfType<RepositoryPackageDef>();
+                if (resolver.MissingDependencies.Count() > sourcableMissingDeps.Count())
+                    log.Warning("Missing dependency with no way to get it."); // this should never happen as all items in MissingDependencies should always be RepositoryPackageDefs
                 string dependencyArgsHint = "";
                 if (!includeDependencies)
                     dependencyArgsHint = $" (use --dependencies to also get these)";
@@ -254,17 +257,17 @@ namespace OpenTap.Package
                 if (includeDependencies)
                 {
                     //log.Debug($"Currently set to download dependencies quietly.");
-                    foreach (var package in resolver.MissingDependencies)
+                    foreach (RepositoryPackageDef package in sourcableMissingDeps)
                     {
                         log.Debug("Adding dependency {0} {1}", package.Name, package.Version);
-                        gatheredPackages.Insert(0, package);
+                        gatheredPackages.Insert(0, (RepositoryPackageDef)package);
                     }
                 }
                 else if (askToIncludeDependencies)
                 {
                     var pkgs = new List<DepRequest>();
 
-                    foreach (var package in resolver.MissingDependencies)
+                    foreach (RepositoryPackageDef package in sourcableMissingDeps)
                     {
                         // Handle each package at a time.
                         DepRequest req = null;
@@ -272,7 +275,7 @@ namespace OpenTap.Package
                         UserInput.Request(req, true);
                     }
 
-                    foreach (var pkg in resolver.MissingDependencies)
+                    foreach (RepositoryPackageDef pkg in sourcableMissingDeps)
                     {
                         var res = pkgs.FirstOrDefault(r => r.PackageName == pkg.Name);
 
@@ -287,10 +290,10 @@ namespace OpenTap.Package
             return gatheredPackages;
         }
 
-        internal static List<string> DownloadPackages(string destinationDir, List<PackageDef> PackagesToDownload)
+        internal static List<string> DownloadPackages(string destinationDir, List<RepositoryPackageDef> PackagesToDownload)
         {
             List<string> downloadedPackages = new List<string>();
-            foreach (PackageDef pkg in PackagesToDownload)
+            foreach (RepositoryPackageDef pkg in PackagesToDownload)
             {
                 Stopwatch timer = Stopwatch.StartNew();
                 List<string> filenameParts = new List<string> { pkg.Name };
@@ -311,7 +314,7 @@ namespace OpenTap.Package
                         // If the package to download already exists, we should always use that file instead of a cached package.
                         // During development a package might not change version but still have different content.
                         if (File.Exists(pkg.DirectUrl) == false && File.Exists(filename))
-                            cachedPackage = PackageDef.FromPackage(filename);
+                            cachedPackage = FileRepositoryPackageDef.FromPackage(filename);
                     }
                     catch (Exception e)
                     {
@@ -335,7 +338,7 @@ namespace OpenTap.Package
                     }
                     else
                     {
-                        IPackageRepository rm = PackageRepositoryHelpers.DetermineRepositoryType((pkg as RepositoryPackageDef)?.RepositoryUrl);
+                        IPackageRepository rm = pkg.GetRepository();
                         if (PackageCacheHelper.PackageIsFromCache(pkg))
                         {
                             rm.DownloadPackage(pkg, filename);
@@ -343,7 +346,7 @@ namespace OpenTap.Package
                         }
                         else
                         {
-                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, (pkg as RepositoryPackageDef)?.RepositoryUrl);
+                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, pkg.RepositoryUrl);
                             rm.DownloadPackage(pkg, filename);
                             log.Info(timer, "Downloaded '{0}' to '{1}'.", pkg.Name, Path.GetFullPath(filename));
                             PackageCacheHelper.CachePackage(filename);

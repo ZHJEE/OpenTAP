@@ -353,7 +353,7 @@ namespace OpenTap.Package
         /// <summary>
         /// Additional weakly typed parameters associated with this definition. Serialization supports these.
         /// </summary>
-        internal protected Dictionary<string, object> Parameters = new Dictionary<string, object>();
+        internal protected Dictionary<string, object> Parameters { get; } = new Dictionary<string, object>();
 
         /// <summary>
         /// Loads package definition from a file.

@@ -364,7 +364,7 @@ namespace OpenTap.Package
                 DoDownloadPackage(package as RepositoryPackageDef, destination, cancellationToken).Wait();
             else
             {
-                var packageDef = new RepositoryPackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, RepositoryUrl = Url };
+                var packageDef = new HttpRepositoryPackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, RepositoryUrl = Url };
                 DoDownloadPackage(packageDef, destination, cancellationToken).Wait();
             }
         }

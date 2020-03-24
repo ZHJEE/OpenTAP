@@ -209,7 +209,7 @@ namespace OpenTap.Package
             
             // Filter packages
             var openTapIdentifier = new PackageIdentifier("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString(), CpuArchitecture.Unspecified, null);
-            var packages = new List<PackageDef>();
+            var packages = new List<RepositoryPackageDef>();
             compatibleWith = CheckCompatibleWith(compatibleWith);
 
             foreach (var package in allPackages)
@@ -231,7 +231,7 @@ namespace OpenTap.Package
             // If we should not check compatibility, take the one that is most compatible.
             if (compatibleWith?.Length == 0)
             {
-                List<Tuple<int, PackageDef>> filteredPackages = new List<Tuple<int, PackageDef>>();
+                var filteredPackages = new List<Tuple<int, RepositoryPackageDef>>();
                 foreach (var item in packages)
                 {
                     filteredPackages.Add(Tuple.Create(item.Dependencies.Count(d => IsCompatible(d, openTapIdentifier)), item));
@@ -248,14 +248,15 @@ namespace OpenTap.Package
                 .GroupBy(p => p.Name).Select(g => g.FirstOrDefault(x => x.Architecture == pid.Architecture) ?? g.First())
                 .ToArray();
         }
-        public  PackageDef[] CheckForUpdates(IPackageIdentifier[] packages, CancellationToken cancellationToken)
+        
+        public PackageDef[] CheckForUpdates(IPackageIdentifier[] packages, CancellationToken cancellationToken)
         {
             if (allPackages == null)
                 LoadPath(cancellationToken);
             
             if (allPackages == null || allFiles == null) return null;
             
-            List<PackageDef> latestPackages = new List<PackageDef>();
+            List<RepositoryPackageDef> latestPackages = new List<RepositoryPackageDef>();
             var openTapIdentifier = new PackageIdentifier("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString(), CpuArchitecture.Unspecified, null);
 
             // Find updated packages
