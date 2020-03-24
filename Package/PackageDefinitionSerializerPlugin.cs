@@ -64,12 +64,14 @@ namespace OpenTap.Package
                             pkg.Description = Regex.Match(elm.ToString().Replace("\r", ""), "^<Description.*?>((?:.|\\n)+)</Description>", RegexOptions.Multiline).Groups[1].Value.Trim();
                             break;
                         case "Location":
-                            pkg.PackageRepositoryUrl = elm.Value;
+                            pkg.Parameters["PackageRepositoryUrl"] = elm.Value;
                             break;
                         default:
                             var prop = pkg.GetType().GetProperty(elm.Name.LocalName);
                             if (prop != null)
                                 Serializer.Deserialize(elm, o => prop.SetValue(pkg,o), prop.PropertyType);
+                            else
+                                Serializer.Deserialize(elm, o => pkg.Parameters.Add(elm.Name.LocalName,o), prop.PropertyType);
                             break;
                     }
                 }

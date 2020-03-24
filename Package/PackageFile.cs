@@ -227,16 +227,16 @@ namespace OpenTap.Package
         [XmlIgnore]
         public string Location
         {
-            get { return PackageRepositoryUrl ?? DirectUrl; }
-            set { PackageRepositoryUrl = value; }
+            get 
+            { 
+                return (this as RepositoryPackageDef)?.RepositoryUrl; 
+            }
+            set
+            {
+                if (this is RepositoryPackageDef)
+                    (this as RepositoryPackageDef).RepositoryUrl = value;
+            }
         }
-
-        /// <summary>
-        /// Address of the repository where the package is located. Either a repository url or a file path.
-        /// Can be null when coming from an old repository.
-        /// </summary>
-        [DefaultValue(null)]
-        public string PackageRepositoryUrl { get; set; }
 
         /// <summary>
         /// A direct url or path to downloading or copying the package.
@@ -349,7 +349,12 @@ namespace OpenTap.Package
         {
             return String.Format("{0}|{1}", Name, Version);
         }
-        
+
+        /// <summary>
+        /// Additional weakly typed parameters associated with this definition. Serialization supports these.
+        /// </summary>
+        internal protected Dictionary<string, object> Parameters = new Dictionary<string, object>();
+
         /// <summary>
         /// Loads package definition from a file.
         /// </summary>
@@ -357,42 +362,9 @@ namespace OpenTap.Package
         /// <returns></returns>
         public static PackageDef FromXml(Stream stream)
         {
-            stream = ConvertXml(stream);
-
-            var serializer = new TapSerializer();
-            return (PackageDef)serializer.Deserialize(stream, type: TypeData.FromType(typeof(PackageDef)));
+            return PackageDefFactory.FromXml<PackageDef>(stream);
         }
 
-        static Stream ConvertXml(Stream stream)
-        {
-            var root = XElement.Load(stream);
-
-            var xns = root.GetDefaultNamespace();
-            var filesElement = root.Element(xns + "Files");
-            if (filesElement != null)
-            {
-                var fileElements = filesElement.Elements(xns + "File");
-                foreach (var file in fileElements)
-                {
-                    var plugins = file.Element(xns + "Plugins");
-                    if (plugins == null) continue;
-
-                    var pluginElements = plugins.Elements(xns + "Plugin");
-                    foreach (var plugin in pluginElements)
-                    {
-                        if (!plugin.HasElements && !plugin.IsEmpty)
-                        {
-                            plugin.SetAttributeValue("Type", plugin.Value);
-                            var value = plugin.Value;
-                            plugin.Value = "";
-                        }
-                    }
-                }
-            }
-
-            return new MemoryStream(Encoding.UTF8.GetBytes(root.ToString()));
-        }
-        
         /// <summary>
         /// Writes this package definition to a file.
         /// </summary>
@@ -432,34 +404,7 @@ namespace OpenTap.Package
 
         public static IEnumerable<PackageDef> ManyFromXml(Stream stream)
         {
-            var root = XElement.Load(stream);
-            List<PackageDef> packages = new List<PackageDef>();
-
-            Parallel.ForEach(root.Nodes(), node =>
-            {
-                using (Stream str = new MemoryStream())
-                {
-                    if (node is XElement)
-                    {
-                        (node as XElement).Save(str);
-                        str.Seek(0, 0);
-                        var package = PackageDef.FromXml(str);
-                        if (package != null)
-                        {
-                            lock (packages)
-                            {
-                                packages.Add(package);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw new XmlException("Invalid XML");
-                    }
-                }
-            });
-
-            return packages;
+            return PackageDefFactory.ManyFromXml<PackageDef>(stream);
         }
 
         /// <summary>
@@ -468,61 +413,13 @@ namespace OpenTap.Package
         /// <param name="path">Path to a *.TapPackage file</param>
         public static PackageDef FromPackage(string path)
         {
-            string metaFilePath = GetMetadataFromPackage(path);
-
-            PackageDef pkgDef;
-            using (Stream metaFileStream = new MemoryStream(1000))
-            {
-                if (!PluginInstaller.UnpackageFile(path, metaFilePath, metaFileStream))
-                    throw new Exception("Failed to extract package metadata from package.");
-                metaFileStream.Seek(0, SeekOrigin.Begin);
-                pkgDef = PackageDef.FromXml(metaFileStream);
-            }
-            //pkgDef.updateVersion();
-            pkgDef.DirectUrl = Path.GetFullPath(path);
-            return pkgDef;
+            return PackageDefFactory.FromPackage<PackageDef>(path);
         }
 
 
         public static List<PackageDef> FromPackages(string path)
         {
-            var packageList = new List<PackageDef>();
-
-            if (Path.GetExtension(path).ToLower() != ".tappackages")
-            {
-                packageList.Add(FromPackage(path));
-                return packageList;
-            }
-
-            try
-            {
-                using (var zip = new ZipArchive(File.OpenRead(path), ZipArchiveMode.Read))
-                {
-                    foreach (var part in zip.Entries)
-                    {
-                        FileSystemHelper.EnsureDirectory(part.FullName);
-                        var instream = part.Open();
-                        using (var outstream = File.Create(part.FullName))
-                        {
-                            var task = instream.CopyToAsync(outstream, 4096, TapThread.Current.AbortToken);
-                            ConsoleUtils.PrintProgressTillEnd(task, "Decompressing", () => instream.Position, () => instream.Length);
-                        }
-                        
-                        var package = FromPackage(part.FullName);
-                        packageList.Add(package);
-
-                        if (File.Exists(part.FullName))
-                            File.Delete(part.FullName);
-                    }
-                }
-            }
-            catch (InvalidDataException)
-            {
-                log.Error($"Could not unpackage '{path}'.");
-                throw;
-            }
-
-            return packageList;
+            return PackageDefFactory.FromPackages<PackageDef>(path);
         }
 
         /// <summary>
@@ -673,22 +570,6 @@ namespace OpenTap.Package
                 metadatas.AddRange(Directory.GetFiles(systemWidePackageDir8x, "*.package.xml"));
 
             return metadatas;
-        }
-
-        internal static string GetMetadataFromPackage(string path)
-        {
-            string metaFilePath = PluginInstaller.FilesInPackage(path)
-                .Where(p => p.Contains(PackageDef.PackageDefDirectory) && p.EndsWith(PackageDef.PackageDefFileName))
-                .OrderBy(p => p.Length).FirstOrDefault(); // Find the xml file in the most top level
-            if (String.IsNullOrEmpty(metaFilePath))
-            {
-                // for TAP 8.x support, we could remove when 9.0 is final, and packages have been migrated.
-                metaFilePath = PluginInstaller.FilesInPackage(path).FirstOrDefault(p => (p.Contains("package/") || p.Contains("Package Definitions/")) && p.EndsWith("package.xml"));
-                if (String.IsNullOrEmpty(metaFilePath))
-                    throw new IOException("No metadata found in package " + path);
-            }
-
-            return metaFilePath;
         }
     }
 

@@ -63,7 +63,7 @@ namespace OpenTap.Package
             PackageDef package = null;
             if (compatiblePackages.Any())
                 package = compatiblePackages.GroupBy(p => p.Version).OrderByDescending(g => g.Key).FirstOrDefault()
-                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl(p.PackageRepositoryUrl ?? p.DirectUrl))).FirstOrDefault();
+                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl((p as RepositoryPackageDef)?.RepositoryUrl))).FirstOrDefault();
 
             if (package == null)
             {
@@ -335,7 +335,7 @@ namespace OpenTap.Package
                     }
                     else
                     {
-                        IPackageRepository rm = PackageRepositoryHelpers.DetermineRepositoryType(pkg.PackageRepositoryUrl ?? pkg.DirectUrl);
+                        IPackageRepository rm = PackageRepositoryHelpers.DetermineRepositoryType((pkg as RepositoryPackageDef)?.RepositoryUrl);
                         if (PackageCacheHelper.PackageIsFromCache(pkg))
                         {
                             rm.DownloadPackage(pkg, filename);
@@ -343,7 +343,7 @@ namespace OpenTap.Package
                         }
                         else
                         {
-                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, pkg.PackageRepositoryUrl ?? pkg.DirectUrl);
+                            log.Debug("Downloading '{0}' version '{1}' from '{2}'", pkg.Name, pkg.Version, (pkg as RepositoryPackageDef)?.RepositoryUrl);
                             rm.DownloadPackage(pkg, filename);
                             log.Info(timer, "Downloaded '{0}' to '{1}'.", pkg.Name, Path.GetFullPath(filename));
                             PackageCacheHelper.CachePackage(filename);

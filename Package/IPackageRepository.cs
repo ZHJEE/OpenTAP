@@ -243,9 +243,9 @@ namespace OpenTap.Package
             return list;
         }
 
-        internal static List<PackageDef> GetPackagesFromAllRepos(List<IPackageRepository> repositories, PackageSpecifier id, params IPackageIdentifier[] compatibleWith)
+        internal static List<RepositoryPackageDef> GetPackagesFromAllRepos(List<IPackageRepository> repositories, PackageSpecifier id, params IPackageIdentifier[] compatibleWith)
         {
-            var list = new List<PackageDef>();
+            var list = new List<RepositoryPackageDef>();
             try
             {
                 Parallel.ForEach(repositories, repo =>
@@ -253,7 +253,7 @@ namespace OpenTap.Package
                     var packages = repo.GetPackages(id, compatibleWith);
                     lock (list)
                     {
-                        list.AddRange(packages);
+                        list.AddRange(packages.Cast<RepositoryPackageDef>());
                     }
                 });
             }

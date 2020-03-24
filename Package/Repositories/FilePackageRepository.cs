@@ -23,7 +23,7 @@ namespace OpenTap.Package
         private static object cacheLock = new object();
 
         private List<string> allFiles = new List<string>();
-        private PackageDef[] allPackages;
+        private RepositoryPackageDef[] allPackages;
         
         public FilePackageRepository(string path)
         {
@@ -40,7 +40,7 @@ namespace OpenTap.Package
         {
             if (File.Exists(Url) || Directory.Exists(Url) == false)
             {
-                allPackages = new PackageDef[0];
+                allPackages = Array.Empty<RepositoryPackageDef>();
 
                 if (Url != PackageDef.SystemWideInstallationDirectory) // Let's ignore this error if the repo is the system wide directory.
                     throw new DirectoryNotFoundException(string.Format("File package repository directory not found at: {0}", Url));
@@ -325,18 +325,18 @@ namespace OpenTap.Package
 
             return files;
         }
-        private PackageDef[] loadPackagesFromFile(IEnumerable<FileInfo> allFiles)
+        private RepositoryPackageDef[] loadPackagesFromFile(IEnumerable<FileInfo> allFiles)
         {
-            var allPackages = new List<PackageDef>();
+            var allPackages = new List<RepositoryPackageDef>();
             var packagesFiles = allFiles.Where(f => f.Extension.ToLower() == ".tappackages").ToHashSet();
 
             // Deserializer .TapPackages files
             Parallel.ForEach(packagesFiles, packagesFile =>
             {
-                List<PackageDef> packages;
+                List<RepositoryPackageDef> packages;
                 try
                 {
-                    packages = PackageDef.FromPackages(packagesFile.FullName);
+                    packages = PackageDefFactory.FromPackages<RepositoryPackageDef>(packagesFile.FullName);
                     if (packages == null) return;
                 }
                 catch
@@ -347,7 +347,7 @@ namespace OpenTap.Package
                 packages.ForEach(p =>
                 {
                     p.DirectUrl = packagesFile.FullName;
-                    p.PackageRepositoryUrl = Url;
+                    p.RepositoryUrl = Url;
                 });
 
                 lock (allPackages)
@@ -362,10 +362,10 @@ namespace OpenTap.Package
                 if (packagesFiles.Contains(pluginFile))
                     return;
 
-                PackageDef package;
+                RepositoryPackageDef package;
                 try
                 {
-                    package = PackageDef.FromPackage(pluginFile.FullName);
+                    package = PackageDefFactory.FromPackage<RepositoryPackageDef>(pluginFile.FullName);
                     if (package == null) return;
                 }
                 catch
@@ -373,7 +373,7 @@ namespace OpenTap.Package
                     return;
                 }
                 package.DirectUrl = pluginFile.FullName;
-                package.PackageRepositoryUrl = Url;
+                package.RepositoryUrl = Url;
 
                 lock (allPackages)
                 {
@@ -383,7 +383,7 @@ namespace OpenTap.Package
             
             return allPackages.ToArray();
         }
-        private List<PackageDef> GetAllPackages(List<string> allFiles)
+        private List<RepositoryPackageDef> GetAllPackages(List<string> allFiles)
         {
             // Get cache
             var cache = GetCache();
@@ -391,7 +391,7 @@ namespace OpenTap.Package
             // Find TapPackages in repo
             var allFileInfos = allFiles.Select(f => new FileInfo(f)).Where(f => f.Extension.ToLower() == ".tapplugin" || f.Extension.ToLower() == ".tappackage" || f.Extension.ToLower() == ".tappackages").ToList();
 
-            List<PackageDef> allPackages = null;
+            List<RepositoryPackageDef> allPackages = null;
             lock (cacheLock)
             {
                 try
@@ -402,7 +402,7 @@ namespace OpenTap.Package
                         {
                             // Load cache
                             using (var str = File.OpenRead(cache.CacheFileName))
-                                allPackages = PackageDef.ManyFromXml(str).ToList();
+                                allPackages = PackageDefFactory.ManyFromXml<RepositoryPackageDef>(str).ToList();
     
                             // Check if any files has been replaced
                             if (allPackages.Any(p => allFiles.All(f => p.DirectUrl != null && PathUtils.AreEqual(p.DirectUrl, f) == false)))

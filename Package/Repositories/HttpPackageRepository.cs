@@ -70,7 +70,7 @@ namespace OpenTap.Package
             UpdateId = String.Format("{0:X8}{0:X8}", MurMurHash3.Hash(mac), MurMurHash3.Hash(installDir));
         }
 
-        private async Task DoDownloadPackage(PackageDef package, string destination, CancellationToken cancellationToken)
+        private async Task DoDownloadPackage(RepositoryPackageDef package, string destination, CancellationToken cancellationToken)
         {
             bool finished = false;
             try
@@ -292,14 +292,14 @@ namespace OpenTap.Package
                 throw new NotSupportedException($"The repository '{defaultUrl}' is not supported.", new Exception($"Repository version '{Version}' is not compatible with min required version '{MinRepoVersion}'."));
         }
 
-        PackageDef[] packagesFromXml(string xmlText)
+        RepositoryPackageDef[] packagesFromXml(string xmlText)
         {
             try
             {
-                if (string.IsNullOrEmpty(xmlText) || xmlText == "null") return new PackageDef[0];
+                if (string.IsNullOrEmpty(xmlText) || xmlText == "null") return Array.Empty<RepositoryPackageDef>();
                 using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xmlText)))
                 {
-                    return PackageDef.ManyFromXml(stream).ToArray();
+                    return PackageDefFactory.ManyFromXml<RepositoryPackageDef>(stream).ToArray();
                 }
             }
             catch (XmlException ex)
@@ -321,7 +321,7 @@ namespace OpenTap.Package
                 log.Debug(ex);
                 log.Debug("Redirected url '{0}'", Url);
             }
-            return new PackageDef[0];
+            return Array.Empty<RepositoryPackageDef>();
         }
 
         private PackageDef[] ConvertToPackageDef(IPackageIdentifier[] packages)
@@ -360,11 +360,11 @@ namespace OpenTap.Package
 
         public void DownloadPackage(IPackageIdentifier package, string destination, CancellationToken cancellationToken)
         {
-            if (package is PackageDef)
-                DoDownloadPackage(package as PackageDef, destination, cancellationToken).Wait();
+            if (package is RepositoryPackageDef)
+                DoDownloadPackage(package as RepositoryPackageDef, destination, cancellationToken).Wait();
             else
             {
-                var packageDef = new PackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, PackageRepositoryUrl = Url };
+                var packageDef = new RepositoryPackageDef() { Name = package.Name, Version = package.Version, Architecture = package.Architecture, OS = package.OS, RepositoryUrl = Url };
                 DoDownloadPackage(packageDef, destination, cancellationToken).Wait();
             }
         }
@@ -513,7 +513,7 @@ namespace OpenTap.Package
 
         public PackageDef[] CheckForUpdates(IPackageIdentifier[] packages, CancellationToken cancellationToken)
         {
-            List<PackageDef> latestPackages = new List<PackageDef>();
+            List<RepositoryPackageDef> latestPackages = new List<RepositoryPackageDef>();
             bool tempSilent = IsSilent;
             IsSilent = true;
 

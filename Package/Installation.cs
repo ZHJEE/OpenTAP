@@ -88,7 +88,7 @@ namespace OpenTap.Package
                 var packageDef = installedPackageMemorizer.Invoke(file);
                 if (packageDef != null && !packages.Any(s => s.PackageDef.Name == packageDef.Name))
                 {
-                    packageDef.PackageRepositoryUrl = TapPath;
+                    //packageDef.PackageRepositoryUrl = TapPath; // TODO: Why was this set?
                     packages.Add(new InstalledPackage(packageDef, file));
                 }
             }
