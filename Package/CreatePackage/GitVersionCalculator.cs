@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System;
 using System.IO;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using Tap.Shared;
 
 namespace OpenTap.Package
@@ -114,6 +115,10 @@ namespace OpenTap.Package
             }
         }
 
+        [DllImport("libdl.so")]
+        static extern IntPtr dlopen(string filename, int flags);
+        const int RTLD_NOW = 2; // for dlopen's flags
+        const int RTLD_GLOBAL = 0x00100;
         void linuxEnsureLibgit2Present()
         {
             // on linux, we are not sure which libgit to load at package time.
@@ -134,6 +139,18 @@ namespace OpenTap.Package
             {
                 
             }
+
+            bool unabletoload = false;
+            try
+            {
+                var test = dlopen($"{libgit2name}.so", RTLD_NOW | RTLD_GLOBAL);
+                unabletoload = test == IntPtr.Zero;
+            }
+            catch { } // could not load libdl.
+            
+            if(unabletoload)
+                throw new FileNotFoundException(
+                    $"Unable to load {libgit2name} or one of its dependencies. This might be because libcurl4 is not installed or an incompatible version is.", libgit2name);
         }
 
         /// <summary>
