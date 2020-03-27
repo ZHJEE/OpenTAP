@@ -143,7 +143,7 @@ namespace OpenTap.Package
             bool unabletoload = false;
             try
             {
-                var test = dlopen($"{libgit2name}.so", RTLD_NOW | RTLD_GLOBAL);
+                var test = dlopen(requiredFile, RTLD_NOW | RTLD_GLOBAL);
                 unabletoload = test == IntPtr.Zero;
             }
             catch { } // could not load libdl.
