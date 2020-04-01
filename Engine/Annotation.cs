@@ -2372,7 +2372,7 @@ namespace OpenTap
 
                     if (csharpType.IsValueType == false && type.DescendsTo(typeof(IResource)))
                         annotation.Add(new ResourceAnnotation(annotation, type));
-                    else if (csharpType.IsValueType == false && type.DescendsTo(typeof(ITestStep)))
+                    else if (csharpType.IsValueType == false && type.DescendsTo(typeof(ITestStep)) && mem?.Member.DeclaringType?.DescendsTo(typeof(ITestStep)) == true)
                         annotation.Add(new TestStepSelectAnnotation(annotation));
                 }
             }

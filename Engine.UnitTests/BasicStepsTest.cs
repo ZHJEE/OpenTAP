@@ -106,6 +106,18 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(Verdict.Pass, run.Verdict); 
             Assert.AreEqual(3, step.Iterations);
         }
-        
+
+
+        [Test]
+        public void ScopeStepTest()
+        {
+            var diag = new DialogStep();
+            ScopeStep scope = new ScopeStep();
+            
+            scope.ChildTestSteps.Add(diag);
+            scope.Items[0].Step = diag;
+            scope.Items[0].Member = TypeData.GetTypeData(diag).GetMember("Title");
+            var annotation = AnnotationCollection.Annotate(scope);
+        }
     }
 }
