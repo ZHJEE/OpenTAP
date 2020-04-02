@@ -117,7 +117,10 @@ namespace OpenTap.UnitTests
             scope.ChildTestSteps.Add(diag);
             scope.Items[0].Step = diag;
             scope.Items[0].Member = TypeData.GetTypeData(diag).GetMember("Title");
+            VirtualMember.AddForwardedMember(scope, scope.Items[0].Member, scope.Items[0].Step);
+            
             var annotation = AnnotationCollection.Annotate(scope);
+            annotation.GetMember("Title");
         }
     }
 }

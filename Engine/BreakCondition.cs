@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace OpenTap
 {
@@ -60,37 +58,75 @@ namespace OpenTap
         string Description { get; set; }
     }
 
+    internal class ForwardedMember
+    {
+        public object Source { get; set; }
+        public IMemberData Member { get; set; }
+    }
+    internal interface IForwardedMembersProvider
+    {
+        ForwardedMember[] Members { get; set; }
+    }
+    
+    public class VirtualMember : IMemberData
+    {
+        public IEnumerable<object> Attributes { get; set; } = Array.Empty<object>();
+        public string Name { get; set; }
+        public ITypeData DeclaringType { get; set; }
+        public ITypeData TypeDescriptor { get; set; }
+        public bool Writable { get; set; }
+        public bool Readable { get; set; }
+
+        public object DefaultValue;
+            
+        ConditionalWeakTable<object, object> dict = new ConditionalWeakTable<object, object>();
+
+        public virtual void SetValue(object owner, object value)
+        {
+                
+            dict.Remove(owner);
+            if (object.Equals(value, DefaultValue) == false)
+                dict.Add(owner, value);
+        }
+
+        public virtual  object GetValue(object owner)
+        {
+            if (dict.TryGetValue(owner, out object value))
+                return value;
+            return DefaultValue;
+        }
+
+        class ForwardedMember : VirtualMember
+        {
+            public object Source { get; set; }
+            public IMemberData Member { get; set; } 
+            
+            public override object GetValue(object owner) =>  Member.GetValue(Source);
+            public override void SetValue(object owner, object value) => Member.SetValue(owner, value);
+
+            public ForwardedMember()
+            {
+                Writable = true;
+                Readable = true;
+            }
+        }
+
+        public static IMemberData AddForwardedMember(object target, IMemberData member, object source)
+        {
+            var newtype = BreakConditionTypeDataProvider.Specialize(target);
+
+            var member2 = newtype.GetMember(member.Name);
+            if (member2 == null)
+                newtype.AddDynamicMember(member2 = new ForwardedMember{Source = source, Member =  member, Name = member.Name, TypeDescriptor = member.TypeDescriptor, DeclaringType = newtype});
+
+            return member2;
+        }
+        
+    }
 
     internal class BreakConditionTypeDataProvider : IStackedTypeDataProvider
     {
-        internal class VirtualMember : IMemberData
-        {
-            public IEnumerable<object> Attributes { get; set; }
-            public string Name { get; set; }
-            public ITypeData DeclaringType { get; set; }
-            public ITypeData TypeDescriptor { get; set; }
-            public bool Writable { get; set; }
-            public bool Readable { get; set; }
 
-            public object DefaultValue;
-            
-            ConditionalWeakTable<object, object> dict = new ConditionalWeakTable<object, object>();
-
-            public virtual void SetValue(object owner, object value)
-            {
-                
-                dict.Remove(owner);
-                if (object.Equals(value, DefaultValue) == false)
-                    dict.Add(owner, value);
-            }
-
-            public virtual  object GetValue(object owner)
-            {
-                if (dict.TryGetValue(owner, out object value))
-                    return value;
-                return DefaultValue;
-            }
-        }
 
         class BreakConditionVirtualMember : VirtualMember
         {
@@ -136,6 +172,30 @@ namespace OpenTap
             }
         }
         
+        class ForwardedMembersMember : VirtualMember
+        {
+            public override void SetValue(object owner, object value)
+            {
+                if (owner is IForwardedMembersProvider bc)
+                {
+                    bc.Members= (ForwardedMember[])value;
+                    return;
+                }
+                base.SetValue(owner, value);
+            }
+            public override object GetValue(object owner)
+            {
+                ForwardedMember[] result;
+                if (owner is IForwardedMembersProvider bc)
+                    result = bc.Members;
+                else 
+                    result = (ForwardedMember[])base.GetValue(owner);
+                
+                return result;
+            }
+        }
+        
+        
         internal class TestStepTypeData : ITypeData
         {
             internal static readonly VirtualMember AbortCondition = new BreakConditionVirtualMember
@@ -169,6 +229,15 @@ namespace OpenTap
             {
                 this.innerType = innerType;
             }
+            
+            List<IMemberData> ExtraVirtualmembers;
+
+            public void AddDynamicMember(IMemberData newmember)
+            {
+                if(ExtraVirtualmembers == null)
+                    ExtraVirtualmembers = new List<IMemberData>();
+                ExtraVirtualmembers.Add(newmember);
+            }
 
             public override bool Equals(object obj)
             {
@@ -185,6 +254,8 @@ namespace OpenTap
             public ITypeData BaseType => innerType;
             public IEnumerable<IMemberData> GetMembers()
             {
+                if(ExtraVirtualmembers != null)
+                    return innerType.GetMembers().Concat(ExtraVirtualmembers);
                 return innerType.GetMembers().Concat(extraMembers);
             }
 
@@ -204,26 +275,37 @@ namespace OpenTap
 
         // memorize for reference equality.
         static ConditionalWeakTable<ITypeData, TestStepTypeData> dict = new ConditionalWeakTable<ITypeData, TestStepTypeData>();
+        static ConditionalWeakTable<object, TestStepTypeData> instance_dict = new ConditionalWeakTable<object, TestStepTypeData>();
         static TestStepTypeData getStepTypeData(ITypeData subtype) =>  dict.GetValue(subtype, x => new TestStepTypeData(x));
         
         public ITypeData GetTypeData(string identifier, TypeDataProviderStack stack)
         {
             var subtype = stack.GetTypeData(identifier);
             if (subtype.DescendsTo(typeof(ITestStep)))
-                return getStepTypeData(subtype);
+            {
+                var result = getStepTypeData(subtype);
+                return result;
+            }
 
             return subtype;
         }
 
         public ITypeData GetTypeData(object obj, TypeDataProviderStack stack)
         {
-            if (obj is ITestStep step)
+            if (obj is ITestStep)
             {
                 var subtype = stack.GetTypeData(obj);
-                return getStepTypeData(subtype);
+                var result = getStepTypeData(subtype);
+                if (instance_dict.TryGetValue(obj, out TestStepTypeData t2))
+                    return t2;
+                return result;
             }
-
             return null;
+        }
+        
+        static public TestStepTypeData Specialize(object target)
+        {
+            return instance_dict.GetValue(target, o => new TestStepTypeData(TypeData.GetTypeData(o)));
         }
 
         public double Priority { get; } = 10;
