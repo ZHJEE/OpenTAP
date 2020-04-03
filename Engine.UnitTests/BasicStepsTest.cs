@@ -113,16 +113,21 @@ namespace OpenTap.UnitTests
         {
             
             var diag = new DialogStep();
+            var diag2 = new DialogStep();
             var scope = new SequenceStep();
             string parameter = "Scope\"" + DisplayAttribute.GroupSeparator + "Title"; // name intentionally weird to mess with the serializer.
             scope.ChildTestSteps.Add(diag);
+            scope.ChildTestSteps.Add(diag2);
             var member = TypeData.GetTypeData(diag).GetMember("Title");
             DynamicMember.AddForwardedMember(scope, member, diag, parameter);
-            
+            DynamicMember.AddForwardedMember(scope, member, diag2, parameter);
+
             var annotation = AnnotationCollection.Annotate(scope);
             var titlemeber = annotation.GetMember(parameter);
             titlemeber.Get<IStringValueAnnotation>().Value = "New title";
             annotation.Write();
+            Assert.AreEqual("New title", diag.Title);
+            Assert.AreEqual("New title", diag2.Title);
             var sp = TypeData.GetTypeData(scope);
 
             var mems = sp.GetMembers();

@@ -52,19 +52,51 @@ namespace OpenTap
             readonly object source;
             readonly IMemberData member;
 
-            public override object GetValue(object owner) => member.GetValue(source);
-            public override void SetValue(object owner, object value) => member.SetValue(source, value);
+            public override object GetValue(object owner)
+            {
+                var result = member.GetValue(source);
+                if (AdditionalMembers != null)
+                {
+                    foreach (var (s, m) in AdditionalMembers)
+                    {
+                        var nextResult = m.GetValue(s);
+                        if (Equals(nextResult, result) == false)
+                            return null;
+                    }
+                }
+
+                return result;
+            }
+
+            public override void SetValue(object owner, object value)
+            {
+                member.SetValue(source, value);
+                if (AdditionalMembers != null)
+                {
+                    foreach (var (s, m) in AdditionalMembers)
+                        m.SetValue(s, value);
+                }
+            } 
             
             public IEnumerable<(object Source, IMemberData Member)> Members
             {
                 get { yield return (source, member); }
             }
+
+            public void AddAdditionalMember(object source, IMemberData member)
+            {
+                if (AdditionalMembers == null)
+                    AdditionalMembers = new List<(object, IMemberData)>();
+                AdditionalMembers.Add((source, member));
+            }
+
+            List<(object, IMemberData)> AdditionalMembers = null;
         }
         
         public static IMemberData AddForwardedMember(object target, IMemberData member, object source, string name)
         {
             var td = TypeData.GetTypeData(target);
-            var member2 = td.GetMember(member.Name);
+            var member2 = td.GetMember(name);
             if (member2 == null)
             {
                 var members =
@@ -84,9 +116,9 @@ namespace OpenTap
             else
             {
                 if (member2 is ForwardedMember fw)
-                {
-                    
-                }
+                    fw.AddAdditionalMember(source, member);
+                else
+                    throw new Exception("A member by that name already exists.");
             }
             return member2;
         }
