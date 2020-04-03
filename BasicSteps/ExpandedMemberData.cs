@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    class ExpandedMemberData : IMemberData
+    class ExpandedMemberData : IMemberData, IForwardedMemberData
     {
         public override bool Equals(object obj)
         {
@@ -89,6 +89,9 @@ namespace OpenTap.Plugins.BasicSteps
 
             Attributes = attrs;
         }
+
+        public IEnumerable<(object, IMemberData)> Members =>
+            ExternalParameter.Properties.SelectMany(x => x.Value.Select(y => ((object)x.Key, y)));
     }
 
     class ExpandedTypeData : ITypeData

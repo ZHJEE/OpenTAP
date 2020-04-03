@@ -3170,17 +3170,9 @@ namespace OpenTap
         /// <summary> Recurse to find member annotation 'X.Y.Z'</summary>
         public static AnnotationCollection GetMember(this AnnotationCollection col, string name)
         {
-            if (string.IsNullOrWhiteSpace(name)) return col;
-            int index = name.IndexOf('.');
-            string rest = null;
-            if (index == -1)
-                index = name.Length;
-            else
-                rest = name.Substring(index + 1);
-            var name2 = name.Substring(0, index);
-            
+            var name2 = name;
             var sub = col.Get<IMembersAnnotation>().Members.FirstOrDefault(x => x.Get<IMemberAnnotation>()?.Member.Name == name2);
-            return sub?.GetMember(rest);
+            return sub;
         }
     }
 }

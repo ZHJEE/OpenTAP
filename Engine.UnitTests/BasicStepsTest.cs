@@ -111,16 +111,30 @@ namespace OpenTap.UnitTests
         [Test]
         public void ScopeStepTest()
         {
-            var diag = new DialogStep();
-            ScopeStep scope = new ScopeStep();
             
+            var diag = new DialogStep();
+            var scope = new SequenceStep();
+            string parameter = "Scope\"" + DisplayAttribute.GroupSeparator + "Title"; // name intentionally weird to mess with the serializer.
             scope.ChildTestSteps.Add(diag);
-            scope.Items[0].Step = diag;
-            scope.Items[0].Member = TypeData.GetTypeData(diag).GetMember("Title");
-            VirtualMember.AddForwardedMember(scope, scope.Items[0].Member, scope.Items[0].Step);
+            var member = TypeData.GetTypeData(diag).GetMember("Title");
+            DynamicMember.AddForwardedMember(scope, member, diag, parameter);
             
             var annotation = AnnotationCollection.Annotate(scope);
-            annotation.GetMember("Title");
+            var titlemeber = annotation.GetMember(parameter);
+            titlemeber.Get<IStringValueAnnotation>().Value = "New title";
+            annotation.Write();
+            var sp = TypeData.GetTypeData(scope);
+
+            var mems = sp.GetMembers();
+            var plan = new TestPlan();
+            plan.Steps.Add(scope);
+            var str = new TapSerializer().SerializeToString(plan);
+            var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
+            var scope2 = plan2.Steps[0];
+            var annotation2 = AnnotationCollection.Annotate(scope2);
+            var titlemember2 = annotation2.GetMember(parameter);
+            Assert.IsNotNull(titlemember2);
+
         }
     }
 }
