@@ -226,7 +226,8 @@ namespace OpenTap
                 {
                     new DisplayAttribute("Description", "A short description of this test step.", "Common",
                         20001.2),
-                    new LayoutAttribute(LayoutMode.Normal, 3, 5)
+                    new LayoutAttribute(LayoutMode.Normal, 3, 5),
+                    new UnsweepableAttribute()
                 },
                 DeclaringType = TypeData.FromType(typeof(TestStepTypeData)),
                 Readable = true,
