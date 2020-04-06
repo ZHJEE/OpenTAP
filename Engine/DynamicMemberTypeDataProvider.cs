@@ -6,12 +6,35 @@ using System.Xml.Serialization;
 
 namespace OpenTap
 {
-    public interface IDynamicMembersProvider
+    /// <summary>  This interface speeds up accessing dynamic members as it avoids having to access a global table to store the information. </summary>
+    interface IDynamicMembersProvider
     {
         IMemberData[] DynamicMembers { get; set; }
     }
 
-    public class DynamicMember : IMemberData
+    /// <summary>  Dynamic member operations. </summary>
+    public static class DynamicMemberOperations
+    {
+        /// <summary>  Adds a forwarded member data. If the name matches something already forwarded, the member will be added to that. </summary>
+        /// <param name="target"> The object on which to add a new member. </param>
+        /// <param name="member"> The member to forward. </param>
+        /// <param name="source"> The owner of the forwarded member. </param>
+        /// <param name="name"> The name of the new property. </param>
+        /// <returns></returns>
+        public static IMemberData AddForwardedMember(object target, IMemberData member, object source, string name) =>
+            DynamicMember.AddForwardedMember(target, member, source, name);
+
+        /// <summary> Removes a forwarded member. This makes it possible to remove a forwarded member from a collection. </summary>
+        /// <param name="target"> The object owning the dynamic member.</param>
+        /// <param name="forwardedMember"> The forwarded member owned by 'target'. </param>
+        /// <param name="aliasedMember"> The aliased member owned by the source. </param>
+        /// <param name="source"> The source of the member. </param>
+        public static void RemoveForwardedmember(object target, IMemberData forwardedMember, object source, IMemberData aliasedMember) =>
+            DynamicMember.RemoveForwardedMember(target, forwardedMember, aliasedMember, source);
+
+    }
+    
+    class DynamicMember : IMemberData
     {
         public virtual IEnumerable<object> Attributes { get; set; } = Array.Empty<object>();
         public string Name { get; set; }
@@ -22,12 +45,12 @@ namespace OpenTap
 
         public object DefaultValue;
 
-        ConditionalWeakTable<object, object> dict = new ConditionalWeakTable<object, object>();
+        readonly ConditionalWeakTable<object, object> dict = new ConditionalWeakTable<object, object>();
 
         public virtual void SetValue(object owner, object value)
         {
             dict.Remove(owner);
-            if (object.Equals(value, DefaultValue) == false)
+            if (Equals(value, DefaultValue) == false)
                 dict.Add(owner, value);
         }
 
@@ -49,15 +72,15 @@ namespace OpenTap
             
             static XmlIgnoreAttribute xmlignore = new XmlIgnoreAttribute();
             public override IEnumerable<object> Attributes => member.Attributes.Append(xmlignore);
-            readonly object source;
-            readonly IMemberData member;
+            object source;
+            IMemberData member;
 
             public override object GetValue(object owner)
             {
                 var result = member.GetValue(source);
-                if (AdditionalMembers != null)
+                if (additionalMembers != null)
                 {
-                    foreach (var (s, m) in AdditionalMembers)
+                    foreach (var (s, m) in additionalMembers)
                     {
                         var nextResult = m.GetValue(s);
                         if (Equals(nextResult, result) == false)
@@ -71,30 +94,67 @@ namespace OpenTap
             public override void SetValue(object owner, object value)
             {
                 member.SetValue(source, value);
-                if (AdditionalMembers != null)
+                if (additionalMembers != null)
                 {
-                    foreach (var (s, m) in AdditionalMembers)
+                    foreach (var (s, m) in additionalMembers)
                         m.SetValue(s, value);
                 }
             } 
             
             public IEnumerable<(object Source, IMemberData Member)> Members
             {
-                get { yield return (source, member); }
+                get
+                {
+                    yield return (source, member);
+                    if (additionalMembers != null)
+                        foreach (var item in additionalMembers)
+                            yield return item;
+                }
             }
 
             public void AddAdditionalMember(object source, IMemberData member)
             {
-                if (AdditionalMembers == null)
-                    AdditionalMembers = new List<(object, IMemberData)>();
-                AdditionalMembers.Add((source, member));
+                if (additionalMembers == null)
+                    additionalMembers = new List<(object, IMemberData)>();
+                additionalMembers.Add((source, member));
             }
 
-            List<(object, IMemberData)> AdditionalMembers = null;
+            List<(object, IMemberData)> additionalMembers = null;
+
+            /// <summary>
+            /// removes a forwarded member. If it was the original member, the first additional member will be used.
+            /// If no additional members are present, then true will be returned, signalling that the forwarded member no longer exists.
+            /// </summary>
+            /// <param name="aliasedMember">The forwarded member.</param>
+            /// <param name="_source">The object owning 'aliasedMember'</param>
+            /// <returns></returns>
+            public bool RemoveMember(IMemberData aliasedMember, object _source)
+            {
+                if (_source == source && Equals(aliasedMember, member))
+                {
+                    if (additionalMembers == null || additionalMembers.Count == 0)
+                    {
+                        source = null;
+                        return true;
+                    }
+                    (source, member) = additionalMembers[0];
+                    additionalMembers.RemoveAt(0);
+                }
+                else
+                {
+                    additionalMembers.Remove((_source, aliasedMember));
+                }
+
+                return false;
+            }
         }
         
         public static IMemberData AddForwardedMember(object target, IMemberData member, object source, string name)
         {
+            if(target == null) throw new ArgumentNullException(nameof(target));
+            if(member == null) throw new ArgumentNullException(nameof(member));
+            if(source == null) throw new ArgumentNullException(nameof(source));
+            if (name == null) name = member.GetDisplayAttribute()?.Name ?? member.Name;
             var td = TypeData.GetTypeData(target);
             var member2 = td.GetMember(name);
             if (member2 == null)
@@ -122,6 +182,23 @@ namespace OpenTap
             }
             return member2;
         }
+
+        public static void RemoveForwardedMember(object target, IMemberData _forwardedMember, IMemberData aliasedMember, object source)
+        {
+            if (_forwardedMember == null) throw new ArgumentNullException(nameof(_forwardedMember));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            var fw = _forwardedMember as ForwardedMember;
+            if (fw == null)
+                throw new Exception($"Member {_forwardedMember.Name} is not a forwarded member.");
+            if (fw.RemoveMember(aliasedMember, source))
+            {
+                var members =
+                    (IMemberData[]) DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.GetValue(target);
+                members = members.Where(x => !Equals(x,fw)).ToArray();
+                DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.SetValue(target, members);
+            }
+        } 
+        
     }
 
     internal class DynamicMemberTypeDataProvider : IStackedTypeDataProvider
@@ -354,6 +431,7 @@ namespace OpenTap
     /// <summary> An IMemberData that shadows multiple other members.</summary>
     public interface IForwardedMemberData : IMemberData
     {
+        /// <summary>  The shadowed members. </summary>
         IEnumerable<(object Source, IMemberData Member)> Members { get; }
     }
 }

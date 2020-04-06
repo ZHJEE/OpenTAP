@@ -26,7 +26,7 @@ namespace OpenTap
     /// </remarks>
     [ComVisible(true)]
     [Guid("d0b06600-7bac-47fb-9251-f834e420623f")]
-    public abstract class TestStep : ValidatingObject, ITestStep, IBreakConditionProvider, IDescriptionProvider
+    public abstract class TestStep : ValidatingObject, ITestStep, IBreakConditionProvider, IDescriptionProvider, IDynamicMembersProvider
     {
         #region Properties
         /// <summary>
@@ -493,6 +493,8 @@ namespace OpenTap
         BreakCondition IBreakConditionProvider.BreakCondition { get; set; } = BreakCondition.Inherit;
         // Implementing this interface will make setting and getting descriptions faster.
         string IDescriptionProvider.Description { get; set; }
+        // Implementing this interface will make setting and getting dynamic members faster.
+        IMemberData[] IDynamicMembersProvider.DynamicMembers { get; set; }
     }
 
 

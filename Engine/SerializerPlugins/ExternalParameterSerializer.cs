@@ -61,7 +61,7 @@ namespace OpenTap.Plugins
             }
             parent = subparent;
             if (parent == null) return false;
-            DynamicMember.AddForwardedMember(parent, member, step, parameter);
+            DynamicMemberOperations.AddForwardedMember(parent, member, step, parameter);
             return true;
         }
 

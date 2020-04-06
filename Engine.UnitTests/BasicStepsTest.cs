@@ -1,3 +1,4 @@
+using System.Linq;
 using NUnit.Framework;
 using OpenTap.Plugins.BasicSteps;
 
@@ -119,27 +120,38 @@ namespace OpenTap.UnitTests
             scope.ChildTestSteps.Add(diag);
             scope.ChildTestSteps.Add(diag2);
             var member = TypeData.GetTypeData(diag).GetMember("Title");
-            DynamicMember.AddForwardedMember(scope, member, diag, parameter);
-            DynamicMember.AddForwardedMember(scope, member, diag2, parameter);
+            DynamicMemberOperations.AddForwardedMember(scope, member, diag, parameter);
+            DynamicMemberOperations.AddForwardedMember(scope, member, diag2, parameter);
 
             var annotation = AnnotationCollection.Annotate(scope);
-            var titlemeber = annotation.GetMember(parameter);
-            titlemeber.Get<IStringValueAnnotation>().Value = "New title";
+            var titleMember = annotation.GetMember(parameter);
+            titleMember.Get<IStringValueAnnotation>().Value = "New title";
             annotation.Write();
             Assert.AreEqual("New title", diag.Title);
             Assert.AreEqual("New title", diag2.Title);
-            var sp = TypeData.GetTypeData(scope);
 
-            var mems = sp.GetMembers();
             var plan = new TestPlan();
             plan.Steps.Add(scope);
             var str = new TapSerializer().SerializeToString(plan);
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
             var scope2 = plan2.Steps[0];
             var annotation2 = AnnotationCollection.Annotate(scope2);
-            var titlemember2 = annotation2.GetMember(parameter);
-            Assert.IsNotNull(titlemember2);
+            var titleMember2 = annotation2.GetMember(parameter);
+            Assert.IsNotNull(titleMember2);
+            titleMember2.Get<IStringValueAnnotation>().Value = "New Title 2";
+            annotation2.Write();
+            foreach (var step in scope2.ChildTestSteps.Cast<DialogStep>())
+            {
+                Assert.AreEqual(step.Title, "New Title 2");
+            }
 
+            var forwardedMember = TypeData.GetTypeData(scope2).GetMember(parameter);
+            Assert.IsNotNull(forwardedMember);
+            
+            DynamicMemberOperations.RemoveForwardedmember(scope2, forwardedMember, scope2.ChildTestSteps[0], member);
+            Assert.IsNotNull(TypeData.GetTypeData(scope2).GetMember(parameter));
+            DynamicMemberOperations.RemoveForwardedmember(scope2, forwardedMember, scope2.ChildTestSteps[1], member);
+            Assert.IsNull(TypeData.GetTypeData(scope2).GetMember(parameter)); // last 'Title' removed.
         }
     }
 }
