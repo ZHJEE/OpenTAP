@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Xml.Serialization;
@@ -68,10 +69,12 @@ namespace OpenTap
                 this.source = source;
                 this.member = member;
                 Name = name;
+                browsable = member.GetAttribute<BrowsableAttribute>() ?? new BrowsableAttribute(true);
             }
             
             static XmlIgnoreAttribute xmlignore = new XmlIgnoreAttribute();
-            public override IEnumerable<object> Attributes => member.Attributes.Append(xmlignore);
+            BrowsableAttribute browsable;
+            public override IEnumerable<object> Attributes => member.Attributes.Append(xmlignore, browsable);
             object source;
             IMemberData member;
 

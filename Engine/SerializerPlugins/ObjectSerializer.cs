@@ -79,8 +79,10 @@ namespace OpenTap.Plugins
             Object = newobj;    
             var t2 = t;
             if (newobj == null)
-                throw new ArgumentNullException("newobj");
-            var properties = t2.GetMembers().Where(x => x.HasAttribute<XmlIgnoreAttribute>() == false).ToArray();
+                throw new ArgumentNullException(nameof(newobj));
+            var properties = t2.GetMembers()
+                .Where(x => x.HasAttribute<XmlIgnoreAttribute>() == false)
+                .ToArray();
             try
             {
                 
