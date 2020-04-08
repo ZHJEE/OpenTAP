@@ -229,16 +229,64 @@ namespace OpenTap.Plugins
                         }
                         if (found == visited.Count(x => x) && order == nextOrder)
                         {
-                            if (logWarnings && visited.Count(x => x) < elements.Length)
+                            if (visited.Count(x => x) < elements.Length)
                             {
-                                // print a warning message if the element could not be deserialized.
-                                for(int j = 0; j < elements.Length; j++)
+
+                                // Some of the items might not be deserializable before defer load.
+                                // if this is the case do this as a defer action.
+                                void postDeserialize()
                                 {
-                                    if (visited[j]) continue;
-                                    var elem = elements[j];
-                                    var message = string.Format("Unable to read element '{0}'. The property does not exist.", elem.Name.LocalName);
-                                    Serializer.PushError(elem, message);
+                                    t2 = TypeData.GetTypeData(newobj);
+                                    for(int j = 0; j < elements.Length; j++)
+                                    {
+                                        if (visited[j]) continue;
+                                        var propertyElement = elements[j];
+                                        IMemberData property = null;
+                                        var elementName = XmlConvert.DecodeName(propertyElement.Name.LocalName);
+                                        try
+                                        {   
+                                            property = t2.GetMember(elementName);
+                                            if (property == null)
+                                                property = t2.GetMembers().FirstOrDefault(x => x.Name == elementName);
+                                        }
+                                        catch { }
+                                        if (property == null || property.Writable == false)
+                                        {
+                                            continue;
+                                        }
+                                        
+                                        Action<object> setValue = x => property.SetValue(newobj, x);
+                                        var prevobj2 = Object;
+                                        var prevmember = this.CurrentMember;
+                                        Object = newobj;
+                                        CurrentMember = property;
+                                        // at this point the serializer stack is technically empty,
+                                        // so add the current on top and deserialize.
+                                        Serializer.PushActiveSerializer(this);
+                                        try
+                                        {
+                                            Serializer.Deserialize(propertyElement, setValue, property.TypeDescriptor);
+                                        }
+                                        finally
+                                        {
+                                            // clean up.
+                                            Serializer.PopActiveSerializer();
+                                            Object = prevobj2;
+                                            CurrentMember = prevmember;
+                                        }
+
+                                        visited[j] = true;
+                                    }
+                                    // print a warning message if the element could not be deserialized.
+                                    for (int j = 0; j < elements.Length; j++)
+                                    {
+                                        if (visited[j]) continue;
+                                        var elem = elements[j];
+                                        var message =$"Unable to read element '{elem.Name.LocalName}'. The property does not exist.";
+                                        Serializer.PushError(elem, message);
+                                    }
                                 }
+                                Serializer.DeferLoad(postDeserialize);
                             }
                             break;
                         }
@@ -465,9 +513,9 @@ namespace OpenTap.Plugins
             try
             {
 
-                if (TryDeserializeObject(element, t, x => result = x))
+                if (TryDeserializeObject(element, t, setter))
                 {
-                    setter(result);
+                    //setter(result);
                     return true;
                 }
 

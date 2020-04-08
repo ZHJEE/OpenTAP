@@ -20,7 +20,7 @@ namespace OpenTap
         /// <param name="target"> The object on which to add a new member. </param>
         /// <param name="member"> The member to forward. </param>
         /// <param name="source"> The owner of the forwarded member. </param>
-        /// <param name="name"> The name of the new property. </param>
+        /// <param name="name"> The name of the new property. If null, the name of 'member' will be used.</param>
         /// <returns></returns>
         public static IMemberData AddForwardedMember(object target, IMemberData member, object source, string name) =>
             DynamicMember.AddForwardedMember(target, member, source, name);
@@ -30,7 +30,7 @@ namespace OpenTap
         /// <param name="forwardedMember"> The forwarded member owned by 'target'. </param>
         /// <param name="aliasedMember"> The aliased member owned by the source. </param>
         /// <param name="source"> The source of the member. </param>
-        public static void RemoveForwardedmember(object target, IMemberData forwardedMember, object source, IMemberData aliasedMember) =>
+        public static void RemoveForwardedMember(object target, IMemberData forwardedMember, object source, IMemberData aliasedMember) =>
             DynamicMember.RemoveForwardedMember(target, forwardedMember, aliasedMember, source);
 
     }
@@ -66,15 +66,23 @@ namespace OpenTap
         {
             public ForwardedMember(object source, IMemberData member, string name)
             {
+                var _name = name.Split('\\');
                 this.source = source;
                 this.member = member;
                 Name = name;
-                browsable = member.GetAttribute<BrowsableAttribute>() ?? new BrowsableAttribute(true);
+                
+                var disp = member.GetDisplayAttribute();
+                displayAttribute = new DisplayAttribute(_name[_name.Length - 1].Trim(), disp.Description, Order: disp.Order,
+                        Groups: _name.Take(_name.Length - 1).Select(x => x.Trim()).ToArray());
             }
-            
-            static XmlIgnoreAttribute xmlignore = new XmlIgnoreAttribute();
-            BrowsableAttribute browsable;
-            public override IEnumerable<object> Attributes => member.Attributes.Append(xmlignore, browsable);
+
+            DisplayAttribute displayAttribute;
+            public override IEnumerable<object> Attributes => member.Attributes.Select(x =>
+            {
+                if(x is DisplayAttribute)
+                    return displayAttribute;
+                return x;
+            });
             object source;
             IMemberData member;
 
@@ -157,7 +165,7 @@ namespace OpenTap
             if(target == null) throw new ArgumentNullException(nameof(target));
             if(member == null) throw new ArgumentNullException(nameof(member));
             if(source == null) throw new ArgumentNullException(nameof(source));
-            if (name == null) name = member.GetDisplayAttribute()?.Name ?? member.Name;
+            if (name == null) name = member.GetDisplayAttribute()?.GetFullName() ?? member.Name;
             var td = TypeData.GetTypeData(target);
             var member2 = td.GetMember(name);
             if (member2 == null)

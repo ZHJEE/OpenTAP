@@ -156,9 +156,8 @@ namespace OpenTap.Plugins
             if (forwardingMember != null)
             {
                 elem.SetAttributeValue(Parameter, forwardingMember.Name);
-                if(forwardingParent is ITestStep parentstep)
-                    elem.SetAttributeValue(Scope, parentstep.Id.ToString());
-                
+                if (forwardingParent is ITestStep parentStep)
+                    elem.SetAttributeValue(Scope, parentStep.Id.ToString());
                 try
                 {
                     currentNode.Add(elem);

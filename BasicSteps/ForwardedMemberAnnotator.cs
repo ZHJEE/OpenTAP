@@ -53,8 +53,8 @@ namespace OpenTap.Plugins.BasicSteps
         {
             var member = annotation.Get<IMemberAnnotation>()?.Member as IForwardedMemberData;
             if (member == null) return;
-            
-            var subannotation = AnnotationCollection.Annotate(member.Members.Select(x => x.Item1).ToArray());
+            var items = member.Members.Select(x => x.Item1).ToArray();
+            var subannotation = AnnotationCollection.Annotate(items.Length == 1 ? items[0] : items);
             annotation.Add(new SubMember(subannotation));
             var subMembers = subannotation.Get<IMembersAnnotation>();
             var firstmem = member.Members.First().Item2;
