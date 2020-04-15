@@ -105,6 +105,12 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(1, rows.Count);
             var msgmem = TypeData.GetTypeData(rows[0]).GetMember("Message");
             Assert.AreEqual("hej hej", msgmem.GetValue(rows[0]));
+
+            var annotated = AnnotationCollection.Annotate(sweep2);
+            var messageMember = annotated.GetMember("Message");
+            Assert.IsFalse(messageMember.Get<IEnabledAnnotation>().IsEnabled);
+
+
         }
     }
 }

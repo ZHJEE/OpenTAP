@@ -49,10 +49,22 @@ namespace OpenTap.Plugins.BasicSteps
             }
         }
 
+        class DisabledLoopMemberAnnotation : IEnabledAnnotation
+        {
+            public bool IsEnabled => false;
+            public static DisabledLoopMemberAnnotation Instance { get; } = new DisabledLoopMemberAnnotation();
+        }
+
         public void Annotate(AnnotationCollection annotation)
         {
             var member = annotation.Get<IMemberAnnotation>()?.Member as IForwardedMemberData;
             if (member == null) return;
+
+            // If the member is a forwarded member on a loopTestStep, it should not be editable because the value
+            // is controlled in the sweep, however it should still be shown in the GUI.
+            if (member.DeclaringType.DescendsTo(typeof(LoopTestStep)))
+                annotation.Add(DisabledLoopMemberAnnotation.Instance);
+
             var items = member.Members.Select(x => x.Item1).ToArray();
             var subannotation = AnnotationCollection.Annotate(items.Length == 1 ? items[0] : items);
             annotation.Add(new SubMember(subannotation));

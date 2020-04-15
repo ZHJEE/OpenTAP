@@ -2334,8 +2334,10 @@ namespace OpenTap
                         {
                             annotation.Add(new NumberSequenceAnnotation(annotation));
                         }
-                        else
+                        else if(type.DescendsTo(typeof(IList)))
                         {
+                            // the type must implement IList, otherwise it cannot be used by generic sequence annotation.
+                            // this excludes IEnumerable, but not array types or List<T> types. 
                             annotation.Add(new GenericSequenceAnnotation(annotation));
                             if (!rd_only && innerType.DescendsTo(typeof(IResource)))
                             {
