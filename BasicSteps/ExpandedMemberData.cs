@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -213,11 +214,103 @@ namespace OpenTap.Plugins.BasicSteps
             return expDesc;
         }
 
+        
+        static ConditionalWeakTable<SweepLoop2, SweepRowTypeData> sweepRowTypes =
+            new ConditionalWeakTable<SweepLoop2, SweepRowTypeData>();
+        
         public ITypeData GetTypeData(object obj)
         {
             if (obj is TestPlanReference exp)
                 return types.GetValue(exp, getExpandedTypeData);
+            
+            if (obj is SweepRow row && row.Loop != null)
+                return sweepRowTypes.GetValue(row.Loop, e => new SweepRowTypeData(e));
+            
             return null;
         }
     }
+
+    class SweepRowMemberData : IMemberData, IForwardedMemberData
+    {
+        SweepRowTypeData declaringType;
+        IMemberData innerMember;
+        public SweepRowMemberData(SweepRowTypeData declaringType, IMemberData innerMember)
+        {
+            this.declaringType = declaringType;
+            this.innerMember = innerMember;
+        }
+
+        public IEnumerable<object> Attributes => innerMember.Attributes;
+        public string Name => innerMember.Name;
+        public ITypeData DeclaringType => declaringType;
+        public ITypeData TypeDescriptor => innerMember.TypeDescriptor;
+        public bool Writable => innerMember.Writable;
+        public bool Readable => innerMember.Readable;
+        public void SetValue(object owner, object value)
+        {
+            var own = (SweepRow)owner;
+            own.Values[Name] = value;
+        }
+
+        public object GetValue(object owner)
+        {
+            var own = (SweepRow)owner;
+            own.Values.TryGetValue(Name, out var value);
+            return value;
+        }
+
+        public IEnumerable<(object Source, IMemberData Member)> Members
+        {
+            get
+            {
+                yield return (declaringType.sweepLoop, innerMember);
+                
+            }
+        }
+    }
+    
+    class SweepRowTypeData : ITypeData
+    {
+        public IEnumerable<object> Attributes => BaseType.Attributes;
+        public string Name => "extended:" + BaseType.Name;
+        public ITypeData BaseType { get; } = TypeData.FromType(typeof(SweepRow));
+        public IEnumerable<IMemberData> GetMembers() => BaseType.GetMembers().Concat(GetSweepMembers());
+
+        IEnumerable<IMemberData> GetSweepMembers()
+        {
+            var loopmembers = TypeData.GetTypeData(sweepLoop).GetMembers().OfType<IForwardedMemberData>();
+            return loopmembers.Select(x => new SweepRowMemberData(this, x));
+        } 
+
+        public IMemberData GetMember(string name)
+        {
+            return BaseType.GetMember(name) ?? GetSweepMembers().FirstOrDefault(x => x.Name == name);
+        }
+
+        public SweepLoop2 sweepLoop;
+
+        public SweepRowTypeData(SweepLoop2 sweepLoop)
+        {
+            this.sweepLoop = sweepLoop;
+        }
+        
+        public object CreateInstance(object[] arguments)
+        {
+            return new SweepRow() {Loop = sweepLoop};
+        }
+
+        public bool CanCreateInstance => true;
+
+        public override bool Equals(object obj)
+        {
+            if (obj is SweepRowTypeData otherSweepRow && otherSweepRow.sweepLoop == sweepLoop)
+                return true;
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return sweepLoop.GetHashCode() * 37012721 + 1649210;
+        }
+    };
 }

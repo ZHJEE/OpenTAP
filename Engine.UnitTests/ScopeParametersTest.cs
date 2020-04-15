@@ -78,6 +78,33 @@ namespace OpenTap.UnitTests
             var member2 = TypeData.GetTypeData(plan2.ChildTestSteps[0]).GetMember(member1.Name);
             var val = member2.GetValue(plan2.ChildTestSteps[0]);
             Assert.AreEqual(delay.DelaySecs, val);
-        }        
+        }
+
+        [Test]
+        public void SweepLoop2Test()
+        {
+            var plan = new TestPlan();
+            var sweep = new SweepLoop2();
+            var diag = new DialogStep();
+            plan.ChildTestSteps.Add(sweep);
+            sweep.ChildTestSteps.Add(diag);
+            sweep.Rows.Add(new SweepRow());
+
+            DynamicMemberOperations.AddForwardedMember(sweep,
+                TypeData.GetTypeData(diag).GetMember(nameof(DialogStep.Message)), diag, null);
+
+            var td1 = TypeData.GetTypeData(sweep.Rows[0]);
+            var members = td1.GetMembers().ToArray();
+            members.Last().SetValue(sweep.Rows[0], "hej hej");
+            var str = new TapSerializer().SerializeToString(plan);
+            var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
+            var sweep2 = (SweepLoop2) plan2.Steps[0];
+            var td2 = TypeData.GetTypeData(sweep2);
+            var members2 = td2.GetMembers();
+            var rows = sweep2.Rows;
+            Assert.AreEqual(1, rows.Count);
+            var msgmem = TypeData.GetTypeData(rows[0]).GetMember("Message");
+            Assert.AreEqual("hej hej", msgmem.GetValue(rows[0]));
+        }
     }
 }

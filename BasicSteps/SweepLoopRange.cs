@@ -39,7 +39,7 @@ namespace OpenTap.Plugins.BasicSteps
         [Display("Start", Order: -2, Description: "The parameter value where the sweep will start.")]
         public decimal SweepStart { get; set; }
 
-        [Display("Stop", Order: -1, Description: "The paramater value where the sweep will stop.")]
+        [Display("Stop", Order: -1, Description: "The parameter value where the sweep will stop.")]
         public decimal SweepStop { get; set; }
 
         [Browsable(false)]

@@ -229,6 +229,13 @@ namespace OpenTap.Plugins
                         }
                         if (found == visited.Count(x => x) && order == nextOrder)
                         {
+                            // The might have changed by loading properties.
+                            var t3 = TypeData.GetTypeData(newobj);
+                            if (Equals(t3, t2) == false)
+                            {
+                                t2 = t3;
+                                continue;
+                            }
                             if (visited.Count(x => x) < elements.Length)
                             {
 
@@ -491,7 +498,6 @@ namespace OpenTap.Plugins
         /// <returns></returns>
         public override bool Deserialize(XElement element, ITypeData t, Action<object> setter)
         {
-            object result = null;
             try
             {
                 if (t is TypeData ctd)
@@ -512,13 +518,8 @@ namespace OpenTap.Plugins
             }
             try
             {
-
                 if (TryDeserializeObject(element, t, setter))
-                {
-                    //setter(result);
                     return true;
-                }
-
             }
             catch (Exception)
             {

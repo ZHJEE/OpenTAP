@@ -33,6 +33,22 @@ namespace OpenTap
         public static void RemoveForwardedMember(object target, IMemberData forwardedMember, object source, IMemberData aliasedMember) =>
             DynamicMember.RemoveForwardedMember(target, forwardedMember, aliasedMember, source);
 
+        /// <summary>
+        /// Add an all-purpose dynamic member to an object.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="type"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static IMemberData AddDynamicMember(object target, ITypeData type, string name)
+        {
+            if (TypeData.GetTypeData(target).GetMember(name) is IMemberData mem)
+                return mem;
+            var member = new DynamicMember() {Name = name, TypeDescriptor = type, Writable = true, Readable = true};
+            DynamicMember.AddDynamicMember(target, member);
+            return member;
+        }
+
     }
     
     class DynamicMember : IMemberData
@@ -159,6 +175,25 @@ namespace OpenTap
                 return false;
             }
         }
+
+        public static void AddDynamicMember(object target, IMemberData member)
+        {
+            var members =
+                (IMemberData[]) DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.GetValue(target) ?? new IMemberData[0];
+                
+            
+            Array.Resize(ref members, members.Length + 1);
+            members[members.Length - 1] = member;
+            DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.SetValue(target, members);
+        }
+
+        public static void RemovedDynamicMember(object target, IMemberData member)
+        {
+            var members =
+                (IMemberData[]) DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.GetValue(target);
+            members = members.Where(x => !Equals(x,member)).ToArray();
+            DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.SetValue(target, members);
+        }
         
         public static IMemberData AddForwardedMember(object target, IMemberData member, object source, string name)
         {
@@ -170,9 +205,6 @@ namespace OpenTap
             var member2 = td.GetMember(name);
             if (member2 == null)
             {
-                var members =
-                    (IMemberData[]) DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.GetValue(target) ?? new IMemberData[0];
-                
                 member2 = new ForwardedMember(source, member, name)
                 {
                     TypeDescriptor = member.TypeDescriptor,
@@ -180,9 +212,8 @@ namespace OpenTap
                     Writable = member.Writable,
                     Readable = member.Readable
                 };
-                Array.Resize(ref members, members.Length + 1);
-                members[members.Length - 1] = member2;
-                DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.SetValue(target, members);
+                
+                AddDynamicMember(target, member2);
             }
             else
             {
@@ -202,14 +233,8 @@ namespace OpenTap
             if (fw == null)
                 throw new Exception($"Member {_forwardedMember.Name} is not a forwarded member.");
             if (fw.RemoveMember(aliasedMember, source))
-            {
-                var members =
-                    (IMemberData[]) DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.GetValue(target);
-                members = members.Where(x => !Equals(x,fw)).ToArray();
-                DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.SetValue(target, members);
-            }
-        } 
-        
+                RemovedDynamicMember(target, fw);
+        }
     }
 
     internal class DynamicMemberTypeDataProvider : IStackedTypeDataProvider
