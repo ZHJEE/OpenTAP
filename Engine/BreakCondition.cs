@@ -55,4 +55,11 @@ namespace OpenTap
         string Description { get; set; }
     }
 
+                if (owner is IBreakConditionProvider bc)
+                {
+                    bc.BreakCondition = (BreakCondition)value;
+                    return;
+                }
+                if (owner is IBreakConditionProvider bc)
+                    return bc.BreakCondition;
 }
