@@ -129,7 +129,7 @@ namespace OpenTap.Plugins
                     bool[] visited = new bool[elements.Length];
                     
                     double order = 0;
-
+                    int foundWithCurrentType = 0;
                     while (true)
                     {
                         double nextOrder = 1000;
@@ -227,17 +227,24 @@ namespace OpenTap.Plugins
                                 CurrentMember = prev;
                             }
                         }
-                        if (found == visited.Count(x => x) && order == nextOrder)
+
+                        int nowFound = visited.Count(x => x);
+                        if (found == nowFound && order == nextOrder)
                         {
                             // The might have changed by loading properties.
                             var t3 = TypeData.GetTypeData(newobj);
                             if (Equals(t3, t2) == false)
                             {
-                                t2 = t3;
-                                continue;
+                                if (nowFound != foundWithCurrentType) 
+                                {  //  check avoids infinite loop if ITypeData did not overload Equals.
+                                    
+                                    foundWithCurrentType = nowFound;
+                                    t2 = t3;
+                                    continue;
+                                }
                             }
-                            if (visited.Count(x => x) < elements.Length)
-                            {
+                            if (nowFound < elements.Length)
+                            { // still elements left to check. Last resort to try loading at defer.
 
                                 // Some of the items might not be deserializable before defer load.
                                 // if this is the case do this as a defer action.
