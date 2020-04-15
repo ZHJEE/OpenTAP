@@ -385,7 +385,7 @@ namespace OpenTap
                 Name = "ForwardedMembers",
                 DefaultValue = null,
                 DeclaringType = TypeData.FromType((typeof(TestStepTypeData))),
-                Attributes = new Attribute[]{new XmlIgnoreAttribute(), new AnnotationExcludeAttribute()},
+                Attributes = new Attribute[]{new XmlIgnoreAttribute(), new AnnotationIgnoreAttribute()},
                 Writable = true,
                 Readable = true,
                 TypeDescriptor = TypeData.FromType(typeof((Object,IMemberData)[]))
