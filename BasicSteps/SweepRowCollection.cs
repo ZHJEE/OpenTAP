@@ -10,19 +10,23 @@ namespace OpenTap.Plugins.BasicSteps
             {
                 loop = value;
                 foreach (var item in this)
-                    item.Loop = loop;
+                {
+                    if(item != null)
+                        item.Loop = loop;
+                }
             }
         }
 
         public override void Add(SweepRow item)
         {
-            item.Loop = Loop;
+            if(item != null)
+                item.Loop = Loop;
             base.Add(item);
         }
 
         public override void Insert(int index, SweepRow item)
-        {
-            item.Loop = Loop;
+        {   if(item != null)
+              item.Loop = Loop;
             base.Insert(index, item);
         }
 
@@ -31,7 +35,8 @@ namespace OpenTap.Plugins.BasicSteps
             get => base[index];
             set
             {
-                value.Loop = Loop;
+                if(value != null)
+                    value.Loop = Loop;
                 base[index] = value;
             }
         }
