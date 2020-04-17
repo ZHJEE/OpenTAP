@@ -74,9 +74,15 @@ namespace OpenTap.Plugins.BasicSteps
             var originalValues = props.Select(set => set.GetValue(this)).ToArray();
             try
             {
+                var str = StringConvertProvider.GetString(Value, CultureInfo.InvariantCulture);
+
                 foreach (var set in props)
-                    set.SetValue(this, Value);
-                return Error;
+                {
+                    var val = StringConvertProvider.FromString(str, set.TypeDescriptor, this, CultureInfo.InvariantCulture);
+                    set.SetValue(this, val);
+                }
+
+                return "";
             }
             catch (TargetInvocationException e)
             {

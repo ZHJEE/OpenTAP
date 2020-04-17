@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using OpenTap.Plugins.BasicSteps;
@@ -79,38 +80,74 @@ namespace OpenTap.UnitTests
             var val = member2.GetValue(plan2.ChildTestSteps[0]);
             Assert.AreEqual(delay.DelaySecs, val);
         }
+        
+        public class ScopeTestStep : TestStep{
+            public int A { get; set; }
+            public List<int> Collection = new List<int>();
+            public override void Run()
+            {
+                Collection.Add(A);
+                UpgradeVerdict(Verdict.Pass);
+            }
+        }
+
+        [Test]
+        public void SweepLoopRange2Test()
+        {
+            var plan = new TestPlan();
+            var sweep = new SweepLoopRange2();
+            var numberstep = new ScopeTestStep();
+            plan.ChildTestSteps.Add(sweep);
+            sweep.ChildTestSteps.Add(numberstep);
+            var member = TypeData.GetTypeData(numberstep).GetMember("A");
+            DynamicMemberOperations.AddForwardedMember(sweep, member, numberstep, "A");
+            sweep.SweepStart = 1;
+            sweep.SweepEnd = 10;
+            sweep.SweepPoints = 10;
+
+            Assert.IsTrue(string.IsNullOrEmpty(sweep.Error));
+            plan.Execute();
+
+            Assert.IsTrue(Enumerable.Range(1,10).SequenceEqual(numberstep.Collection));
+        }
 
         [Test]
         public void SweepLoop2Test()
         {
             var plan = new TestPlan();
             var sweep = new SweepLoop2();
-            var diag = new DialogStep();
+            var step = new ScopeTestStep();
             plan.ChildTestSteps.Add(sweep);
-            sweep.ChildTestSteps.Add(diag);
+            sweep.ChildTestSteps.Add(step);
+            sweep.Rows.Add(new SweepRow());
             sweep.Rows.Add(new SweepRow());
 
             DynamicMemberOperations.AddForwardedMember(sweep,
-                TypeData.GetTypeData(diag).GetMember(nameof(DialogStep.Message)), diag, null);
+                TypeData.GetTypeData(step).GetMember(nameof(ScopeTestStep.A)), step, null);
 
             var td1 = TypeData.GetTypeData(sweep.Rows[0]);
             var members = td1.GetMembers().ToArray();
-            members.Last().SetValue(sweep.Rows[0], "hej hej");
+            members.Last().SetValue(sweep.Rows[0], 10);
+            members.Last().SetValue(sweep.Rows[1], 20);
+
             var str = new TapSerializer().SerializeToString(plan);
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
             var sweep2 = (SweepLoop2) plan2.Steps[0];
             var td2 = TypeData.GetTypeData(sweep2);
             var members2 = td2.GetMembers();
             var rows = sweep2.Rows;
-            Assert.AreEqual(1, rows.Count);
-            var msgmem = TypeData.GetTypeData(rows[0]).GetMember("Message");
-            Assert.AreEqual("hej hej", msgmem.GetValue(rows[0]));
+            Assert.AreEqual(2, rows.Count);
+            var msgmem = TypeData.GetTypeData(rows[0]).GetMember(nameof(ScopeTestStep.A));
+            Assert.AreEqual(10, msgmem.GetValue(rows[0]));
 
             var annotated = AnnotationCollection.Annotate(sweep2);
-            var messageMember = annotated.GetMember("Message");
+            var messageMember = annotated.GetMember(nameof(ScopeTestStep.A));
             Assert.IsFalse(messageMember.Get<IEnabledAnnotation>().IsEnabled);
 
+            var run = plan2.Execute();
+            Assert.AreEqual(Verdict.Pass, run.Verdict);
 
+            Assert.IsTrue(((ScopeTestStep)sweep2.ChildTestSteps[0]).Collection.SequenceEqual(new[] {10, 20}));
         }
     }
 }

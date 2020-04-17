@@ -42,12 +42,17 @@ namespace OpenTap.Plugins.BasicSteps
             
             if (disps.Count > 1)
                 names = string.Format("{{{0}}}", names);
-            
+            var rowType = Rows.Select(x => TypeData.GetTypeData(x)).FirstOrDefault();
             foreach (var Value in Rows)
             {
-                var val = StringConvertProvider.GetString(Value, CultureInfo.InvariantCulture);
+                if (Value.Enabled == false) continue;
+                
+                
                 foreach (var set in sets)
                 {
+                    var mem = rowType.GetMember(set.Name);
+                    var val = StringConvertProvider.GetString(mem.GetValue(Value), CultureInfo.InvariantCulture);
+
                     try
                     {
                         var value = StringConvertProvider.FromString(val, set.TypeDescriptor, this, CultureInfo.InvariantCulture);
