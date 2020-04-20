@@ -6,12 +6,12 @@ using System.Reflection;
 namespace OpenTap.Plugins.BasicSteps
 {
     [AllowAnyChild]
+    [Display("Sweep Loop 2", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
     public class SweepLoop2 : LoopTestStep
     {
         public IEnumerable<IMemberData> SweepProperties =>
             TypeData.GetTypeData(this).GetMembers().OfType<IForwardedMemberData>().Where(x =>
                 x.HasAttribute<UnsweepableAttribute>() == false && x.Writable && x.Readable);
-
         
         SweepRowCollection rows = new SweepRowCollection();
         [DeserializeOrder(1)] // this should be deserialized as the last thing.
@@ -46,12 +46,15 @@ namespace OpenTap.Plugins.BasicSteps
             foreach (var Value in Rows)
             {
                 if (Value.Enabled == false) continue;
-                
+                var AdditionalParams = new ResultParameters();
+
                 
                 foreach (var set in sets)
                 {
                     var mem = rowType.GetMember(set.Name);
                     var val = StringConvertProvider.GetString(mem.GetValue(Value), CultureInfo.InvariantCulture);
+                    var disp = mem.GetDisplayAttribute();
+                    AdditionalParams.Add(new ResultParameter(disp.Group.FirstOrDefault() ?? "", disp.Name, val));
 
                     try
                     {
@@ -64,14 +67,10 @@ namespace OpenTap.Plugins.BasicSteps
                         Log.Debug(ex.InnerException);
                     }
                 }
-
+                // Notify that values might have changes
+                OnPropertyChanged("");
                 
-                var AdditionalParams = new ResultParameters();
-                /*
-                foreach (var disp in disps)
-                    AdditionalParams.Add(new ResultParameter(disp.Group.FirstOrDefault() ?? "", disp.Name, Value));
-*/
-                Log.Info("Running child steps with {0} = {1} ", names, Value);
+                 Log.Info("Running child steps with {0} = {1} ", names, Value);
 
                 var runs = RunChildSteps(AdditionalParams, BreakLoopRequested).ToList();
                 if (BreakLoopRequested.IsCancellationRequested) break;

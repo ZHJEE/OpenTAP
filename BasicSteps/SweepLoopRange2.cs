@@ -9,7 +9,7 @@ using System.Xml.Serialization;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    [Display("Sweep Loop Range 2", "Loops", "Flow Control")]
+    [Display("Sweep Loop Range 2", "Ranged based loop that sweeps the value of its parameters based on a selected range.", "Flow Control")]
     [AllowAnyChild]
     public class SweepLoopRange2 : LoopTestStep
     {
@@ -24,7 +24,7 @@ namespace OpenTap.Plugins.BasicSteps
 
 
         [Display("Step Size", Order: 1, Description: "The value to be increased or decreased between every iteration of the sweep.")]
-        [EnabledIf("SweepBehavior", SweepBehavior.Linear, HideIfDisabled = true)]
+        [EnabledIf(nameof(SweepBehavior), SweepBehavior.Linear, HideIfDisabled = true)]
         [XmlIgnore] // this is inferred from the other properties and should not be set by the serializer
         [Browsable(true)]
         public decimal SweepStep {
@@ -173,6 +173,8 @@ namespace OpenTap.Plugins.BasicSteps
                         Log.Debug(ex.InnerException);
                     }
                 }
+                // Notify that values might have changes
+                OnPropertyChanged("");
 
                 var AdditionalParams = new ResultParameters();
                 
@@ -184,6 +186,7 @@ namespace OpenTap.Plugins.BasicSteps
                 var runs = RunChildSteps(AdditionalParams, BreakLoopRequested).ToList();
                 if (BreakLoopRequested.IsCancellationRequested) break;
                 runs.ForEach(r => r.WaitForCompletion());
+                
             }
             for (int i = 0; i < sets.Length; i++)
                 sets[i].SetValue(this, originalValues[i]);

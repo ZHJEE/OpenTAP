@@ -22,7 +22,7 @@ namespace OpenTap.Plugins.BasicSteps
         Linear = 0,
         /// <summary> Exponential growth function.</summary>
         [Display("Exponential", Description: "Exponential growth function.")]
-        Exponential
+        Exponential = 1
     }
 
     [Display("Sweep Loop (Range)", Group: "Flow Control", Description: "Loops all of its child steps while sweeping a specified parameter/setting over a range.")]

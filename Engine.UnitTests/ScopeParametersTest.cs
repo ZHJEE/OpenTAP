@@ -109,6 +109,20 @@ namespace OpenTap.UnitTests
             plan.Execute();
 
             Assert.IsTrue(Enumerable.Range(1,10).SequenceEqual(numberstep.Collection));
+
+            {
+                
+                var sweep2 = new SweepLoopRange();
+                plan.ChildTestSteps.Add(sweep2);
+                
+                // verify that sweep Behavior selected value can be displayed.
+                var annotation = AnnotationCollection.Annotate(sweep);
+                var mem = annotation.GetMember(nameof(SweepLoopRange2.SweepBehavior));
+                var proxy = mem.Get<IAvailableValuesAnnotationProxy>();
+                var selectedBehavior = proxy.SelectedValue.Get<IStringReadOnlyValueAnnotation>();
+                Assert.AreEqual("Linear", selectedBehavior.Value);
+                
+            }
         }
 
         [Test]
@@ -119,6 +133,8 @@ namespace OpenTap.UnitTests
             var step = new ScopeTestStep();
             plan.ChildTestSteps.Add(sweep);
             sweep.ChildTestSteps.Add(step);
+           
+            
             sweep.Rows.Add(new SweepRow());
             sweep.Rows.Add(new SweepRow());
 
