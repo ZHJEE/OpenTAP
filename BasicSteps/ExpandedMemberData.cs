@@ -272,7 +272,9 @@ namespace OpenTap.Plugins.BasicSteps
     class SweepRowTypeData : ITypeData
     {
         public IEnumerable<object> Attributes => BaseType.Attributes;
-        public string Name => "extended:" + BaseType.Name;
+        
+        // Sweep row type data cannot be deserialized in a normal sense anyway. Needs sweep step reference
+        public string Name => BaseType.Name; 
         public ITypeData BaseType { get; } = TypeData.FromType(typeof(SweepRow));
         public IEnumerable<IMemberData> GetMembers() => BaseType.GetMembers().Concat(GetSweepMembers());
 
