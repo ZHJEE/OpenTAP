@@ -58,7 +58,7 @@ namespace OpenTap.Plugins
                                 var msg = $"Missing '{content}'. Using '{resource.Name}' instead.";
                                 if (elem.Parent.Element("Name") != null)
                                     msg = $"Missing '{content}' used by '{elem.Parent.Element("Name").Value}.{elem.Name.ToString()}. Using '{resource.Name}' instead.'";
-                                Log.Info(msg);
+                                Log.Warning(msg);
                                 Serializer.PushError(elem, msg);
                             }
                             setter(obj);
@@ -69,7 +69,7 @@ namespace OpenTap.Plugins
                             var msg = $"Missing '{content}'.";
                             if (elem.Parent.Element("Name") != null)
                                 msg = $"Missing '{content}' used by '{elem.Parent.Element("Name").Value}.{elem.Name.ToString()}'";
-                            Log.Info(msg);
+                            Log.Warning(msg);
                             Serializer.PushError(elem, msg);
                         }
                     });
