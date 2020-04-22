@@ -13,7 +13,7 @@ using System.Threading;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    [Display("Sweep Loop", Group:"Flow Control", Description: "Loops its child steps while sweeping specified parameters/settings on the child steps.")]
+    [Display("Sweep Loop", Groups: new []{"Legacy", "Flow Control"}, Description: "Loops its child steps while sweeping specified parameters/settings on the child steps.")]
     [AllowAnyChild]
     public class SweepLoop : LoopTestStep, IDeserializedCallback
     {

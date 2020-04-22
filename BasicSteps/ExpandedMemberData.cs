@@ -238,6 +238,7 @@ namespace OpenTap.Plugins.BasicSteps
         {
             this.declaringType = declaringType;
             this.innerMember = innerMember;
+            Members = new (object, IMemberData)[]{(declaringType.sweepLoop, innerMember)};
         }
 
         public IEnumerable<object> Attributes => innerMember.Attributes;
@@ -255,18 +256,12 @@ namespace OpenTap.Plugins.BasicSteps
         public object GetValue(object owner)
         {
             var own = (SweepRow)owner;
-            own.Values.TryGetValue(Name, out var value);
-            return value;
+            if(own.Values.TryGetValue(Name, out var value))
+                return value;
+            return this.innerMember.GetValue(declaringType);
         }
 
-        public IEnumerable<(object Source, IMemberData Member)> Members
-        {
-            get
-            {
-                yield return (declaringType.sweepLoop, innerMember);
-                
-            }
-        }
+        public IEnumerable<(object Source, IMemberData Member)> Members { get; }
     }
     
     class SweepRowTypeData : ITypeData
@@ -298,7 +293,7 @@ namespace OpenTap.Plugins.BasicSteps
         
         public object CreateInstance(object[] arguments)
         {
-            return new SweepRow() {Loop = sweepLoop};
+            return new SweepRow {Loop = sweepLoop};
         }
 
         public bool CanCreateInstance => true;

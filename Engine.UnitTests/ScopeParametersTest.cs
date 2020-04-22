@@ -88,6 +88,7 @@ namespace OpenTap.UnitTests
             {
                 Collection.Add(A);
                 UpgradeVerdict(Verdict.Pass);
+                OnPropertyChanged("");
             }
         }
 
@@ -135,23 +136,22 @@ namespace OpenTap.UnitTests
             sweep.ChildTestSteps.Add(step);
            
             
-            sweep.Rows.Add(new SweepRow());
-            sweep.Rows.Add(new SweepRow());
+            sweep.SweepValues.Add(new SweepRow());
 
             DynamicMemberOperations.AddForwardedMember(sweep,
                 TypeData.GetTypeData(step).GetMember(nameof(ScopeTestStep.A)), step, null);
 
-            var td1 = TypeData.GetTypeData(sweep.Rows[0]);
+            var td1 = TypeData.GetTypeData(sweep.SweepValues[0]);
             var members = td1.GetMembers().ToArray();
-            members.Last().SetValue(sweep.Rows[0], 10);
-            members.Last().SetValue(sweep.Rows[1], 20);
+            members.Last().SetValue(sweep.SweepValues[0], 10);
+            members.Last().SetValue(sweep.SweepValues[1], 20);
 
             var str = new TapSerializer().SerializeToString(plan);
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
             var sweep2 = (SweepLoop2) plan2.Steps[0];
             var td2 = TypeData.GetTypeData(sweep2);
             var members2 = td2.GetMembers();
-            var rows = sweep2.Rows;
+            var rows = sweep2.SweepValues;
             Assert.AreEqual(2, rows.Count);
             var msgmem = TypeData.GetTypeData(rows[0]).GetMember(nameof(ScopeTestStep.A));
             Assert.AreEqual(10, msgmem.GetValue(rows[0]));
@@ -164,6 +164,10 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(Verdict.Pass, run.Verdict);
 
             Assert.IsTrue(((ScopeTestStep)sweep2.ChildTestSteps[0]).Collection.SequenceEqual(new[] {10, 20}));
+
+            var name = sweep2.GetFormattedName();
+            
+
         }
     }
 }

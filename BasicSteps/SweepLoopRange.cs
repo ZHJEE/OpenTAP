@@ -25,7 +25,7 @@ namespace OpenTap.Plugins.BasicSteps
         Exponential = 1
     }
 
-    [Display("Sweep Loop (Range)", Group: "Flow Control", Description: "Loops all of its child steps while sweeping a specified parameter/setting over a range.")]
+    [Display("Sweep Loop (Range)", Groups: new []{"Legacy", "Flow Control"}, Description: "Loops all of its child steps while sweeping a specified parameter/setting over a range.")]
     [AllowAnyChild]
     public class SweepLoopRange : LoopTestStep
     {

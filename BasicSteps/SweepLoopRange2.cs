@@ -9,7 +9,7 @@ using System.Xml.Serialization;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    [Display("Sweep Loop Range 2", "Ranged based loop that sweeps the value of its parameters based on a selected range.", "Flow Control")]
+    [Display("Sweep Range", "Ranged based sweep step that iterates value of its parameters based on a selected range.", "Flow Control")]
     [AllowAnyChild]
     public class SweepLoopRange2 : LoopTestStep
     {
@@ -95,9 +95,14 @@ namespace OpenTap.Plugins.BasicSteps
                 validateSweepMutex.ReleaseMutex();
             }
         }
+        
+        public string SelectedProperties =>
+            string.Join(", ", SweepProperties.Select(x => x.GetDisplayAttribute().Name));
+
 
         public SweepLoopRange2()
         {
+            Name = "Sweep Range ({SelectedProperties})";
 
             SweepStart = 1;
             SweepStop = 100;

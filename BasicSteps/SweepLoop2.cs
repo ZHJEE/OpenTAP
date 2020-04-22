@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -6,34 +7,47 @@ using System.Reflection;
 namespace OpenTap.Plugins.BasicSteps
 {
     [AllowAnyChild]
-    [Display("Sweep Loop 2", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
+    [Display("Sweep", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
     public class SweepLoop2 : LoopTestStep
     {
         public IEnumerable<IMemberData> SweepProperties =>
             TypeData.GetTypeData(this).GetMembers().OfType<IForwardedMemberData>().Where(x =>
                 x.HasAttribute<UnsweepableAttribute>() == false && x.Writable && x.Readable);
         
-        SweepRowCollection rows = new SweepRowCollection();
+        SweepRowCollection sweepValues = new SweepRowCollection();
         [DeserializeOrder(1)] // this should be deserialized as the last thing.
-        public SweepRowCollection Rows 
+        [Display("Sweep Values", "A table of values to be swept for the selected parameters.")]
+        public SweepRowCollection SweepValues 
         { 
-            get => rows;
+            get => sweepValues;
             set
             {
-                rows = value;
-                rows.Loop = this;
+                sweepValues = value;
+                sweepValues.Loop = this;
             }
-        } 
+        }
+
+        public string SelectedProperties =>
+            string.Join(", ", SweepProperties.Select(x => x.GetDisplayAttribute().Name));
         
         public SweepLoop2()
         {
-            Rows.Loop = this;
+            SweepValues.Loop = this;
+            SweepValues.Add(new SweepRow());
+            Name = "Sweep ({SelectedProperties})";
         }
+
+        int iteration;
+        
+        [Output]
+        [Display("Iteration", "Shows the iteration of the sweep that is currently running or about to run.", Order: 3)]
+        public string IterationInfo => string.Format("{0} of {1}", iteration + 1, SweepValues.Count(x => x.Enabled));
+
         
         public override void Run()
         {
             base.Run();
-
+            iteration = 0;
             var sets = SweepProperties.ToArray();
             var originalValues = sets.Select(set => set.GetValue(this)).ToArray();
 
@@ -42,8 +56,8 @@ namespace OpenTap.Plugins.BasicSteps
             
             if (disps.Count > 1)
                 names = string.Format("{{{0}}}", names);
-            var rowType = Rows.Select(x => TypeData.GetTypeData(x)).FirstOrDefault();
-            foreach (var Value in Rows)
+            var rowType = SweepValues.Select(x => TypeData.GetTypeData(x)).FirstOrDefault();
+            foreach (var Value in SweepValues)
             {
                 if (Value.Enabled == false) continue;
                 var AdditionalParams = new ResultParameters();
@@ -67,6 +81,8 @@ namespace OpenTap.Plugins.BasicSteps
                         Log.Debug(ex.InnerException);
                     }
                 }
+
+                iteration += 1;
                 // Notify that values might have changes
                 OnPropertyChanged("");
                 
