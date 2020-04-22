@@ -215,8 +215,8 @@ namespace OpenTap.Plugins.BasicSteps
         }
 
         
-        static ConditionalWeakTable<SweepLoop2, SweepRowTypeData> sweepRowTypes =
-            new ConditionalWeakTable<SweepLoop2, SweepRowTypeData>();
+        static ConditionalWeakTable<SweepStep, SweepRowTypeData> sweepRowTypes =
+            new ConditionalWeakTable<SweepStep, SweepRowTypeData>();
         
         public ITypeData GetTypeData(object obj)
         {
@@ -284,9 +284,9 @@ namespace OpenTap.Plugins.BasicSteps
             return BaseType.GetMember(name) ?? GetSweepMembers().FirstOrDefault(x => x.Name == name);
         }
 
-        public SweepLoop2 sweepLoop;
+        public SweepStep sweepLoop;
 
-        public SweepRowTypeData(SweepLoop2 sweepLoop)
+        public SweepRowTypeData(SweepStep sweepLoop)
         {
             this.sweepLoop = sweepLoop;
         }

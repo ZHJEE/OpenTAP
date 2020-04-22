@@ -2,8 +2,8 @@ namespace OpenTap.Plugins.BasicSteps
 {
     public class SweepRowCollection : VirtualCollection<SweepRow>
     {
-        SweepLoop2 loop; 
-        public SweepLoop2 Loop
+        SweepStep loop; 
+        public SweepStep Loop
         {
             get => loop;
             set

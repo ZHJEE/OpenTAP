@@ -8,7 +8,7 @@ namespace OpenTap.Plugins.BasicSteps
 {
     [AllowAnyChild]
     [Display("Sweep", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
-    public class SweepLoop2 : LoopTestStep
+    public class SweepStep : LoopTestStep
     {
         public IEnumerable<IMemberData> SweepProperties =>
             TypeData.GetTypeData(this).GetMembers().OfType<IForwardedMemberData>().Where(x =>
@@ -30,7 +30,7 @@ namespace OpenTap.Plugins.BasicSteps
         public string SelectedProperties =>
             string.Join(", ", SweepProperties.Select(x => x.GetDisplayAttribute().Name));
         
-        public SweepLoop2()
+        public SweepStep()
         {
             SweepValues.Loop = this;
             SweepValues.Add(new SweepRow());

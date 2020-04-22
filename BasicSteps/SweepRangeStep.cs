@@ -11,7 +11,7 @@ namespace OpenTap.Plugins.BasicSteps
 {
     [Display("Sweep Range", "Ranged based sweep step that iterates value of its parameters based on a selected range.", "Flow Control")]
     [AllowAnyChild]
-    public class SweepLoopRange2 : LoopTestStep
+    public class SweepRangeStep : LoopTestStep
     {
         [Display("Start", Order: -2, Description: "The parameter value where the sweep will start.")]
         public decimal SweepStart { get; set; }
@@ -100,7 +100,7 @@ namespace OpenTap.Plugins.BasicSteps
             string.Join(", ", SweepProperties.Select(x => x.GetDisplayAttribute().Name));
 
 
-        public SweepLoopRange2()
+        public SweepRangeStep()
         {
             Name = "Sweep Range ({SelectedProperties})";
 

@@ -96,7 +96,7 @@ namespace OpenTap.UnitTests
         public void SweepLoopRange2Test()
         {
             var plan = new TestPlan();
-            var sweep = new SweepLoopRange2();
+            var sweep = new SweepRangeStep();
             var numberstep = new ScopeTestStep();
             plan.ChildTestSteps.Add(sweep);
             sweep.ChildTestSteps.Add(numberstep);
@@ -118,7 +118,7 @@ namespace OpenTap.UnitTests
                 
                 // verify that sweep Behavior selected value can be displayed.
                 var annotation = AnnotationCollection.Annotate(sweep);
-                var mem = annotation.GetMember(nameof(SweepLoopRange2.SweepBehavior));
+                var mem = annotation.GetMember(nameof(SweepRangeStep.SweepBehavior));
                 var proxy = mem.Get<IAvailableValuesAnnotationProxy>();
                 var selectedBehavior = proxy.SelectedValue.Get<IStringReadOnlyValueAnnotation>();
                 Assert.AreEqual("Linear", selectedBehavior.Value);
@@ -130,7 +130,7 @@ namespace OpenTap.UnitTests
         public void SweepLoop2Test()
         {
             var plan = new TestPlan();
-            var sweep = new SweepLoop2();
+            var sweep = new SweepStep();
             var step = new ScopeTestStep();
             plan.ChildTestSteps.Add(sweep);
             sweep.ChildTestSteps.Add(step);
@@ -148,7 +148,7 @@ namespace OpenTap.UnitTests
 
             var str = new TapSerializer().SerializeToString(plan);
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
-            var sweep2 = (SweepLoop2) plan2.Steps[0];
+            var sweep2 = (SweepStep) plan2.Steps[0];
             var td2 = TypeData.GetTypeData(sweep2);
             var members2 = td2.GetMembers();
             var rows = sweep2.SweepValues;
