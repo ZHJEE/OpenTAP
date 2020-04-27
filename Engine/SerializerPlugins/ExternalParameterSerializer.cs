@@ -65,9 +65,37 @@ namespace OpenTap.Plugins
             return true;
         }
 
+        XElement rootNode;
         /// <summary> Deserialization implementation. </summary>
         public override bool Deserialize(XElement elem, ITypeData t, Action<object> setter)
         {
+            if (rootNode == null && t.DescendsTo(typeof(TestPlan)))
+            {
+                rootNode = elem;
+                TestPlan _plan;
+                bool ok = Serializer.Deserialize(elem,  x=>
+                {
+                    _plan = (TestPlan)x;
+                    setter(_plan);
+                    Serializer.DeferLoad(() =>
+                    {
+                        foreach (var value in PreloadedValues)
+                        {
+                            var ext = _plan.ExternalParameters.Get(value.Key);
+                            try
+                            {
+                                ext.Value = value.Value;
+                            }
+                            catch
+                            {
+
+                            }
+                        }    
+                    });
+                }, t);
+
+                return ok;
+            }
             if (elem.HasAttributes == false || currentNode.Contains(elem)) return false;
 
             var parameter = elem.Attribute(External)?.Value ?? elem.Attribute(Parameter)?.Value;
@@ -86,7 +114,6 @@ namespace OpenTap.Plugins
             }
 
             var plan = Serializer.SerializerStack.OfType<TestPlanSerializer>().FirstOrDefault()?.Plan;
-
             if (plan == null)
             {
                 currentNode.Add(elem);
@@ -116,8 +143,12 @@ namespace OpenTap.Plugins
                     Serializer.DeferLoad(() => { extParam.Value = extParam.Value; });
                 }
 
-                if (PreloadedValues.ContainsKey(extParam.Name)) // If there is a  preloaded value, use that.
+                if (PreloadedValues.ContainsKey(extParam.Name))
+                {
+                    // If there is a  preloaded value, use that.
                     extParam.Value = PreloadedValues[extParam.Name];
+                    
+                }
                 return ok;
             }
             finally
@@ -198,5 +229,4 @@ namespace OpenTap.Plugins
             }
         }
     }
-
 }

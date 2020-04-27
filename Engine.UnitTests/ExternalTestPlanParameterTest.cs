@@ -71,6 +71,8 @@ namespace OpenTap.Engine.UnitTests
                 plan.ExternalParameters.Get("Severity").Value = LogSeverity.Error;
                 Assert.AreEqual(LogSeverity.Error, logStep.Severity);
                 Assert.AreEqual(LogSeverity.Error, logStep2.Severity);
+                
+                plan.ExternalParameters.Get("Path1").Value = plan.ExternalParameters.Get("Path1").Value;
 
                 string planstr = null;
                 using (var memstream = new MemoryStream())
@@ -78,9 +80,9 @@ namespace OpenTap.Engine.UnitTests
                     plan.Save(memstream);
                     planstr = Encoding.UTF8.GetString(memstream.ToArray());
                 }
-                Assert.IsTrue(planstr.Contains(@"external=""Time Delay"""));
-                Assert.IsTrue(planstr.Contains(@"external=""Severity"""));
-                Assert.IsTrue(planstr.Contains(@"external=""Path1"""));
+                Assert.IsTrue(planstr.Contains(@"Parameter=""Time Delay"""));
+                Assert.IsTrue(planstr.Contains(@"Parameter=""Severity"""));
+                Assert.IsTrue(planstr.Contains(@"Parameter=""Path1"""));
 
                 using (var memstream = new MemoryStream(Encoding.UTF8.GetBytes(planstr)))
                     plan = TestPlan.Load(memstream, planstr);

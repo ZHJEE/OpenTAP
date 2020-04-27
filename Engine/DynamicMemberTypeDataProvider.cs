@@ -102,11 +102,15 @@ namespace OpenTap
             object source;
             IMemberData member;
 
+            bool calculateMemberAverage = false;
             public override object GetValue(object owner)
             {
                 var result = member.GetValue(source);
-                if (additionalMembers != null)
+                
+                if (calculateMemberAverage)
                 {
+                    // disabled because it really does not make any sense to do.
+                    // the value of parameters should always be synced up.
                     foreach (var (s, m) in additionalMembers)
                     {
                         var nextResult = m.GetValue(s);
@@ -120,11 +124,63 @@ namespace OpenTap
 
             public override void SetValue(object owner, object value)
             {
-                member.SetValue(source, value);
-                if (additionalMembers != null)
+                // this gets a bit complicated now.
+                // we have to ensure that the value is not just same object type, but not the same object
+                // in some cases. Thence we need special cloning.
+                bool strConvertSuccess = false;
+                string str = null;
+                strConvertSuccess = StringConvertProvider.TryGetString(value, out str);
+
+                TapSerializer serializer = null;
+                string serialized = null;
+                if (!strConvertSuccess && value != null)
                 {
-                    foreach (var (s, m) in additionalMembers)
-                        m.SetValue(s, value);
+                    serializer = new TapSerializer();
+                    try
+                    {
+                        serialized = serializer.SerializeToString(value);
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                int count = 0;
+                if (additionalMembers != null)
+                    count = additionalMembers.Count;
+
+                for (int i = -1; i < count; i++)
+                {
+                    var context = i == -1 ? source : additionalMembers[i].Source;
+                    var _member = i == -1 ? member : additionalMembers[i].Member;
+                    try
+                    {
+                        object setVal = value;
+                        if (strConvertSuccess)
+                        {
+                            if (StringConvertProvider.TryFromString(str, TypeDescriptor, context, out setVal) == false)
+                                setVal = value;
+                        }
+                        else if (serialized != null)
+                        {
+                            try
+                            {
+                                setVal = serializer.DeserializeFromString(serialized);
+                            }
+                            catch
+                            {
+                            }
+                        }
+
+                        _member.SetValue(context, setVal); // This will throw an exception if it is not assignable.
+                    }
+                    catch
+
+                    {
+                        object _value = value;
+                        if (_value != null)
+                            _member.SetValue(context, _value); // This will throw an exception if it is not assignable.
+                    }
                 }
             } 
             
@@ -141,12 +197,12 @@ namespace OpenTap
 
             public void AddAdditionalMember(object source, IMemberData member)
             {
-                if (additionalMembers == null)
+                if (additionalMembers == null)    
                     additionalMembers = new List<(object, IMemberData)>();
                 additionalMembers.Add((source, member));
             }
 
-            List<(object, IMemberData)> additionalMembers = null;
+            List<(object Source, IMemberData Member)> additionalMembers = null;
 
             /// <summary>
             /// removes a forwarded member. If it was the original member, the first additional member will be used.
@@ -451,7 +507,7 @@ namespace OpenTap
 
         public ITypeData GetTypeData(object obj, TypeDataProviderStack stack)
         {
-            if (obj is ITestStep)
+            if (obj is ITestStep || obj is TestPlan)
             {
                 var subtype = stack.GetTypeData(obj);
                 var result = getStepTypeData(subtype);

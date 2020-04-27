@@ -16,114 +16,49 @@ namespace OpenTap
         /// <summary>
         /// The name of this entry.
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
 
-        Dictionary<ITestStep, List<IMemberData>> properties;
         TestPlan plan;
         /// <summary> Maps test step to member infos. </summary>
         public IEnumerable<KeyValuePair<ITestStep, IEnumerable<IMemberData>>> Properties
-            => properties.Select(x => new KeyValuePair<ITestStep, IEnumerable<IMemberData>>(x.Key, x.Value));
+            => member.Members
+                .Select(x => new KeyValuePair<ITestStep, IEnumerable<IMemberData>>((ITestStep)x.Source, new []{x.Member}));
 
 
         /// <summary>
         /// Gets the list of PropertyInfos associated with this mask entry.
         /// </summary>
-        public IEnumerable<IMemberData> PropertyInfos
-        {
-            get { return properties.SelectMany(x => x.Value).Distinct(); }
-        }
+        public IEnumerable<IMemberData> PropertyInfos => Properties
+            .SelectMany(x => x.Value)
+            .Distinct();
 
         /// <summary>
         /// Gets or sets the value of the combined properties. The setter requires the types to be the same or IConvertibles.
         /// </summary>
         public object Value
         {
-            get
-            {
-                if (properties.Count == 0) return 0;
-                var item = properties.First();
-                return item.Value.First().GetValue(item.Key);
-            }
-            set
-            {
-                bool strConvertSuccess = false;
-                string str = null;
-                strConvertSuccess = StringConvertProvider.TryGetString(value, out str);
-
-                TapSerializer serializer = null;
-                string serialized = null;
-                if (!strConvertSuccess && value != null)
-                {
-                    serializer = new TapSerializer();
-                    try
-                    {
-                        
-                        serialized = serializer.SerializeToString(value);
-                    }
-                    catch
-                    {
-
-                    }
-                }
-
-                foreach (ITestStep step in properties.Keys)
-                {
-
-                    foreach (IMemberData prop in properties[step])
-                    {
-                        try
-                        {
-                            object setVal = value;
-                            if (strConvertSuccess)
-                            {
-                                if (StringConvertProvider.TryFromString(str, prop.TypeDescriptor, step, out setVal) == false)
-                                    setVal = value;
-                            }
-                            else if(serialized != null)
-                            {
-                                try
-                                {
-                                    setVal = serializer.DeserializeFromString(serialized);
-                                }
-                                catch
-                                {
-
-                                }
-                            }
-                            prop.SetValue(step, setVal); // This will throw an exception if it is not assignable.
-
-                        }
-                        catch
-                        {
-                            object _value = value;
-                            if (_value != null)
-                                prop.SetValue(step, _value); // This will throw an exception if it is not assignable.
-                        }
-                    }
-                }
-            }
+            get  =>  member.GetValue(plan);
+            set => member.SetValue(plan, value);
         }
 
-        internal void Clean()
+        internal void Clean(HashSet<ITestStep> steps)
         {
-            var steps = Utils.FlattenHeirarchy(plan.ChildTestSteps, step => step.ChildTestSteps).ToHashSet();
-
-            properties = properties.Where(props => steps.Contains(props.Key)).ToDictionary(k => k.Key, v => v.Value);
+            var members = member.Members;
+            foreach (var item in members.Where(x => steps.Contains(x.Source) == false))
+                DynamicMemberOperations.RemoveForwardedMember(plan, member, item.Source, item.Member);
         }
 
         /// <summary>
-        /// Gets the property that is bound by the step with ID stepGuid.
+        /// Gets the property that is bound by the step with ID step.
         /// </summary>
-        /// <param name="stepGuid"></param>
+        /// <param name="step"></param>
         /// <returns></returns>
-        public List<IMemberData> GetProperties(ITestStep stepGuid)
+        public List<IMemberData> GetProperties(ITestStep step)
         {
-            if (stepGuid == null)
-                throw new ArgumentNullException("stepGuid");
-            if (!properties.ContainsKey(stepGuid))
-                return null;
-            return properties[stepGuid];
+            return Properties.Where(x => x.Key == step).SelectMany(x => x.Value).ToList();
         }
+
+        IForwardedMemberData member;
 
         /// <summary>Constructor for the ExternalParameter.</summary>
         /// <param name="Plan"></param>
@@ -132,57 +67,59 @@ namespace OpenTap
         {
             this.plan = Plan;
             this.Name = Name;
-            properties = new Dictionary<ITestStep, List<IMemberData>>();
+            member = TypeData.GetTypeData(plan).GetMember(Name) as IForwardedMemberData;
+        }
+
+        internal ExternalParameter(TestPlan plan, IForwardedMemberData forwardedMember)
+        {
+            this.plan = plan;
+            this.Name = forwardedMember.Name;
+            member = forwardedMember;
         }
 
         /// <summary>
         /// Adds a property to the external parameters.
         /// </summary>
-        /// <param name="stepId"></param>
+        /// <param name="step"></param>
         /// <param name="property"></param>
-        public void Add(ITestStep stepId, IMemberData property)
+        public void Add(ITestStep step, IMemberData property)
         {
-            if (stepId == null)
-                throw new ArgumentNullException("stepId");
+            if (step == null)
+                throw new ArgumentNullException(nameof(step));
             if (property == null)
-                throw new ArgumentNullException("property");
-            foreach (var prop in properties.SelectMany(p => p.Value))
-            {
-                // enum, numbers, others
-                ITypeData t1 = prop.TypeDescriptor;
-                ITypeData t2 = property.TypeDescriptor;
-                if (object.Equals(t1, t2) == false)
-                    throw new Exception("External properties with same name has to be of same type.");
-            }
-            if (properties.ContainsKey(stepId))
-                properties[stepId].Add(property);
-            else
-                properties[stepId] = new List<IMemberData> { property };
+                throw new ArgumentNullException(nameof(property));
+            plan.ExternalParameters.Add(step, property, Name);
         }
 
         /// <summary>
         /// Removes a step from the external parameters.
         /// </summary>
-        /// <param name="stepId"></param>
-        public void Remove(ITestStep stepId)
+        /// <param name="step"></param>
+        public void Remove(ITestStep step)
         {
-            if (stepId == null)
-                throw new ArgumentNullException("stepId");
-            properties.Remove(stepId);
+            if (step == null)
+                throw new ArgumentNullException(nameof(step));
+            var members = member.Members;
+            foreach (var item in members.Where(x => step == x.Source))
+                DynamicMemberOperations.RemoveForwardedMember(plan, TypeData.GetTypeData(plan).GetMember(Name), item.Source, item.Member);
         }
     }
 
     /// <summary> External test plan parameters. </summary>
     public class ExternalParameters
     {
-        readonly List<ExternalParameter> entries = new List<ExternalParameter>();
 
-        /// <summary>
-        /// Gets the list of external test plan parameters.
-        /// </summary>
-        public IReadOnlyList<ExternalParameter> Entries { get { return entries; } }
+        /// <summary> Gets the list of external test plan parameters. </summary>
+        public IReadOnlyList<ExternalParameter> Entries
+        {
+            get
+            {
+                var fwd = TypeData.GetTypeData(plan).GetMembers().OfType<IForwardedMemberData>();
+                return fwd.Select(x => new ExternalParameter(plan, x)).ToList();
+            }
+        }
 
-        TestPlan plan;
+        readonly TestPlan plan;
 
         /// <summary>Constructor for the ExternalParameters.</summary>
         /// <param name="plan"></param>
@@ -199,36 +136,17 @@ namespace OpenTap
         public ExternalParameter Add(ITestStep step, IMemberData propertyInfo, string Name = null)
         {
             if (step == null)
-                throw new ArgumentNullException("step");
+                throw new ArgumentNullException(nameof(step));
             if (propertyInfo == null) // As it otherwise won't raise exception right away.
-                throw new ArgumentNullException("propertyInfo");
-            var et = Find(step, propertyInfo);
-            //if (et != null)
-            //{
-            //    throw new Exception(string.Format("Property {0} could not be found on step {1}", propertyInfo, step));
-            //}
+                throw new ArgumentNullException(nameof(propertyInfo));
+            var existing = Find(step, propertyInfo);
+            if (existing != null)
+                return existing;
             if (Name == null)
-            {
-                Name = propertyInfo.GetDisplayAttribute().Name.Trim();
-                int idx = 0;
-                var origName = Name;
-                while(this.Get(Name) != null)
-                   Name = string.Format("{0} {1}", origName , ++idx);
-            }
+                Name = propertyInfo.GetDisplayAttribute().Name;
 
-            var entry = entries.FirstOrDefault(e => e.Name == Name);
-            if (entry == null)
-            {
-                entry = new ExternalParameter(plan, Name);
-                entries.Add(entry);
-            }
-
-            var props = entry.GetProperties(step);
-            if ((props == null) || !props.Contains(propertyInfo))
-            {
-                entry.Add(step, propertyInfo);
-            }
-            return entry;
+            DynamicMemberOperations.AddForwardedMember(plan, propertyInfo, step, Name);
+            return Get(Name);
         }
 
         /// <summary> Removes a step property from the external parameters. </summary>
@@ -238,23 +156,19 @@ namespace OpenTap
         public void Remove(ITestStep step, IMemberData propertyInfo, string Name = null)
         {
             if (step == null)
-                throw new ArgumentNullException("step");
-            ExternalParameter entry = null;
-            if (Name == null)
-                entry = entries.Where(e => e.GetProperties(step) != null)
-                    .FirstOrDefault(e => e.GetProperties(step).Contains(propertyInfo));
+                throw new ArgumentNullException(nameof(step));
+            if(propertyInfo == null)
+                throw new ArgumentNullException(nameof(propertyInfo));
+
+            var tpType = TypeData.GetTypeData(plan);
+            IForwardedMemberData fwd;
+            if (Name != null)
+                fwd = tpType.GetMember(Name) as IForwardedMemberData;
             else
-                entry = entries.FirstOrDefault(e => e.Name == Name);
-            if (entry == null)
-                return;
-            var props = entry.GetProperties(step);
-            if (props == null)
-                return;
-            props.Remove(propertyInfo);
-            if (props.Count == 0)
-                entry.Remove(step);
-            if (entry.PropertyInfos.Count() == 0)
-                entries.Remove(entry);
+                fwd = findForwardedMember(step, propertyInfo);
+
+            if (fwd == null) return;
+            DynamicMemberOperations.RemoveForwardedMember(plan, fwd, step, propertyInfo);
         }
 
 
@@ -263,24 +177,26 @@ namespace OpenTap
         /// </summary>
         public void Clean()
         {
+            var steps = Utils.FlattenHeirarchy(plan.ChildTestSteps, step => step.ChildTestSteps).ToHashSet();
             foreach (var entry in Entries.ToList())
             {
-                entry.Clean();
-                if (entry.PropertyInfos.Any() == false)
-                    entries.Remove(entry);
+                entry.Clean(steps);
             }
         }
 
         /// <summary> Gets an entry by name. </summary>
-        /// <param name="ExternalParameterName"></param>
+        /// <param name="externalParameterName"></param>
         /// <returns></returns>
-        public ExternalParameter Get(string ExternalParameterName)
+        public ExternalParameter Get(string externalParameterName)
         {
-            return entries.FirstOrDefault(e => e.Name == ExternalParameterName);
+            var member = TypeData.GetTypeData(plan).GetMember(externalParameterName) as IForwardedMemberData;
+            if(member != null)
+                return new ExternalParameter(plan, member);
+            return null;
         }
 
         /// <summary>
-        /// Finds the external parameter that is defined by 'step' and 'property'.
+        /// Finds the external parameter that is defined by 'step' and 'property'. If no external parameter is found null is returned.
         /// </summary>
         /// <param name="step"></param>
         /// <param name="property"></param>
@@ -288,12 +204,33 @@ namespace OpenTap
         public ExternalParameter Find(ITestStep step, IMemberData property)
         {
             if (step == null)
-                throw new ArgumentNullException("step");
-            foreach (var entry in entries)
+                throw new ArgumentNullException(nameof(step));
+            if(property == null)
+                throw new ArgumentNullException(nameof(property));
+            var fwd = findForwardedMember(step, property);
+            if(fwd != null)
+                return new ExternalParameter(plan, fwd);
+            return null;
+        }
+        
+        /// <summary>
+        /// Finds the external parameter that is defined by 'step' and 'property'. If no external parameter is found null is returned.
+        /// </summary>
+        /// <param name="step"></param>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        IForwardedMemberData findForwardedMember(ITestStep step, IMemberData property)
+        {
+            if (step == null)
+                throw new ArgumentNullException(nameof(step));
+            if(property == null)
+                throw new ArgumentNullException(nameof(property));
+            
+            var forwardedMembers = TypeData.GetTypeData(plan).GetMembers().OfType<IForwardedMemberData>();
+            foreach (var fwd in forwardedMembers)
             {
-                var props = entry.GetProperties(step);
-                if ((props != null) && props.Contains(property))
-                    return entry;
+                if (fwd.Members.Contains((step, property)))
+                    return fwd;
             }
             return null;
         }
