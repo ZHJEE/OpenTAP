@@ -6,7 +6,6 @@ using NUnit.Framework;
 using System.IO;
 using System.Text;
 using OpenTap.Plugins.BasicSteps;
-using OpenTap;
 using System;
 using System.Linq;
 
@@ -333,6 +332,29 @@ namespace OpenTap.Engine.UnitTests
                     File.Delete(filePath3);
                 }
             }
+        }
+
+        [Test]
+        public void SaveAndLoadExternalScopeParameters()
+        {
+            var plan = new TestPlan();
+            var sequence = new SequenceStep();
+            var delay = new DelayStep();
+            plan.Steps.Add(sequence);
+            sequence.ChildTestSteps.Add(delay);
+            var newmember = DynamicMemberOperations.AddForwardedMember(sequence,
+                TypeData.GetTypeData(delay).GetMember(nameof(DelayStep.DelaySecs)), delay, null);
+            var fwd = DynamicMemberOperations.AddForwardedMember(plan, newmember, sequence, "DelaySecs");
+            
+            Assert.AreEqual(1, plan.ExternalParameters.Entries.Count);
+            TestPlan newplan;
+            using (var mem = new MemoryStream())
+            {
+                plan.Save(mem);
+                mem.Seek(0, SeekOrigin.Begin);
+                newplan = TestPlan.Load(mem, "Test.TapPlan");
+            }
+            Assert.AreEqual(1, newplan.ExternalParameters.Entries.Count);
         }
     }
 }

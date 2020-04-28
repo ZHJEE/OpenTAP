@@ -51,15 +51,23 @@ namespace OpenTap.Plugins
 
         bool loadScopeParameter(Guid scope, ITestStep step, IMemberData member, string parameter)
         {
-            ITestStepParent parent = null;
-            ITestStep subparent = step.Parent as ITestStep;
-            while (subparent != null)
+            ITestStepParent parent;
+            if (scope == Guid.Empty)
             {
-                if (subparent.Id == scope)
-                    break;
-                subparent = subparent.Parent as ITestStep;
+                parent = step.GetParent<TestPlan>();
             }
-            parent = subparent;
+            else
+            {
+                ITestStep subparent = step.Parent as ITestStep;
+                while (subparent != null)
+                {
+                    if (subparent.Id == scope)
+                        break;
+                    subparent = subparent.Parent as ITestStep;
+                }
+                parent = subparent;
+            }
+
             if (parent == null) return false;
             DynamicMemberOperations.AddForwardedMember(parent, member, step, parameter);
             return true;
@@ -106,13 +114,9 @@ namespace OpenTap.Plugins
             var member = stepSerializer.CurrentMember;
 
             Guid.TryParse(elem.Attribute(Scope)?.Value, out Guid scope);
-            if(!scope.Equals(Guid.Empty))
-            {
-                if (!loadScopeParameter(scope, step, member, parameter))
-                    Serializer.DeferLoad(() => loadScopeParameter(scope, step, member, parameter));
-                return false;
-            }
-
+            if (!loadScopeParameter(scope, step, member, parameter))
+                Serializer.DeferLoad(() => loadScopeParameter(scope, step, member, parameter));
+            if (scope != Guid.Empty) return false;
             var plan = Serializer.SerializerStack.OfType<TestPlanSerializer>().FirstOrDefault()?.Plan;
             if (plan == null)
             {
@@ -135,20 +139,33 @@ namespace OpenTap.Plugins
             currentNode.Add(elem);
             try
             {
-                var extParam = plan.ExternalParameters.Add((ITestStep) stepSerializer.Object, member, parameter);
-
+                
                 bool ok = Serializer.Deserialize(elem, setter, t);
-                if (ok)
+                var extParam = plan.ExternalParameters.Get(parameter);
+
+                if (ok && extParam != null)
                 {
                     Serializer.DeferLoad(() => { extParam.Value = extParam.Value; });
                 }
 
-                if (PreloadedValues.ContainsKey(extParam.Name))
+                if (PreloadedValues.ContainsKey(parameter))
                 {
-                    // If there is a  preloaded value, use that.
-                    extParam.Value = PreloadedValues[extParam.Name];
-                    
+                    if (extParam != null)
+                    {
+                        // If there is a  preloaded value, use that.
+                        extParam.Value = PreloadedValues[extParam.Name];
+                    }
+                    else
+                    {
+                        Serializer.DeferLoad(() =>
+                        {
+                            extParam = plan.ExternalParameters.Get(parameter);
+                            if(extParam != null)
+                                extParam.Value = extParam.Value;
+                        });
+                    }
                 }
+
                 return ok;
             }
             finally
@@ -184,44 +201,16 @@ namespace OpenTap.Plugins
                     forwardingParent = forwardingParent.Parent;
             }
 
-            if (forwardingMember != null)
-            {
-                elem.SetAttributeValue(Parameter, forwardingMember.Name);
-                if (forwardingParent is ITestStep parentStep)
-                    elem.SetAttributeValue(Scope, parentStep.Id.ToString());
-                try
-                {
-                    currentNode.Add(elem);
-                    return Serializer.Serialize(elem as XElement, obj, expectedType);
-                }
-                finally
-                {
-                    currentNode.Remove(elem);
-                }
-            }
+            if (forwardingMember == null) return false;
 
-            TestPlan plan = null;
-            {
-                TestPlanSerializer planSerializer = Serializer.SerializerStack.OfType<TestPlanSerializer>().FirstOrDefault();
-                if (planSerializer != null && planSerializer.Plan != null)
-                    plan = planSerializer.Plan;
-            }
-            plan = plan ?? step.GetParent<TestPlan>();
-            if (plan == null)
-                return false;
-            
-            var external = plan.ExternalParameters.Find(objSerializer.Object as ITestStep, objSerializer.CurrentMember);
-            if(external != null)
-            {
-                elem.SetAttributeValue(External, external.Name);
-            }else
-            {
-                return false;
-            }
+            elem.SetAttributeValue(Parameter, forwardingMember.Name);
+            if (forwardingParent is ITestStep parentStep)
+                elem.SetAttributeValue(Scope, parentStep.Id.ToString());
+            // skip
             try
             {
                 currentNode.Add(elem);
-                return Serializer.Serialize(elem as XElement, obj, expectedType);
+                return Serializer.Serialize(elem, obj, expectedType);
             }
             finally
             {
