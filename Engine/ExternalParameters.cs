@@ -45,7 +45,7 @@ namespace OpenTap
         {
             var members = member.Members;
             foreach (var item in members.Where(x => steps.Contains(x.Source) == false))
-                DynamicMemberOperations.RemoveForwardedMember(plan, member, item.Source, item.Member);
+                DynamicMemberOperations.UnparameterizeMember(plan, member, item.Source, item.Member);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace OpenTap
                 throw new ArgumentNullException(nameof(step));
             var members = member.Members;
             foreach (var item in members.Where(x => step == x.Source))
-                DynamicMemberOperations.RemoveForwardedMember(plan, TypeData.GetTypeData(plan).GetMember(Name), item.Source, item.Member);
+                DynamicMemberOperations.UnparameterizeMember(plan, TypeData.GetTypeData(plan).GetMember(Name), item.Source, item.Member);
         }
     }
 
@@ -145,7 +145,7 @@ namespace OpenTap
             if (Name == null)
                 Name = propertyInfo.GetDisplayAttribute().Name;
 
-            DynamicMemberOperations.AddForwardedMember(plan, propertyInfo, step, Name);
+            DynamicMemberOperations.ParameterizeMember(plan, propertyInfo, step, Name);
             return Get(Name);
         }
 
@@ -168,7 +168,7 @@ namespace OpenTap
                 fwd = findForwardedMember(step, propertyInfo);
 
             if (fwd == null) return;
-            DynamicMemberOperations.RemoveForwardedMember(plan, fwd, step, propertyInfo);
+            DynamicMemberOperations.UnparameterizeMember(plan, fwd, step, propertyInfo);
         }
 
 

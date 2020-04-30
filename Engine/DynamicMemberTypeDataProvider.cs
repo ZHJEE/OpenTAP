@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Xml.Serialization;
@@ -16,39 +15,22 @@ namespace OpenTap
     /// <summary>  Dynamic member operations. </summary>
     public static class DynamicMemberOperations
     {
-        /// <summary>  Adds a forwarded member data. If the name matches something already forwarded, the member will be added to that. </summary>
+        /// <summary> Parameterizes a member from one object unto another. If the name matches something already forwarded, the member will be added to that. </summary>
         /// <param name="target"> The object on which to add a new member. </param>
         /// <param name="member"> The member to forward. </param>
         /// <param name="source"> The owner of the forwarded member. </param>
         /// <param name="name"> The name of the new property. If null, the name of 'member' will be used.</param>
         /// <returns></returns>
-        public static IMemberData AddForwardedMember(object target, IMemberData member, object source, string name) =>
-            DynamicMember.AddForwardedMember(target, member, source, name);
+        public static IParameterizedMemberData ParameterizeMember(object target, IMemberData member, object source, string name) =>
+            DynamicMember.ParameterizeMember(target, member, source, name);
 
-        /// <summary> Removes a forwarded member. This makes it possible to remove a forwarded member from a collection. </summary>
+        /// <summary> Removes a parameterization of a member. </summary>
         /// <param name="target"> The object owning the dynamic member.</param>
         /// <param name="forwardedMember"> The forwarded member owned by 'target'. </param>
         /// <param name="aliasedMember"> The aliased member owned by the source. </param>
         /// <param name="source"> The source of the member. </param>
-        public static void RemoveForwardedMember(object target, IMemberData forwardedMember, object source, IMemberData aliasedMember) =>
-            DynamicMember.RemoveForwardedMember(target, forwardedMember, aliasedMember, source);
-
-        /// <summary>
-        /// Add an all-purpose dynamic member to an object.
-        /// </summary>
-        /// <param name="target"></param>
-        /// <param name="type"></param>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public static IMemberData AddDynamicMember(object target, ITypeData type, string name)
-        {
-            if (TypeData.GetTypeData(target).GetMember(name) is IMemberData mem)
-                return mem;
-            var member = new DynamicMember() {Name = name, TypeDescriptor = type, Writable = true, Readable = true};
-            DynamicMember.AddDynamicMember(target, member);
-            return member;
-        }
-
+        public static void UnparameterizeMember(object target, IMemberData forwardedMember, object source, IParameterizedMemberData aliasedMember) =>
+            DynamicMember.UnparameterizeMember(target, forwardedMember, aliasedMember, source);
     }
     
     class DynamicMember : IMemberData
@@ -78,7 +60,7 @@ namespace OpenTap
             return DefaultValue;
         }
 
-        class ForwardedMember : DynamicMember, IForwardedMemberData
+        class ForwardedMember : DynamicMember, IParameterizedMemberData
         {
             public ForwardedMember(object source, IMemberData member, string name)
             {
@@ -251,15 +233,17 @@ namespace OpenTap
             DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.SetValue(target, members);
         }
         
-        public static IMemberData AddForwardedMember(object target, IMemberData member, object source, string name)
+        public static IParameterizedMemberData ParameterizeMember(object target, IMemberData member, object source, string name)
         {
             if(target == null) throw new ArgumentNullException(nameof(target));
             if(member == null) throw new ArgumentNullException(nameof(member));
             if(source == null) throw new ArgumentNullException(nameof(source));
             if (name == null) name = member.GetDisplayAttribute()?.GetFullName() ?? member.Name;
             var td = TypeData.GetTypeData(target);
-            var member2 = td.GetMember(name);
-            if (member2 == null)
+            var _member2 = td.GetMember(name);
+            IParameterizedMemberData member2 = _member2 as IParameterizedMemberData;
+            ;
+            if (_member2  == null)
             {
                 member2 = new ForwardedMember(source, member, name)
                 {
@@ -273,7 +257,7 @@ namespace OpenTap
             }
             else
             {
-                if (member2 is ForwardedMember fw)
+                if (_member2 is ForwardedMember fw)
                     fw.AddAdditionalMember(source, member);
                 else
                     throw new Exception("A member by that name already exists.");
@@ -281,7 +265,7 @@ namespace OpenTap
             return member2;
         }
 
-        public static void RemoveForwardedMember(object target, IMemberData _forwardedMember, IMemberData aliasedMember, object source)
+        public static void UnparameterizeMember(object target, IMemberData _forwardedMember, IParameterizedMemberData aliasedMember, object source)
         {
             if (_forwardedMember == null) throw new ArgumentNullException(nameof(_forwardedMember));
             if (target == null) throw new ArgumentNullException(nameof(target));
@@ -447,7 +431,7 @@ namespace OpenTap
                 TypeDescriptor = TypeData.FromType(typeof((Object,IMemberData)[]))
             };
 
-            static IMemberData[] extraMembers = {AbortCondition, DescriptionMember, DynamicMembers};
+            static IMemberData[] extraMembers = {AbortCondition, DynamicMembers}; //, DescriptionMember // Future: Include Description Member
 
             public TestStepTypeData(ITypeData innerType)
             {
@@ -525,5 +509,11 @@ namespace OpenTap
     {
         /// <summary>  The shadowed members. </summary>
         IEnumerable<(object Source, IMemberData Member)> Members { get; }
+    }
+
+    /// <summary>  This type of forwarded members represents a perameterization of object members unto another object. </summary>
+    public interface IParameterizedMemberData : IForwardedMemberData
+    {
+
     }
 }

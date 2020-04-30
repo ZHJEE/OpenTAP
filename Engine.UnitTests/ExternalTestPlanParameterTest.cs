@@ -342,9 +342,9 @@ namespace OpenTap.Engine.UnitTests
             var delay = new DelayStep();
             plan.Steps.Add(sequence);
             sequence.ChildTestSteps.Add(delay);
-            var newmember = DynamicMemberOperations.AddForwardedMember(sequence,
+            var newmember = DynamicMemberOperations.ParameterizeMember(sequence,
                 TypeData.GetTypeData(delay).GetMember(nameof(DelayStep.DelaySecs)), delay, null);
-            var fwd = DynamicMemberOperations.AddForwardedMember(plan, newmember, sequence, "DelaySecs");
+            var fwd = DynamicMemberOperations.ParameterizeMember(plan, newmember, sequence, "DelaySecs");
             
             Assert.AreEqual(1, plan.ExternalParameters.Entries.Count);
             TestPlan newplan;

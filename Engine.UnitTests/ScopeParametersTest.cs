@@ -20,9 +20,9 @@ namespace OpenTap.UnitTests
             scope.ChildTestSteps.Add(diag);
             scope.ChildTestSteps.Add(diag2);
             var member = TypeData.GetTypeData(diag).GetMember("Title");
-            DynamicMemberOperations.AddForwardedMember(scope, member, diag, parameter);
-            DynamicMemberOperations.AddForwardedMember(scope, member, diag2, parameter);
-            DynamicMemberOperations.AddForwardedMember(scope, TypeData.GetTypeData(diag).GetMember("Timeout"), diag, "Group\\The Timeout");
+            DynamicMemberOperations.ParameterizeMember(scope, member, diag, parameter);
+            DynamicMemberOperations.ParameterizeMember(scope, member, diag2, parameter);
+            DynamicMemberOperations.ParameterizeMember(scope, TypeData.GetTypeData(diag).GetMember("Timeout"), diag, "Group\\The Timeout");
 
             var annotation = AnnotationCollection.Annotate(scope);
             var titleMember = annotation.GetMember(parameter);
@@ -53,9 +53,9 @@ namespace OpenTap.UnitTests
             var forwardedMember = TypeData.GetTypeData(scope2).GetMember(parameter);
             Assert.IsNotNull(forwardedMember);
             
-            DynamicMemberOperations.RemoveForwardedMember(scope2, forwardedMember, scope2.ChildTestSteps[0], member);
+            DynamicMemberOperations.UnparameterizeMember(scope2, forwardedMember, scope2.ChildTestSteps[0], member);
             Assert.IsNotNull(TypeData.GetTypeData(scope2).GetMember(parameter));
-            DynamicMemberOperations.RemoveForwardedMember(scope2, forwardedMember, scope2.ChildTestSteps[1], member);
+            DynamicMemberOperations.UnparameterizeMember(scope2, forwardedMember, scope2.ChildTestSteps[1], member);
             Assert.IsNull(TypeData.GetTypeData(scope2).GetMember(parameter)); // last 'Title' removed.
         }
 
@@ -70,9 +70,9 @@ namespace OpenTap.UnitTests
             seq1.ChildTestSteps.Add(seq2);
             seq2.ChildTestSteps.Add(delay);
 
-            var member1 = DynamicMemberOperations.AddForwardedMember(seq2,
+            var member1 = DynamicMemberOperations.ParameterizeMember(seq2,
                 TypeData.GetTypeData(delay).GetMember(nameof(DelayStep.DelaySecs)), delay, "delay");
-            DynamicMemberOperations.AddForwardedMember(seq1, member1, seq2, null);
+            DynamicMemberOperations.ParameterizeMember(seq1, member1, seq2, null);
             var str = new TapSerializer().SerializeToString(plan);
 
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
@@ -101,7 +101,7 @@ namespace OpenTap.UnitTests
             plan.ChildTestSteps.Add(sweep);
             sweep.ChildTestSteps.Add(numberstep);
             var member = TypeData.GetTypeData(numberstep).GetMember("A");
-            DynamicMemberOperations.AddForwardedMember(sweep, member, numberstep, "A");
+            DynamicMemberOperations.ParameterizeMember(sweep, member, numberstep, "A");
             sweep.SweepStart = 1;
             sweep.SweepEnd = 10;
             sweep.SweepPoints = 10;
@@ -138,7 +138,7 @@ namespace OpenTap.UnitTests
             
             sweep.SweepValues.Add(new SweepRow());
 
-            DynamicMemberOperations.AddForwardedMember(sweep,
+            DynamicMemberOperations.ParameterizeMember(sweep,
                 TypeData.GetTypeData(step).GetMember(nameof(ScopeTestStep.A)), step, null);
 
             var td1 = TypeData.GetTypeData(sweep.SweepValues[0]);
