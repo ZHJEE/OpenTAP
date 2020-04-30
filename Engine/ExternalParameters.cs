@@ -58,7 +58,7 @@ namespace OpenTap
             return Properties.Where(x => x.Key == step).SelectMany(x => x.Value).ToList();
         }
 
-        IForwardedMemberData member;
+        IParameterizedMemberData member;
 
         /// <summary>Constructor for the ExternalParameter.</summary>
         /// <param name="Plan"></param>
@@ -67,10 +67,10 @@ namespace OpenTap
         {
             this.plan = Plan;
             this.Name = Name;
-            member = TypeData.GetTypeData(plan).GetMember(Name) as IForwardedMemberData;
+            member = TypeData.GetTypeData(plan).GetMember(Name) as IParameterizedMemberData;
         }
 
-        internal ExternalParameter(TestPlan plan, IForwardedMemberData forwardedMember)
+        internal ExternalParameter(TestPlan plan, IParameterizedMemberData forwardedMember)
         {
             this.plan = plan;
             this.Name = forwardedMember.Name;
@@ -101,7 +101,7 @@ namespace OpenTap
                 throw new ArgumentNullException(nameof(step));
             var members = member.Members;
             foreach (var item in members.Where(x => step == x.Source))
-                DynamicMemberOperations.UnparameterizeMember(plan, TypeData.GetTypeData(plan).GetMember(Name), item.Source, item.Member);
+                DynamicMemberOperations.UnparameterizeMember(plan, (IParameterizedMemberData)TypeData.GetTypeData(plan).GetMember(Name), item.Source, item.Member);
         }
     }
 
@@ -114,7 +114,7 @@ namespace OpenTap
         {
             get
             {
-                var fwd = TypeData.GetTypeData(plan).GetMembers().OfType<IForwardedMemberData>();
+                var fwd = TypeData.GetTypeData(plan).GetMembers().OfType<IParameterizedMemberData>();
                 return fwd.Select(x => new ExternalParameter(plan, x)).ToList();
             }
         }
@@ -161,9 +161,9 @@ namespace OpenTap
                 throw new ArgumentNullException(nameof(propertyInfo));
 
             var tpType = TypeData.GetTypeData(plan);
-            IForwardedMemberData fwd;
+            IParameterizedMemberData fwd;
             if (Name != null)
-                fwd = tpType.GetMember(Name) as IForwardedMemberData;
+                fwd = tpType.GetMember(Name) as IParameterizedMemberData;
             else
                 fwd = findForwardedMember(step, propertyInfo);
 
@@ -189,8 +189,7 @@ namespace OpenTap
         /// <returns></returns>
         public ExternalParameter Get(string externalParameterName)
         {
-            var member = TypeData.GetTypeData(plan).GetMember(externalParameterName) as IForwardedMemberData;
-            if(member != null)
+            if(TypeData.GetTypeData(plan).GetMember(externalParameterName) is IParameterizedMemberData member)
                 return new ExternalParameter(plan, member);
             return null;
         }
@@ -219,14 +218,14 @@ namespace OpenTap
         /// <param name="step"></param>
         /// <param name="property"></param>
         /// <returns></returns>
-        IForwardedMemberData findForwardedMember(ITestStep step, IMemberData property)
+        IParameterizedMemberData findForwardedMember(ITestStep step, IMemberData property)
         {
             if (step == null)
                 throw new ArgumentNullException(nameof(step));
             if(property == null)
                 throw new ArgumentNullException(nameof(property));
             
-            var forwardedMembers = TypeData.GetTypeData(plan).GetMembers().OfType<IForwardedMemberData>();
+            var forwardedMembers = TypeData.GetTypeData(plan).GetMembers().OfType<IParameterizedMemberData>();
             foreach (var fwd in forwardedMembers)
             {
                 if (fwd.Members.Contains((step, property)))

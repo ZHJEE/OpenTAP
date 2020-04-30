@@ -50,7 +50,7 @@ namespace OpenTap.UnitTests
                 Assert.AreEqual(step.Title, "New Title 2");
             }
 
-            var forwardedMember = TypeData.GetTypeData(scope2).GetMember(parameter);
+            var forwardedMember = (IParameterizedMemberData)TypeData.GetTypeData(scope2).GetMember(parameter);
             Assert.IsNotNull(forwardedMember);
             
             DynamicMemberOperations.UnparameterizeMember(scope2, forwardedMember, scope2.ChildTestSteps[0], member);

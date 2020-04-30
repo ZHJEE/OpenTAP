@@ -29,7 +29,7 @@ namespace OpenTap
         /// <param name="forwardedMember"> The forwarded member owned by 'target'. </param>
         /// <param name="aliasedMember"> The aliased member owned by the source. </param>
         /// <param name="source"> The source of the member. </param>
-        public static void UnparameterizeMember(object target, IMemberData forwardedMember, object source, IParameterizedMemberData aliasedMember) =>
+        public static void UnparameterizeMember(object target, IParameterizedMemberData forwardedMember, object source, IMemberData aliasedMember) =>
             DynamicMember.UnparameterizeMember(target, forwardedMember, aliasedMember, source);
     }
     
@@ -265,7 +265,7 @@ namespace OpenTap
             return member2;
         }
 
-        public static void UnparameterizeMember(object target, IMemberData _forwardedMember, IParameterizedMemberData aliasedMember, object source)
+        public static void UnparameterizeMember(object target, IParameterizedMemberData _forwardedMember, IMemberData aliasedMember, object source)
         {
             if (_forwardedMember == null) throw new ArgumentNullException(nameof(_forwardedMember));
             if (target == null) throw new ArgumentNullException(nameof(target));
