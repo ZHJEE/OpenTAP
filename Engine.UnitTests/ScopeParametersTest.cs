@@ -102,6 +102,20 @@ namespace OpenTap.UnitTests
             sweep.ChildTestSteps.Add(numberstep);
             var member = TypeData.GetTypeData(numberstep).GetMember("A");
             DynamicMemberOperations.ParameterizeMember(sweep, member, numberstep, "A");
+            sweep.SelectedParameters = Enumerable.Empty<string>().ToList();
+            Assert.AreEqual(0, sweep.SelectedParameters.Count());
+            {
+                var a = AnnotationCollection.Annotate(sweep);
+                var m = a.GetMember(nameof(SweepRangeStep.SelectedParameters));
+                var ms = m.Get<IMultiSelectAnnotationProxy>();
+                var avail = m.Get<IAvailableValuesAnnotationProxy>();
+                ms.SelectedValues = avail.AvailableValues;
+                a.Write();
+            }
+            
+            Assert.AreEqual(1, sweep.SelectedParameters.Count());
+            
+            
             sweep.SweepStart = 1;
             sweep.SweepEnd = 10;
             sweep.SweepPoints = 10;

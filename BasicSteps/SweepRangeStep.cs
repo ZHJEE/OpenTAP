@@ -13,16 +13,16 @@ namespace OpenTap.Plugins.BasicSteps
     [AllowAnyChild]
     public class SweepRangeStep : LoopTestStep
     {
-        [Display("Start", Order: -2, Description: "The parameter value where the sweep will start.")]
+        [Display("Start", Group:"Sweep", Order: -2, Description: "The parameter value where the sweep will start.")]
         public decimal SweepStart { get; set; }
 
-        [Display("Stop", Order: -1, Description: "The parameter value where the sweep will stop.")]
+        [Display("Stop",  Group:"Sweep",Order: -1, Description: "The parameter value where the sweep will stop.")]
         public decimal SweepStop { get; set; }
 
         [Browsable(false)]
         public decimal SweepEnd { get { return SweepStop; } set { SweepStop = value; } }
         
-        [Display("Step Size", Order: 1, Description: "The value to be increased or decreased between every iteration of the sweep.")]
+        [Display("Step Size",  Group:"Sweep", Order: 1, Description: "The value to be increased or decreased between every iteration of the sweep.")]
         [EnabledIf(nameof(SweepBehavior), SweepBehavior.Linear, HideIfDisabled = true)]
         [XmlIgnore] // this is inferred from the other properties and should not be set by the serializer
         [Browsable(true)]
@@ -41,10 +41,10 @@ namespace OpenTap.Plugins.BasicSteps
             }
         }
 
-        [Display("Points", Order: 1, Description: "The number of points to sweep.")]
+        [Display("Points",  Group:"Sweep",Order: 1, Description: "The number of points to sweep.")]
         public uint SweepPoints { get; set; }
         
-        [Display("Behavior", Order: -3, Description: "Linear or exponential growth.")]
+        [Display("Behavior",  Group:"Sweep",Order: -3, Description: "Linear or exponential growth.")]
         public SweepBehavior SweepBehavior { get; set; }
 
         public override void PrePlanRun()
@@ -60,28 +60,55 @@ namespace OpenTap.Plugins.BasicSteps
         public IEnumerable<string> SweepNames =>
             SweepProperties.Select(x => x.Name);
         
-        List<string> selectedProperties = new List<string>();
+        readonly NotifyChangedList<string> selectedProperties = new NotifyChangedList<string>();
         
         [Browsable(false)]
-        public List<string> DeselectedParameters { get; set; } = new List<string>();
+        public Dictionary<string, bool> Selected { get; set; } = new Dictionary<string, bool>();
+        void updateSelected()
+        {
+            foreach (var prop in SweepProperties)
+            {
+                if (Selected.ContainsKey(prop.Name) == false)
+                    Selected[prop.Name] = true;
+            }
+            foreach (var item in Selected.ToArray())
+            {
+                if (item.Value)
+                {
+                    if (selectedProperties.Contains(item.Key) == false)
+                        selectedProperties.Add(item.Key);
+                }
+                else
+                {
+                    if (selectedProperties.Contains(item.Key))
+                        selectedProperties.Remove(item.Key);
+                }
+            }
+        }
+
+        void onListChanged(IList<string> list)
+        {
+            foreach (var item in Selected.Keys.ToArray())
+            {
+                Selected[item] = list.Contains(item);
+            }
+        }
         [AvailableValues(nameof(SweepNames))]
         
         [XmlIgnore]
         [Browsable(true)]
-        public List<string> SelectedProperties {
+        [Display("Parameters", "These are the parameters that should be swept", "Sweep")]
+        public IList<string> SelectedParameters {
             get
             {
-                foreach (var prop in SweepProperties)
-                    if (DeselectedParameters.Contains(prop.Name) == false && selectedProperties.Contains(prop.Name) == false)
-                        selectedProperties.Add(prop.Name);
+                updateSelected();
+                selectedProperties.ChangedCallback = onListChanged;
                 return selectedProperties;
             }
             set
             {
-                selectedProperties = value;
-                foreach (var prop in SweepProperties)
-                    if (selectedProperties.Contains(prop.Name) == false && DeselectedParameters.Contains(prop.Name) == false)
-                        DeselectedParameters.Add(prop.Name);
+                updateSelected();
+                onListChanged(value);
             } 
         }
         
@@ -125,7 +152,7 @@ namespace OpenTap.Plugins.BasicSteps
         
         public SweepRangeStep()
         {
-            Name = $"Sweep Range ({{{nameof(SelectedProperties)}}})";
+            Name = "Sweep Range ({Parameters})";
 
             SweepStart = 1;
             SweepStop = 100;
@@ -170,7 +197,7 @@ namespace OpenTap.Plugins.BasicSteps
         {
             base.Run();
 
-            var selected = SelectedProperties.ToHashSet();
+            var selected = SelectedParameters.ToHashSet();
             var sets = SweepProperties.Where(x => selected.Contains(x.Name)).ToArray();
             var originalValues = sets.Select(set => set.GetValue(this)).ToArray();
 

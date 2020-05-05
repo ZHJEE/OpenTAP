@@ -1,8 +1,9 @@
 using System.Collections.Generic;
-using System.Data;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Serialization;
 
 namespace OpenTap.Plugins.BasicSteps
 {
@@ -10,13 +11,9 @@ namespace OpenTap.Plugins.BasicSteps
     [Display("Sweep Parameter", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
     public class SweepStep : LoopTestStep
     {
-        public IEnumerable<IMemberData> SweepProperties =>
-            TypeData.GetTypeData(this).GetMembers().OfType<IForwardedMemberData>().Where(x =>
-                x.HasAttribute<UnsweepableAttribute>() == false && x.Writable && x.Readable);
-        
         SweepRowCollection sweepValues = new SweepRowCollection();
         [DeserializeOrder(1)] // this should be deserialized as the last thing.
-        [Display("Sweep Values", "A table of values to be swept for the selected parameters.")]
+        [Display("Sweep Values", "A table of values to be swept for the selected parameters.", "Sweep")]
         public SweepRowCollection SweepValues 
         { 
             get => sweepValues;
@@ -26,26 +23,79 @@ namespace OpenTap.Plugins.BasicSteps
                 sweepValues.Loop = this;
             }
         }
-        
+
+
+        public IEnumerable<IMemberData> SweepProperties =>
+            TypeData.GetTypeData(this).GetMembers().OfType<IParameterizedMemberData>().Where(x =>
+                x.HasAttribute<UnsweepableAttribute>() == false && x.Writable && x.Readable);
 
         public IEnumerable<string> SweepNames =>
             SweepProperties.Select(x => x.Name);
         
+        readonly NotifyChangedList<string> selectedProperties = new NotifyChangedList<string>();
+        
+        [Browsable(false)]
+        public Dictionary<string, bool> Selected { get; set; } = new Dictionary<string, bool>();
+        void updateSelected()
+        {
+            foreach (var prop in SweepProperties)
+            {
+                if (Selected.ContainsKey(prop.Name) == false)
+                    Selected[prop.Name] = true;
+            }
+            foreach (var item in Selected.ToArray())
+            {
+                if (item.Value)
+                {
+                    if (selectedProperties.Contains(item.Key) == false)
+                        selectedProperties.Add(item.Key);
+                }
+                else
+                {
+                    if (selectedProperties.Contains(item.Key))
+                        selectedProperties.Remove(item.Key);
+                }
+            }
+        }
+
+        void onListChanged(IList<string> list)
+        {
+            foreach (var item in Selected.Keys.ToArray())
+            {
+                Selected[item] = list.Contains(item);
+            }
+        }
         [AvailableValues(nameof(SweepNames))]
-        public List<string> SelectedProperties { get; set; } = new List<string>();
+        
+        [XmlIgnore]
+        [Browsable(true)]
+        [Display("Parameters", "These are the parameters that should be swept", "Sweep")]
+        public IList<string> SelectedParameters {
+            get
+            {
+                updateSelected();
+                selectedProperties.ChangedCallback = onListChanged;
+                return selectedProperties;
+            }
+            set
+            {
+                updateSelected();
+                onListChanged(value);
+            } 
+        }
 
         
         public SweepStep()
         {
             SweepValues.Loop = this;
             SweepValues.Add(new SweepRow());
-            Name = $"Sweep ({{{nameof(SelectedProperties)}}})";
+            Name = "Sweep ({Parameters})";
         }
 
         int iteration;
         
         [Output]
-        [Display("Iteration", "Shows the iteration of the sweep that is currently running or about to run.", Order: 3)]
+        [Display("Iteration", "Shows the iteration of the sweep that is currently running or about to run.", "Sweep", Order: 3)]
         public string IterationInfo => string.Format("{0} of {1}", iteration + 1, SweepValues.Count(x => x.Enabled));
 
         

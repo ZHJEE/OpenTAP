@@ -275,7 +275,9 @@ namespace OpenTap.Plugins.BasicSteps
 
         IEnumerable<IMemberData> GetSweepMembers()
         {
-            var loopmembers = TypeData.GetTypeData(sweepLoop).GetMembers().OfType<IForwardedMemberData>();
+            var loopmembers = TypeData.GetTypeData(sweepLoop).GetMembers()
+                .Where(x => sweepLoop.SelectedParameters.Contains(x.Name))
+                .OfType<IParameterizedMemberData>();
             return loopmembers.Select(x => new SweepRowMemberData(this, x));
         } 
 

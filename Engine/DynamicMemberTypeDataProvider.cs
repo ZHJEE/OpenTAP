@@ -70,7 +70,7 @@ namespace OpenTap
                 Name = name;
                 
                 var disp = member.GetDisplayAttribute();
-                displayAttribute = new DisplayAttribute(_name[_name.Length - 1].Trim(), disp.Description, Order: disp.Order,
+                displayAttribute = new DisplayAttribute(_name[_name.Length - 1].Trim(), disp.Description, Order: -5,
                         Groups: _name.Take(_name.Length - 1).Select(x => x.Trim()).ToArray());
             }
 
@@ -242,7 +242,7 @@ namespace OpenTap
             var td = TypeData.GetTypeData(target);
             var _member2 = td.GetMember(name);
             IParameterizedMemberData member2 = _member2 as IParameterizedMemberData;
-            ;
+            
             if (_member2  == null)
             {
                 member2 = new ForwardedMember(source, member, name)
