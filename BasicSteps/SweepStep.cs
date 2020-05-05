@@ -7,7 +7,7 @@ using System.Reflection;
 namespace OpenTap.Plugins.BasicSteps
 {
     [AllowAnyChild]
-    [Display("Sweep", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
+    [Display("Sweep Parameter", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
     public class SweepStep : LoopTestStep
     {
         public IEnumerable<IMemberData> SweepProperties =>
@@ -26,15 +26,20 @@ namespace OpenTap.Plugins.BasicSteps
                 sweepValues.Loop = this;
             }
         }
+        
 
-        public string SelectedProperties =>
-            string.Join(", ", SweepProperties.Select(x => x.GetDisplayAttribute().Name));
+        public IEnumerable<string> SweepNames =>
+            SweepProperties.Select(x => x.Name);
+        
+        [AvailableValues(nameof(SweepNames))]
+        public List<string> SelectedProperties { get; set; } = new List<string>();
+
         
         public SweepStep()
         {
             SweepValues.Loop = this;
             SweepValues.Add(new SweepRow());
-            Name = "Sweep ({SelectedProperties})";
+            Name = $"Sweep ({{{nameof(SelectedProperties)}}})";
         }
 
         int iteration;

@@ -25,7 +25,7 @@ namespace OpenTap.Plugins.BasicSteps
         Exponential = 1
     }
 
-    [Display("Sweep Loop (Range)", Groups: new []{"Legacy", "Flow Control"}, Description: "Loops all of its child steps while sweeping a specified parameter/setting over a range.")]
+    [Display("Sweep Loop (Range)", Group: "Flow Control", Description: "Loops all of its child steps while sweeping a specified parameter/setting over a range.")]
     [AllowAnyChild]
     public class SweepLoopRange : LoopTestStep
     {
@@ -187,12 +187,6 @@ namespace OpenTap.Plugins.BasicSteps
             ChildTestSteps.ChildStepsChanged += childStepsChanged;
         }
         
-        void SweepLoop_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if(e.PropertyName == nameof(ChildTestSteps))
-                ChildTestSteps.ChildStepsChanged += childStepsChanged;
-        }
-
         readonly Dictionary<IMemberData, object> membersCache = new Dictionary<IMemberData, object>();
         void childStepsChanged(TestStepList sender, TestStepList.ChildStepsChangedAction Action, ITestStep Object, int Index)
         {

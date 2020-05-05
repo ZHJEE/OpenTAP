@@ -13,7 +13,7 @@ using System.Threading;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    [Display("Sweep Loop", Groups: new []{"Legacy", "Flow Control"}, Description: "Loops its child steps while sweeping specified parameters/settings on the child steps.")]
+    [Display("Sweep Loop", Group: "Flow Control", Description: "Loops its child steps while sweeping specified parameters/settings on the child steps.")]
     [AllowAnyChild]
     public class SweepLoop : LoopTestStep, IDeserializedCallback
     {
@@ -121,10 +121,9 @@ namespace OpenTap.Plugins.BasicSteps
                     return SweepParameters
                         .Select(param => param.Values.GetValue(crossPlanSweepIndex))
                         .OfType<IResource>();
-                else
-                    return SweepParameters
-                        .SelectMany(param => param.Values.Cast<object>())
-                        .OfType<IResource>();
+                return SweepParameters
+                    .SelectMany(param => param.Values)
+                    .OfType<IResource>();
             }
         }
 
@@ -227,7 +226,7 @@ namespace OpenTap.Plugins.BasicSteps
                     IMemberData paramProp = stepType.GetMember(property.Name);
                     if (object.Equals(paramProp, property))
                     {
-                        if (!values.TryGetValue(childTestStep, out var cons))
+                        if (!values.TryGetValue(childTestStep, out _))
                             values[childTestStep] = new List<Tuple<IMemberData, object>>();
                         values[childTestStep].Add(new Tuple<IMemberData, object>(paramProp, paramProp.GetValue(childTestStep)));
                     }

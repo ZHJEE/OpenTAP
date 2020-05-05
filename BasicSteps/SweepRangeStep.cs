@@ -9,7 +9,7 @@ using System.Xml.Serialization;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    [Display("Sweep Range", "Ranged based sweep step that iterates value of its parameters based on a selected range.", "Flow Control")]
+    [Display("Sweep Range Parameter", "Ranged based sweep step that iterates value of its parameters based on a selected range.", "Flow Control")]
     [AllowAnyChild]
     public class SweepRangeStep : LoopTestStep
     {
@@ -21,8 +21,7 @@ namespace OpenTap.Plugins.BasicSteps
 
         [Browsable(false)]
         public decimal SweepEnd { get { return SweepStop; } set { SweepStop = value; } }
-
-
+        
         [Display("Step Size", Order: 1, Description: "The value to be increased or decreased between every iteration of the sweep.")]
         [EnabledIf(nameof(SweepBehavior), SweepBehavior.Linear, HideIfDisabled = true)]
         [XmlIgnore] // this is inferred from the other properties and should not be set by the serializer
@@ -55,9 +54,37 @@ namespace OpenTap.Plugins.BasicSteps
         }
 
         public IEnumerable<IMemberData> SweepProperties =>
-            TypeData.GetTypeData(this).GetMembers().OfType<IForwardedMemberData>().Where(x =>
+            TypeData.GetTypeData(this).GetMembers().OfType<IParameterizedMemberData>().Where(x =>
                 x.HasAttribute<UnsweepableAttribute>() == false && x.Writable && x.Readable);
 
+        public IEnumerable<string> SweepNames =>
+            SweepProperties.Select(x => x.Name);
+        
+        List<string> selectedProperties = new List<string>();
+        
+        [Browsable(false)]
+        public List<string> DeselectedParameters { get; set; } = new List<string>();
+        [AvailableValues(nameof(SweepNames))]
+        
+        [XmlIgnore]
+        [Browsable(true)]
+        public List<string> SelectedProperties {
+            get
+            {
+                foreach (var prop in SweepProperties)
+                    if (DeselectedParameters.Contains(prop.Name) == false && selectedProperties.Contains(prop.Name) == false)
+                        selectedProperties.Add(prop.Name);
+                return selectedProperties;
+            }
+            set
+            {
+                selectedProperties = value;
+                foreach (var prop in SweepProperties)
+                    if (selectedProperties.Contains(prop.Name) == false && DeselectedParameters.Contains(prop.Name) == false)
+                        DeselectedParameters.Add(prop.Name);
+            } 
+        }
+        
         // Check if the test plan is running before validating sweeps.
         // the validateSweep might have been started before the plan started.
         // hence we use the validateSweepMutex to ensure that validation is done before 
@@ -96,13 +123,9 @@ namespace OpenTap.Plugins.BasicSteps
             }
         }
         
-        public string SelectedProperties =>
-            string.Join(", ", SweepProperties.Select(x => x.GetDisplayAttribute().Name));
-
-
         public SweepRangeStep()
         {
-            Name = "Sweep Range ({SelectedProperties})";
+            Name = $"Sweep Range ({{{nameof(SelectedProperties)}}})";
 
             SweepStart = 1;
             SweepStop = 100;
@@ -147,7 +170,8 @@ namespace OpenTap.Plugins.BasicSteps
         {
             base.Run();
 
-            var sets = SweepProperties.ToArray();
+            var selected = SelectedProperties.ToHashSet();
+            var sets = SweepProperties.Where(x => selected.Contains(x.Name)).ToArray();
             var originalValues = sets.Select(set => set.GetValue(this)).ToArray();
 
 
@@ -156,7 +180,7 @@ namespace OpenTap.Plugins.BasicSteps
             if (SweepBehavior == SweepBehavior.Exponential)
                 range = ExponentialRange(SweepStart, SweepStop, (int)SweepPoints);
 
-            var disps = SweepProperties.Select(x => x.GetDisplayAttribute()).ToList();
+            var disps = sets.Select(x => x.GetDisplayAttribute()).ToList();
             string names = string.Join(", ", disps.Select(x => x.Name));
             
             if (disps.Count > 1)
