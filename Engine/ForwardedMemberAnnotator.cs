@@ -1,9 +1,9 @@
 using System.Collections;
 using System.Linq;
 
-namespace OpenTap.Plugins.BasicSteps
+namespace OpenTap
 {
-    public class ForwardedMemberAnnotator : IAnnotator
+    internal class ForwardedMemberAnnotator : IAnnotator
     {
         public double Priority => 20;
         class SubAvailable : IAvailableValuesAnnotation
@@ -62,8 +62,8 @@ namespace OpenTap.Plugins.BasicSteps
 
             // If the member is a forwarded member on a loopTestStep, it should not be editable because the value
             // is controlled in the sweep, however it should still be shown in the GUI.
-            if (member.DeclaringType.DescendsTo(typeof(LoopTestStep)))
-                annotation.Add(DisabledLoopMemberAnnotation.Instance);
+            //if (member.DeclaringType.DescendsTo(typeof(LoopTestStep)))
+            //    annotation.Add(DisabledLoopMemberAnnotation.Instance);
 
             var items = member.Members.Select(x => x.Item1).ToArray();
             var subannotation = AnnotationCollection.Annotate(items.Length == 1 ? items[0] : items);
