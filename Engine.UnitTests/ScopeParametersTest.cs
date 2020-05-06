@@ -170,18 +170,15 @@ namespace OpenTap.UnitTests
             var msgmem = TypeData.GetTypeData(rows[0]).GetMember(nameof(ScopeTestStep.A));
             Assert.AreEqual(10, msgmem.GetValue(rows[0]));
 
-            var annotated = AnnotationCollection.Annotate(sweep2);
-            var messageMember = annotated.GetMember(nameof(ScopeTestStep.A));
-            Assert.IsFalse(messageMember.Get<IEnabledAnnotation>().IsEnabled);
+            // this feature was disabled.
+            //var annotated = AnnotationCollection.Annotate(sweep2);
+            //var messageMember = annotated.GetMember(nameof(ScopeTestStep.A));
+            //Assert.IsFalse(messageMember.Get<IEnabledAnnotation>().IsEnabled);
 
             var run = plan2.Execute();
             Assert.AreEqual(Verdict.Pass, run.Verdict);
 
             Assert.IsTrue(((ScopeTestStep)sweep2.ChildTestSteps[0]).Collection.SequenceEqual(new[] {10, 20}));
-
-            var name = sweep2.GetFormattedName();
-            
-
         }
     }
 }
