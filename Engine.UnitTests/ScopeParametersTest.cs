@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -79,6 +80,30 @@ namespace OpenTap.UnitTests
             var member2 = TypeData.GetTypeData(plan2.ChildTestSteps[0]).GetMember(member1.Name);
             var val = member2.GetValue(plan2.ChildTestSteps[0]);
             Assert.AreEqual(delay.DelaySecs, val);
+        }
+
+        [Test]
+        public void CyclicScopeTest()
+        {
+            var seq = new SequenceStep();
+            var delay = new DelayStep()
+            {
+                DelaySecs = 1.5
+            };
+            seq.ChildTestSteps.Add(delay);
+
+            var member = TypeData.GetTypeData(delay).GetMember("Time Delay");
+
+            DynamicMemberOperations.ParameterizeMember(seq, member, delay, "something");
+            
+            var value = AnnotationCollection.Annotate(delay).GetMember("DelaySecs").Get<IObjectValueAnnotation>();
+            var value2 = AnnotationCollection.Annotate(seq).GetMember("something").Get<IObjectValueAnnotation>();
+            
+            DynamicMemberOperations.ParameterizeMember(delay, member, seq, "something");
+
+            // Stack overflow...
+            value = AnnotationCollection.Annotate(delay).GetMember("DelaySecs").Get<IObjectValueAnnotation>();
+            value2 = AnnotationCollection.Annotate(seq).GetMember("something").Get<IObjectValueAnnotation>();
         }
         
         public class ScopeTestStep : TestStep{
