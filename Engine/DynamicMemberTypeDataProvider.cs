@@ -13,26 +13,210 @@ namespace OpenTap
     }
 
     /// <summary>  Dynamic member operations. </summary>
-    public static class DynamicMemberOperations
+    public static class ParameterExtensions
     {
         /// <summary> Parameterizes a member from one object unto another. If the name matches something already forwarded, the member will be added to that. </summary>
         /// <param name="target"> The object on which to add a new member. </param>
         /// <param name="member"> The member to forward. </param>
         /// <param name="source"> The owner of the forwarded member. </param>
-        /// <param name="name"> The name of the new property. If null, the name of 'member' will be used.</param>
+        /// <param name="name"> The name of the new property. If null, the name of the source memeber will be used.</param>
         /// <returns></returns>
-        public static IParameterizedMemberData ParameterizeMember(object target, IMemberData member, object source, string name) =>
-            DynamicMember.ParameterizeMember(target, member, source, name);
+        public static ParameterMemberData Parameterize(this IMemberData member, object target, object source, string name)
+        {
+            if (member.GetParameter(target, source) != null)
+                throw new Exception("Member is already parameterized.");
+            return DynamicMember.ParameterizeMember(target, member, source, name);
+        }
 
         /// <summary> Removes a parameterization of a member. </summary>
-        /// <param name="target"> The object owning the dynamic member.</param>
-        /// <param name="forwardedMember"> The forwarded member owned by 'target'. </param>
-        /// <param name="aliasedMember"> The aliased member owned by the source. </param>
+        /// <param name="parameterizedMember"> The parameterized member owned by the source. </param>
         /// <param name="source"> The source of the member. </param>
-        public static void UnparameterizeMember(object target, IParameterizedMemberData forwardedMember, object source, IMemberData aliasedMember) =>
-            DynamicMember.UnparameterizeMember(target, forwardedMember, aliasedMember, source);
+        public static void Unparameterize(this IMemberData parameterizedMember, ParameterMemberData parameter, object source)
+        {
+            DynamicMember.UnparameterizeMember(parameter, parameterizedMember, source);
+        }
+
+        /// <summary>
+        /// Finds the parameter that parameterizes this member on 'source'. If no parameter is found null is returned.
+        /// </summary>
+        /// <param name="target"> The object owning the parameter.</param>
+        /// <param name="source"> The source of the member. </param>
+        /// <param name="parameterizedMember"> The parameterized member owned by the source. </param>
+        /// <returns></returns>
+        internal static ParameterMemberData GetParameter(this IMemberData parameterizedMember, object target, object source)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            if (parameterizedMember == null)
+                throw new ArgumentNullException(nameof(parameterizedMember));
+
+            var parameterMembers = TypeData.GetTypeData(target).GetMembers().OfType<ParameterMemberData>();
+            foreach (var fwd in parameterMembers)
+            {
+                if (fwd.ParameterizedMembers.Contains((source, parameterizedMember)))
+                    return fwd;
+            }
+            return null;
+        }
     }
-    
+
+    /// <summary>
+    /// A member that represents a parameter. The parameter controls the value of a set of parameterized members.
+    /// Parameterized members can be added/removed using IMemberData.Parameterize() and IMemberData.Unparameterize() 
+    /// </summary>
+    public class ParameterMemberData : IMemberData, IParameterMemberData
+    {
+        internal ParameterMemberData(object target, object source, IMemberData member, string name)
+        {
+            var _name = name.Split('\\');
+            this.Target = target;
+            this.DeclaringType = TypeData.GetTypeData(target);
+            this.source = source;
+            this.member = member;
+            Name = name;
+
+            var disp = member.GetDisplayAttribute();
+            displayAttribute = new DisplayAttribute(_name[_name.Length - 1].Trim(), disp.Description, Order: -5,
+                    Groups: _name.Take(_name.Length - 1).Select(x => x.Trim()).ToArray());
+        }
+
+        DisplayAttribute displayAttribute;
+        public IEnumerable<object> Attributes => member.Attributes.Select(x =>
+        {
+            if (x is DisplayAttribute)
+                return displayAttribute;
+            return x;
+        });
+
+        internal object Target { get; }
+
+        object source;
+        IMemberData member;
+
+        public object GetValue(object owner)
+        {
+            var result = member.GetValue(source);
+            return result;
+        }
+
+        /// <summary> Sets the value of this member on the owner. </summary>
+        public void SetValue(object owner, object value)
+        {
+            // this gets a bit complicated now.
+            // we have to ensure that the value is not just same object type, but not the same object
+            // in some cases. Thence we need special cloning.
+            bool strConvertSuccess = false;
+            string str = null;
+            strConvertSuccess = StringConvertProvider.TryGetString(value, out str);
+
+            TapSerializer serializer = null;
+            string serialized = null;
+            if (!strConvertSuccess && value != null)
+            {
+                serializer = new TapSerializer();
+                try
+                {
+                    serialized = serializer.SerializeToString(value);
+                }
+                catch
+                {
+                }
+            }
+
+            int count = 0;
+            if (additionalMembers != null)
+                count = additionalMembers.Count;
+
+            for (int i = -1; i < count; i++)
+            {
+                var context = i == -1 ? source : additionalMembers[i].Source;
+                var _member = i == -1 ? member : additionalMembers[i].Member;
+                try
+                {
+                    object setVal = value;
+                    if (strConvertSuccess)
+                    {
+                        if (StringConvertProvider.TryFromString(str, TypeDescriptor, context, out setVal) == false)
+                            setVal = value;
+                    }
+                    else if (serialized != null)
+                    {
+                        try
+                        {
+                            setVal = serializer.DeserializeFromString(serialized);
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    _member.SetValue(context, setVal); // This will throw an exception if it is not assignable.
+                }
+                catch
+
+                {
+                    object _value = value;
+                    if (_value != null)
+                        _member.SetValue(context, _value); // This will throw an exception if it is not assignable.
+                }
+            }
+        }
+
+        public IEnumerable<(object Source, IMemberData Member)> ParameterizedMembers
+        {
+            get
+            {
+                yield return (source, member);
+                if (additionalMembers != null)
+                    foreach (var item in additionalMembers)
+                        yield return item;
+            }
+        }
+
+        public ITypeData DeclaringType { get; private set; }
+        public ITypeData TypeDescriptor => member.TypeDescriptor;
+        public bool Writable => member.Writable;
+        public bool Readable => member.Readable;
+        public string Name { get; private set; }
+
+        internal void AddAdditionalMember(object source, IMemberData newMember)
+        {
+            if (additionalMembers == null)
+                additionalMembers = new List<(object, IMemberData)>();
+            additionalMembers.Add((source, newMember));
+        }
+
+        List<(object Source, IMemberData Member)> additionalMembers = null;
+
+        /// <summary>
+        /// removes a forwarded member. If it was the original member, the first additional member will be used.
+        /// If no additional members are present, then true will be returned, signalling that the forwarded member no longer exists.
+        /// </summary>
+        /// <param name="aliasedMember">The forwarded member.</param>
+        /// <param name="_source">The object owning 'aliasedMember'</param>
+        /// <returns></returns>
+        internal bool RemoveMember(IMemberData aliasedMember, object _source)
+        {
+            if (_source == source && Equals(aliasedMember, member))
+            {
+                if (additionalMembers == null || additionalMembers.Count == 0)
+                {
+                    source = null;
+                    return true;
+                }
+                (source, member) = additionalMembers[0];
+                additionalMembers.RemoveAt(0);
+            }
+            else
+            {
+                additionalMembers.Remove((_source, aliasedMember));
+            }
+
+            return false;
+        }
+    }
+
+
     class DynamicMember : IMemberData
     {
         public virtual IEnumerable<object> Attributes { get; set; } = Array.Empty<object>();
@@ -55,170 +239,17 @@ namespace OpenTap
 
         public virtual object GetValue(object owner)
         {
+            // TODO: use IDynamicMembersProvider
             if (dict.TryGetValue(owner, out object value))
                 return value;
             return DefaultValue;
-        }
-
-        class ForwardedMember : DynamicMember, IParameterizedMemberData
-        {
-            public ForwardedMember(object source, IMemberData member, string name)
-            {
-                var _name = name.Split('\\');
-                this.source = source;
-                this.member = member;
-                Name = name;
-                
-                var disp = member.GetDisplayAttribute();
-                displayAttribute = new DisplayAttribute(_name[_name.Length - 1].Trim(), disp.Description, Order: -5,
-                        Groups: _name.Take(_name.Length - 1).Select(x => x.Trim()).ToArray());
-            }
-
-            DisplayAttribute displayAttribute;
-            public override IEnumerable<object> Attributes => member.Attributes.Select(x =>
-            {
-                if(x is DisplayAttribute)
-                    return displayAttribute;
-                return x;
-            });
-            object source;
-            IMemberData member;
-
-            bool calculateMemberAverage = false;
-            public override object GetValue(object owner)
-            {
-                var result = member.GetValue(source);
-                
-                if (calculateMemberAverage)
-                {
-                    // disabled because it really does not make any sense to do.
-                    // the value of parameters should always be synced up.
-                    foreach (var (s, m) in additionalMembers)
-                    {
-                        var nextResult = m.GetValue(s);
-                        if (Equals(nextResult, result) == false)
-                            return null;
-                    }
-                }
-
-                return result;
-            }
-
-            public override void SetValue(object owner, object value)
-            {
-                // this gets a bit complicated now.
-                // we have to ensure that the value is not just same object type, but not the same object
-                // in some cases. Thence we need special cloning.
-                bool strConvertSuccess = false;
-                string str = null;
-                strConvertSuccess = StringConvertProvider.TryGetString(value, out str);
-
-                TapSerializer serializer = null;
-                string serialized = null;
-                if (!strConvertSuccess && value != null)
-                {
-                    serializer = new TapSerializer();
-                    try
-                    {
-                        serialized = serializer.SerializeToString(value);
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                int count = 0;
-                if (additionalMembers != null)
-                    count = additionalMembers.Count;
-
-                for (int i = -1; i < count; i++)
-                {
-                    var context = i == -1 ? source : additionalMembers[i].Source;
-                    var _member = i == -1 ? member : additionalMembers[i].Member;
-                    try
-                    {
-                        object setVal = value;
-                        if (strConvertSuccess)
-                        {
-                            if (StringConvertProvider.TryFromString(str, TypeDescriptor, context, out setVal) == false)
-                                setVal = value;
-                        }
-                        else if (serialized != null)
-                        {
-                            try
-                            {
-                                setVal = serializer.DeserializeFromString(serialized);
-                            }
-                            catch
-                            {
-                            }
-                        }
-
-                        _member.SetValue(context, setVal); // This will throw an exception if it is not assignable.
-                    }
-                    catch
-
-                    {
-                        object _value = value;
-                        if (_value != null)
-                            _member.SetValue(context, _value); // This will throw an exception if it is not assignable.
-                    }
-                }
-            } 
-            
-            public IEnumerable<(object Source, IMemberData Member)> Members
-            {
-                get
-                {
-                    yield return (source, member);
-                    if (additionalMembers != null)
-                        foreach (var item in additionalMembers)
-                            yield return item;
-                }
-            }
-
-            public void AddAdditionalMember(object source, IMemberData member)
-            {
-                if (additionalMembers == null)    
-                    additionalMembers = new List<(object, IMemberData)>();
-                additionalMembers.Add((source, member));
-            }
-
-            List<(object Source, IMemberData Member)> additionalMembers = null;
-
-            /// <summary>
-            /// removes a forwarded member. If it was the original member, the first additional member will be used.
-            /// If no additional members are present, then true will be returned, signalling that the forwarded member no longer exists.
-            /// </summary>
-            /// <param name="aliasedMember">The forwarded member.</param>
-            /// <param name="_source">The object owning 'aliasedMember'</param>
-            /// <returns></returns>
-            public bool RemoveMember(IMemberData aliasedMember, object _source)
-            {
-                if (_source == source && Equals(aliasedMember, member))
-                {
-                    if (additionalMembers == null || additionalMembers.Count == 0)
-                    {
-                        source = null;
-                        return true;
-                    }
-                    (source, member) = additionalMembers[0];
-                    additionalMembers.RemoveAt(0);
-                }
-                else
-                {
-                    additionalMembers.Remove((_source, aliasedMember));
-                }
-
-                return false;
-            }
         }
 
         public static void AddDynamicMember(object target, IMemberData member)
         {
             var members =
                 (IMemberData[]) DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.GetValue(target) ?? new IMemberData[0];
-                
+            
             
             Array.Resize(ref members, members.Length + 1);
             members[members.Length - 1] = member;
@@ -233,47 +264,37 @@ namespace OpenTap
             DynamicMemberTypeDataProvider.TestStepTypeData.DynamicMembers.SetValue(target, members);
         }
         
-        public static IParameterizedMemberData ParameterizeMember(object target, IMemberData member, object source, string name)
+        public static ParameterMemberData ParameterizeMember(object target, IMemberData member, object source, string name)
         {
             if(target == null) throw new ArgumentNullException(nameof(target));
             if(member == null) throw new ArgumentNullException(nameof(member));
             if(source == null) throw new ArgumentNullException(nameof(source));
-            if (name == null) name = member.GetDisplayAttribute()?.GetFullName() ?? member.Name;
+            if (name == null) throw new ArgumentNullException(nameof(name));
             var td = TypeData.GetTypeData(target);
-            var _member2 = td.GetMember(name);
-            IParameterizedMemberData member2 = _member2 as IParameterizedMemberData;
-            
-            if (_member2  == null)
+            var existingMember = td.GetMember(name);
+
+            if (existingMember  == null)
             {
-                member2 = new ForwardedMember(source, member, name)
-                {
-                    TypeDescriptor = member.TypeDescriptor,
-                    DeclaringType = td,
-                    Writable = member.Writable,
-                    Readable = member.Readable
-                };
+                var newMember = new ParameterMemberData(target, source, member, name);
                 
-                AddDynamicMember(target, member2);
+                AddDynamicMember(target, newMember);
+                return newMember;
             }
-            else
+            if (existingMember is ParameterMemberData fw)
             {
-                if (_member2 is ForwardedMember fw)
-                    fw.AddAdditionalMember(source, member);
-                else
-                    throw new Exception("A member by that name already exists.");
+                fw.AddAdditionalMember(source, member);
+                return fw;
             }
-            return member2;
+            throw new Exception("A member by that name already exists.");
         }
 
-        public static void UnparameterizeMember(object target, IParameterizedMemberData _forwardedMember, IMemberData aliasedMember, object source)
+        public static void UnparameterizeMember(ParameterMemberData parameterMember, IMemberData aliasedMember, object source)
         {
-            if (_forwardedMember == null) throw new ArgumentNullException(nameof(_forwardedMember));
-            if (target == null) throw new ArgumentNullException(nameof(target));
-            var fw = _forwardedMember as ForwardedMember;
-            if (fw == null)
-                throw new Exception($"Member {_forwardedMember.Name} is not a forwarded member.");
-            if (fw.RemoveMember(aliasedMember, source))
-                RemovedDynamicMember(target, fw);
+            if (parameterMember == null) throw new ArgumentNullException(nameof(parameterMember));
+            if (parameterMember == null)
+                throw new Exception($"Member {parameterMember.Name} is not a forwarded member.");
+            if (parameterMember.RemoveMember(aliasedMember, source))
+                RemovedDynamicMember(parameterMember.Target, parameterMember);
         }
     }
 
@@ -504,16 +525,10 @@ namespace OpenTap
         public double Priority { get; } = 10;
     }
     
-    /// <summary> An IMemberData that shadows multiple other members.</summary>
-    public interface IForwardedMemberData : IMemberData
+    /// <summary> An IMemberData that represents a parameter. The parameter controls the value of a set of parameterized members.</summary>
+    public interface IParameterMemberData : IMemberData
     {
-        /// <summary>  The shadowed members. </summary>
-        IEnumerable<(object Source, IMemberData Member)> Members { get; }
-    }
-
-    /// <summary>  This type of forwarded members represents a perameterization of object members unto another object. </summary>
-    public interface IParameterizedMemberData : IForwardedMemberData
-    {
-
+        /// <summary> The members controlled by this parameter. </summary>
+        IEnumerable<(object Source, IMemberData Member)> ParameterizedMembers { get; }
     }
 }

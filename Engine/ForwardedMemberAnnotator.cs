@@ -57,7 +57,7 @@ namespace OpenTap
 
         public void Annotate(AnnotationCollection annotation)
         {
-            var member = annotation.Get<IMemberAnnotation>()?.Member as IForwardedMemberData;
+            var member = annotation.Get<IMemberAnnotation>()?.Member as IParameterMemberData;
             if (member == null) return;
 
             // If the member is a forwarded member on a loopTestStep, it should not be editable because the value
@@ -65,11 +65,11 @@ namespace OpenTap
             //if (member.DeclaringType.DescendsTo(typeof(LoopTestStep)))
             //    annotation.Add(DisabledLoopMemberAnnotation.Instance);
 
-            var items = member.Members.Select(x => x.Item1).ToArray();
+            var items = member.ParameterizedMembers.Select(x => x.Item1).ToArray();
             var subannotation = AnnotationCollection.Annotate(items.Length == 1 ? items[0] : items);
             annotation.Add(new SubMember(subannotation));
             var subMembers = subannotation.Get<IMembersAnnotation>();
-            var firstmem = member.Members.First().Item2;
+            var firstmem = member.ParameterizedMembers.First().Item2;
             var thismember = subMembers.Members.FirstOrDefault(x => x.Get<IMemberAnnotation>().Member == firstmem);
             if (thismember == null) return;
 

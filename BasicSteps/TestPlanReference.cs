@@ -197,7 +197,7 @@ namespace OpenTap.Plugins.BasicSteps
                     if (currentSerializer != null)
                         newSerializer.GetSerializer<ExternalParameterSerializer>().PreloadedValues.MergeInto(currentSerializer.GetSerializer<ExternalParameterSerializer>().PreloadedValues);
                     var ext = newSerializer.GetSerializer<ExternalParameterSerializer>();
-                    ForwardedParameters.ToList().ForEach(e =>
+                    ExternalParameters.ToList().ForEach(e =>
                     {
                         ext.PreloadedValues[e.Name] = StringConvertProvider.GetString(e.Value);
                     });
@@ -206,7 +206,7 @@ namespace OpenTap.Plugins.BasicSteps
 
                     TestPlan tp = (TestPlan)newSerializer.Deserialize(readXmlFile(Data), TypeData.FromType(typeof(TestPlan)), true, Data) ;
 
-                    ForwardedParameters = tp.ExternalParameters.Entries.ToArray();
+                    ExternalParameters = tp.ExternalParameters.Entries.ToArray();
 
                     var flatSteps = Utils.FlattenHeirarchy(tp.ChildTestSteps, x => x.ChildTestSteps);
 
@@ -269,12 +269,12 @@ namespace OpenTap.Plugins.BasicSteps
             
             if (string.IsNullOrWhiteSpace(Filepath))
             {
-                ForwardedParameters = Array.Empty<ExternalParameter>();
+                ExternalParameters = Array.Empty<ExternalParameter>();
                 return;
             }
             
             UpdateStep();
         }
-        internal ExternalParameter[] ForwardedParameters { get; private set; } = Array.Empty<ExternalParameter>();
+        internal ExternalParameter[] ExternalParameters { get; private set; } = Array.Empty<ExternalParameter>();
     }
 }

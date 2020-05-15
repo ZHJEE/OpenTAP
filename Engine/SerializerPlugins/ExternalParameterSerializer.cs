@@ -69,7 +69,7 @@ namespace OpenTap.Plugins
             }
 
             if (parent == null) return false;
-            DynamicMemberOperations.ParameterizeMember(parent, member, step, parameter);
+            member.Parameterize(parent, step, parameter);
             return true;
         }
 
@@ -195,8 +195,8 @@ namespace OpenTap.Plugins
             IMemberData forwardingMember = null;
             while (forwardingParent != null && forwardingMember == null)
             {
-                var members = TypeData.GetTypeData(forwardingParent).GetMembers().OfType<IForwardedMemberData>();
-                forwardingMember = members.FirstOrDefault(x => x.Members.Any(y => y.Source == step && y.Member == member));
+                var members = TypeData.GetTypeData(forwardingParent).GetMembers().OfType<IParameterMemberData>();
+                forwardingMember = members.FirstOrDefault(x => x.ParameterizedMembers.Any(y => y.Source == step && y.Member == member));
                 if (forwardingMember == null)
                     forwardingParent = forwardingParent.Parent;
             }

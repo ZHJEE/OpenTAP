@@ -342,9 +342,8 @@ namespace OpenTap.Engine.UnitTests
             var delay = new DelayStep();
             plan.Steps.Add(sequence);
             sequence.ChildTestSteps.Add(delay);
-            var newmember = DynamicMemberOperations.ParameterizeMember(sequence,
-                TypeData.GetTypeData(delay).GetMember(nameof(DelayStep.DelaySecs)), delay, null);
-            var fwd = DynamicMemberOperations.ParameterizeMember(plan, newmember, sequence, "DelaySecs");
+            var newmember = TypeData.GetTypeData(delay).GetMember(nameof(DelayStep.DelaySecs)).Parameterize(sequence, delay, null);
+            var fwd = newmember.Parameterize(plan, sequence, "DelaySecs");
             
             Assert.AreEqual(1, plan.ExternalParameters.Entries.Count);
             TestPlan newplan;

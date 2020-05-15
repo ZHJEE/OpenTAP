@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    class ExpandedMemberData : IMemberData, IForwardedMemberData
+    class ExpandedMemberData : IMemberData, IParameterMemberData
     {
         public override bool Equals(object obj)
         {
@@ -38,7 +38,7 @@ namespace OpenTap.Plugins.BasicSteps
         public object GetValue(object owner)
         {
             var tpr = owner as TestPlanReference;
-            var ep = tpr.ForwardedParameters.FirstOrDefault(x => x.Name == epName);
+            var ep = tpr.ExternalParameters.FirstOrDefault(x => x.Name == epName);
 
             var Member = ep.PropertyInfos.First();
             TypeDescriptor = Member.TypeDescriptor;
@@ -50,7 +50,7 @@ namespace OpenTap.Plugins.BasicSteps
             get
             {
                 var tpr = (this.DeclaringType as ExpandedTypeData).Object;
-                var ep = tpr.ForwardedParameters.FirstOrDefault(x => x.Name == epName);
+                var ep = tpr.ExternalParameters.FirstOrDefault(x => x.Name == epName);
                 return ep;
             }
         }
@@ -60,7 +60,7 @@ namespace OpenTap.Plugins.BasicSteps
         public void SetValue(object owner, object value)
         {
             var tpr = owner as TestPlanReference;
-            var ep = tpr.ForwardedParameters.FirstOrDefault(x => x.Name == epName);
+            var ep = tpr.ExternalParameters.FirstOrDefault(x => x.Name == epName);
             var Member = ep.PropertyInfos.First();
             TypeDescriptor = Member.TypeDescriptor;
             ep.Value = value;
@@ -91,7 +91,7 @@ namespace OpenTap.Plugins.BasicSteps
             Attributes = attrs;
         }
 
-        public IEnumerable<(object, IMemberData)> Members =>
+        public IEnumerable<(object, IMemberData)> ParameterizedMembers =>
             ExternalParameter.Properties.SelectMany(x => x.Value.Select(y => ((object)x.Key, y)));
     }
 
@@ -138,9 +138,9 @@ namespace OpenTap.Plugins.BasicSteps
                 try
                 {
                     index = int.Parse(m.Groups["index"].Value);
-                    if (index >= 0 && index < Object.ForwardedParameters.Length)
+                    if (index >= 0 && index < Object.ExternalParameters.Length)
                     {
-                        var ep = Object.ForwardedParameters[index];
+                        var ep = Object.ExternalParameters[index];
                         // return valid expanded member data
                         result = new ExpandedMemberData(ep, ep.Name) {DeclaringType = this};
                     }
@@ -164,13 +164,13 @@ namespace OpenTap.Plugins.BasicSteps
 
         public IEnumerable<IMemberData> GetMembers()
         {
-            var names2 = string.Join(",", Object.ForwardedParameters.Select(x => x.Name));
+            var names2 = string.Join(",", Object.ExternalParameters.Select(x => x.Name));
             if (names == names2 && savedMembers != null) return savedMembers;
             List<IMemberData> members = new List<IMemberData>();
 
-            for (int i = 0; i < Object.ForwardedParameters.Length; i++)
+            for (int i = 0; i < Object.ExternalParameters.Length; i++)
             {
-                var ep = Object.ForwardedParameters[i];
+                var ep = Object.ExternalParameters[i];
                 members.Add(new ExpandedMemberData(ep, ep.Name) {DeclaringType = this});
             }
 
@@ -230,7 +230,7 @@ namespace OpenTap.Plugins.BasicSteps
         }
     }
 
-    class SweepRowMemberData : IMemberData, IForwardedMemberData
+    class SweepRowMemberData : IMemberData, IParameterMemberData
     {
         SweepRowTypeData declaringType;
         IMemberData innerMember;
@@ -238,7 +238,7 @@ namespace OpenTap.Plugins.BasicSteps
         {
             this.declaringType = declaringType;
             this.innerMember = innerMember;
-            Members = new (object, IMemberData)[]{(declaringType.sweepLoop, innerMember)};
+            ParameterizedMembers = new (object, IMemberData)[]{(declaringType.sweepLoop, innerMember)};
         }
 
         public IEnumerable<object> Attributes => innerMember.Attributes;
@@ -261,7 +261,7 @@ namespace OpenTap.Plugins.BasicSteps
             return this.innerMember.GetValue(declaringType);
         }
 
-        public IEnumerable<(object Source, IMemberData Member)> Members { get; }
+        public IEnumerable<(object Source, IMemberData Member)> ParameterizedMembers { get; }
     }
     
     class SweepRowTypeData : ITypeData
@@ -277,7 +277,7 @@ namespace OpenTap.Plugins.BasicSteps
         {
             var loopmembers = TypeData.GetTypeData(sweepLoop).GetMembers()
                 .Where(x => sweepLoop.SelectedParameters.Contains(x.Name))
-                .OfType<IParameterizedMemberData>();
+                .OfType<IParameterMemberData>();
             return loopmembers.Select(x => new SweepRowMemberData(this, x));
         } 
 

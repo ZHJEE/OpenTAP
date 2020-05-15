@@ -17,16 +17,16 @@ namespace OpenTap.UnitTests
             var diag = new DialogStep() {UseTimeout = true};
             var diag2 = new DialogStep();
             var scope = new SequenceStep();
-            string parameter = "Scope\"" + DisplayAttribute.GroupSeparator + "Title"; // name intentionally weird to mess with the serializer.
+            string parameterName = "Scope\"" + DisplayAttribute.GroupSeparator + "Title"; // name intentionally weird to mess with the serializer.
             scope.ChildTestSteps.Add(diag);
             scope.ChildTestSteps.Add(diag2);
             var member = TypeData.GetTypeData(diag).GetMember("Title");
-            DynamicMemberOperations.ParameterizeMember(scope, member, diag, parameter);
-            DynamicMemberOperations.ParameterizeMember(scope, member, diag2, parameter);
-            DynamicMemberOperations.ParameterizeMember(scope, TypeData.GetTypeData(diag).GetMember("Timeout"), diag, "Group\\The Timeout");
+            member.Parameterize(scope, diag, parameterName);
+            member.Parameterize(scope, diag2, parameterName);
+            TypeData.GetTypeData(diag).GetMember("Timeout").Parameterize(scope, diag, "Group\\The Timeout");
 
             var annotation = AnnotationCollection.Annotate(scope);
-            var titleMember = annotation.GetMember(parameter);
+            var titleMember = annotation.GetMember(parameterName);
             titleMember.Get<IStringValueAnnotation>().Value = "New title";
             annotation.Write();
             Assert.AreEqual("New title", diag.Title);
@@ -42,7 +42,7 @@ namespace OpenTap.UnitTests
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
             var scope2 = plan2.Steps[0];
             var annotation2 = AnnotationCollection.Annotate(scope2);
-            var titleMember2 = annotation2.GetMember(parameter);
+            var titleMember2 = annotation2.GetMember(parameterName);
             Assert.IsNotNull(titleMember2);
             titleMember2.Get<IStringValueAnnotation>().Value = "New Title 2";
             annotation2.Write();
@@ -51,13 +51,13 @@ namespace OpenTap.UnitTests
                 Assert.AreEqual(step.Title, "New Title 2");
             }
 
-            var forwardedMember = (IParameterizedMemberData)TypeData.GetTypeData(scope2).GetMember(parameter);
+            var forwardedMember = (ParameterMemberData)TypeData.GetTypeData(scope2).GetMember(parameterName);
             Assert.IsNotNull(forwardedMember);
-            
-            DynamicMemberOperations.UnparameterizeMember(scope2, forwardedMember, scope2.ChildTestSteps[0], member);
-            Assert.IsNotNull(TypeData.GetTypeData(scope2).GetMember(parameter));
-            DynamicMemberOperations.UnparameterizeMember(scope2, forwardedMember, scope2.ChildTestSteps[1], member);
-            Assert.IsNull(TypeData.GetTypeData(scope2).GetMember(parameter)); // last 'Title' removed.
+
+            member.Unparameterize(forwardedMember, scope2.ChildTestSteps[0]);
+            Assert.IsNotNull(TypeData.GetTypeData(scope2).GetMember(parameterName));
+            member.Unparameterize(forwardedMember, scope2.ChildTestSteps[1]);
+            Assert.IsNull(TypeData.GetTypeData(scope2).GetMember(parameterName)); // last 'Title' removed.
         }
 
         [Test]
@@ -71,9 +71,9 @@ namespace OpenTap.UnitTests
             seq1.ChildTestSteps.Add(seq2);
             seq2.ChildTestSteps.Add(delay);
 
-            var member1 = DynamicMemberOperations.ParameterizeMember(seq2,
-                TypeData.GetTypeData(delay).GetMember(nameof(DelayStep.DelaySecs)), delay, "delay");
-            DynamicMemberOperations.ParameterizeMember(seq1, member1, seq2, null);
+            var member1 = TypeData.GetTypeData(delay).GetMember(nameof(DelayStep.DelaySecs))
+                          .Parameterize(seq2, delay, "delay");
+            member1.Parameterize(seq1, seq2, "delay");
             var str = new TapSerializer().SerializeToString(plan);
 
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
@@ -126,7 +126,7 @@ namespace OpenTap.UnitTests
             plan.ChildTestSteps.Add(sweep);
             sweep.ChildTestSteps.Add(numberstep);
             var member = TypeData.GetTypeData(numberstep).GetMember("A");
-            DynamicMemberOperations.ParameterizeMember(sweep, member, numberstep, "A");
+            member.Parameterize(sweep, numberstep, "A");
             sweep.SelectedParameters = Enumerable.Empty<string>().ToList();
             Assert.AreEqual(0, sweep.SelectedParameters.Count());
             {
@@ -177,8 +177,7 @@ namespace OpenTap.UnitTests
             
             sweep.SweepValues.Add(new SweepRow());
 
-            DynamicMemberOperations.ParameterizeMember(sweep,
-                TypeData.GetTypeData(step).GetMember(nameof(ScopeTestStep.A)), step, null);
+            TypeData.GetTypeData(step).GetMember(nameof(ScopeTestStep.A)).Parameterize(sweep, step, nameof(ScopeTestStep.A));
 
             var td1 = TypeData.GetTypeData(sweep.SweepValues[0]);
             var members = td1.GetMembers().ToArray();
