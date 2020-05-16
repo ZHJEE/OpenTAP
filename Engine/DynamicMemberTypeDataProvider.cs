@@ -285,8 +285,15 @@ namespace OpenTap
             if(member == null) throw new ArgumentNullException(nameof(member));
             if(source == null) throw new ArgumentNullException(nameof(source));
             if (name == null) throw new ArgumentNullException(nameof(name));
-            var td = TypeData.GetTypeData(target);
-            var existingMember = td.GetMember(name);
+            {
+                var sourceType = TypeData.GetTypeData(source);
+                if (!sourceType.GetMembers().Contains(member))
+                    throw new ArgumentException("The does not belong to the source object type");
+            }
+            var targetType = TypeData.GetTypeData(target);
+            var existingMember = targetType.GetMember(name);
+            
+            
 
             if (existingMember  == null)
             {

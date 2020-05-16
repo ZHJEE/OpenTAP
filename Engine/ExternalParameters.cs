@@ -8,49 +8,43 @@ using System.Linq;
 namespace OpenTap
 {
 
-    /// <summary>
-    /// This class represents an external test plan parameters that can be defined when a test plan is loaded.
-    /// </summary>
+    /// <summary> Represents an external test plan parameters that can be defined when a test plan is loaded. </summary>
     public class ExternalParameter
     {
-        /// <summary>
-        /// The name of this parameter.
-        /// </summary>
+        /// <summary> The name of this parameter. </summary>
         public string Name { get; }
 
-        TestPlan plan;
-        /// <summary> Maps test step to member infos. </summary>
+        readonly TestPlan plan;
+        /// <summary> Maps test step to member data. </summary>
         public IEnumerable<KeyValuePair<ITestStep, IEnumerable<IMemberData>>> Properties
             => member.ParameterizedMembers
                 .Select(x => new KeyValuePair<ITestStep, IEnumerable<IMemberData>>((ITestStep)x.Source, new []{x.Member}));
 
 
-        /// <summary>
-        /// Gets the list of PropertyInfos associated with this mask entry.
-        /// </summary>
+        /// <summary> Gets the list of PropertyInfos associated with this mask entry. </summary>
         public IEnumerable<IMemberData> PropertyInfos => Properties
             .SelectMany(x => x.Value)
             .Distinct();
 
         /// <summary>
-        /// Gets or sets the value of the combined properties. The setter requires the types to be the same or IConvertibles.
+        /// Gets or sets the value of the combined properties. This requires the types to be the same or IConvertibles.
         /// </summary>
         public object Value
         {
-            get  =>  member.GetValue(plan);
+            get => member.GetValue(plan);
             set => member.SetValue(plan, value);
         }
 
         internal void Clean(HashSet<ITestStep> steps)
         {
-            var members = member.ParameterizedMembers;
-            foreach (var item in members.Where(x => steps.Contains(x.Source) == false))
+            var members = member.ParameterizedMembers
+                .Where(x => steps.Contains(x.Source) == false)
+                .ToArray();
+            foreach (var item in members)
                 item.Member.Unparameterize(member, item.Source);
         }
 
-        /// <summary>
-        /// Gets the property that is bound by the step with ID step.
-        /// </summary>
+        /// <summary> Gets the property that is bound by the step with ID step. </summary>
         /// <param name="step"></param>
         /// <returns></returns>
         public List<IMemberData> GetProperties(ITestStep step)
@@ -60,7 +54,7 @@ namespace OpenTap
 
         ParameterMemberData member;
 
-        /// <summary>Constructor for the ExternalParameter.</summary>
+        /// <summary> Constructor for the ExternalParameter. </summary>
         /// <param name="Plan"></param>
         /// <param name="Name"></param>
         public ExternalParameter(TestPlan Plan, string Name)
@@ -77,9 +71,7 @@ namespace OpenTap
             member = parameter;
         }
 
-        /// <summary>
-        /// Adds a property to the external parameters.
-        /// </summary>
+        /// <summary> Adds a property to the external parameters. </summary>
         /// <param name="step"></param>
         /// <param name="property"></param>
         public void Add(ITestStep step, IMemberData property)
@@ -91,9 +83,7 @@ namespace OpenTap
             plan.ExternalParameters.Add(step, property, Name);
         }
 
-        /// <summary>
-        /// Removes a step from the external parameters.
-        /// </summary>
+        /// <summary> Removes a step from the external parameters. </summary>
         /// <param name="step"></param>
         public void Remove(ITestStep step)
         {
@@ -121,15 +111,14 @@ namespace OpenTap
 
         readonly TestPlan plan;
 
-        /// <summary>Constructor for the ExternalParameters.</summary>
+        /// <summary> Constructor for the ExternalParameters. </summary>
         /// <param name="plan"></param>
         public ExternalParameters(TestPlan plan)
         {
             this.plan = plan;
         }
         
-
-        /// <summary> Adds a step property to the external test plan parameters.</summary>
+        /// <summary> Adds a step property to the external test plan parameters. </summary>
         /// <param name="step"></param>
         /// <param name="setting"></param>
         /// <param name="Name"></param>
@@ -167,32 +156,12 @@ namespace OpenTap
             propertyInfo.Unparameterize(fwd, step);
         }
 
-        ///// <summary> Removes a step property from the external parameters. </summary>
-        ///// <param name="step"></param>
-        ///// <param name="propertyInfo"></param>
-        ///// <param name="Name"></param>
-        //public void Remove(string Name)
-        //{
-        //    if (Name == null)
-        //        throw new ArgumentNullException(nameof(Name));
-
-        //    var tpType = TypeData.GetTypeData(plan);
-        //    IParameterMemberData fwd = tpType.GetMember(Name) as IParameterMemberData;
-        //    if (fwd == null) return;
-        //    foreach(var member in fwd.ParameterizedMembers)
-        //        member.UnparameterizeMember(plan, step);
-        //}
-
-        /// <summary>
-        /// Ensures that each entry test step is also present the test plan.
-        /// </summary>
+        /// <summary> Ensures that each entry test step is also present the test plan. </summary>
         public void Clean()
         {
             var steps = Utils.FlattenHeirarchy(plan.ChildTestSteps, step => step.ChildTestSteps).ToHashSet();
             foreach (var entry in Entries.ToList())
-            {
                 entry.Clean(steps);
-            }
         }
 
         /// <summary> Gets an entry by name. </summary>

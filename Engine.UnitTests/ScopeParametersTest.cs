@@ -94,16 +94,26 @@ namespace OpenTap.UnitTests
 
             var member = TypeData.GetTypeData(delay).GetMember("Time Delay");
 
-            DynamicMemberOperations.ParameterizeMember(seq, member, delay, "something");
+             member.Parameterize(seq, delay, "something");
             
             var value = AnnotationCollection.Annotate(delay).GetMember("DelaySecs").Get<IObjectValueAnnotation>();
             var value2 = AnnotationCollection.Annotate(seq).GetMember("something").Get<IObjectValueAnnotation>();
-            
-            DynamicMemberOperations.ParameterizeMember(delay, member, seq, "something");
+
+            try
+            {
+                member.Parameterize(delay, seq, "something");
+                Assert.Fail("Parameterize should have thrown an exception.");
+            }
+            catch (ArgumentException)
+            {
+                
+            }
 
             // Stack overflow...
             value = AnnotationCollection.Annotate(delay).GetMember("DelaySecs").Get<IObjectValueAnnotation>();
             value2 = AnnotationCollection.Annotate(seq).GetMember("something").Get<IObjectValueAnnotation>();
+            Assert.IsNotNull(value);
+            Assert.IsNotNull(value2);
         }
         
         public class ScopeTestStep : TestStep{
