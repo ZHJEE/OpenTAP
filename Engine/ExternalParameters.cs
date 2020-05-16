@@ -150,19 +150,19 @@ namespace OpenTap
         }
 
         /// <summary> Removes a step property from the external parameters. </summary>
-        /// <param name="step"></param>
-        /// <param name="propertyInfo"></param>
-        /// <param name="Name"></param>
-        public void Remove(ITestStep step, IMemberData propertyInfo)
+        /// <param name="step">The step owning the property. </param>
+        /// <param name="propertyInfo"> The property to remove. </param>
+        /// <param name="name">Un-used parameter. </param>
+        public void Remove(ITestStep step, IMemberData propertyInfo, string name = null)
         {
             if (step == null)
                 throw new ArgumentNullException(nameof(step));
             if(propertyInfo == null)
                 throw new ArgumentNullException(nameof(propertyInfo));
-
-            var tpType = TypeData.GetTypeData(plan);
             ParameterMemberData fwd = propertyInfo.GetParameter(plan, step);
-
+            if(name != null)
+                if(fwd.Name != name)
+                    throw new InvalidOperationException("Name does not match external parameter name.");
             if (fwd == null) return;
             propertyInfo.Unparameterize(fwd, step);
         }

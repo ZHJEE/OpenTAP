@@ -12,15 +12,16 @@ namespace OpenTap
         IMemberData[] DynamicMembers { get; set; }
     }
 
-    /// <summary>  Dynamic member operations. </summary>
+    /// <summary>  Extensions for parameter operations. </summary>
     public static class ParameterExtensions
     {
-        /// <summary> Parameterizes a member from one object unto another. If the name matches something already forwarded, the member will be added to that. </summary>
+        /// <summary> Parameterizes a member from one object unto another.
+        /// If the name matches an existing parameter, the member will be added to that. </summary>
         /// <param name="target"> The object on which to add a new member. </param>
         /// <param name="member"> The member to forward. </param>
         /// <param name="source"> The owner of the forwarded member. </param>
-        /// <param name="name"> The name of the new property. If null, the name of the source memeber will be used.</param>
-        /// <returns></returns>
+        /// <param name="name"> The name of the new property. If null, the name of the source member will be used.</param>
+        /// <returns>The parameterization of the member..</returns>
         public static ParameterMemberData Parameterize(this IMemberData member, object target, object source, string name)
         {
             if (member.GetParameter(target, source) != null)
@@ -30,6 +31,7 @@ namespace OpenTap
 
         /// <summary> Removes a parameterization of a member. </summary>
         /// <param name="parameterizedMember"> The parameterized member owned by the source. </param>
+        /// <param name="parameter"> The parameter to remove it from.</param>
         /// <param name="source"> The source of the member. </param>
         public static void Unparameterize(this IMemberData parameterizedMember, ParameterMemberData parameter, object source)
         {
@@ -64,23 +66,29 @@ namespace OpenTap
     /// A member that represents a parameter. The parameter controls the value of a set of parameterized members.
     /// Parameterized members can be added/removed using IMemberData.Parameterize() and IMemberData.Unparameterize() 
     /// </summary>
-    public class ParameterMemberData : IMemberData, IParameterMemberData
+    /// <remarks>
+    /// The first member have special meaning since it decides which attributes the parameter will have.
+    /// If the member is later removed from the parameter (unparameterized), the first additional member will take its place.
+    /// </remarks>
+    public class ParameterMemberData : IParameterMemberData
     {
         internal ParameterMemberData(object target, object source, IMemberData member, string name)
         {
-            var _name = name.Split('\\');
-            this.Target = target;
-            this.DeclaringType = TypeData.GetTypeData(target);
+            var names = name.Split('\\');
+            Target = target;
+            DeclaringType = TypeData.GetTypeData(target);
             this.source = source;
             this.member = member;
             Name = name;
 
             var disp = member.GetDisplayAttribute();
-            displayAttribute = new DisplayAttribute(_name[_name.Length - 1].Trim(), disp.Description, Order: -5,
-                    Groups: _name.Take(_name.Length - 1).Select(x => x.Trim()).ToArray());
+            displayAttribute = new DisplayAttribute(names[names.Length - 1].Trim(), disp.Description, Order: -5,
+                    Groups: names.Take(names.Length - 1).Select(x => x.Trim()).ToArray());
         }
 
-        DisplayAttribute displayAttribute;
+        readonly DisplayAttribute displayAttribute;
+        
+        /// <summary> Gets the attributes on this member. </summary>
         public IEnumerable<object> Attributes => member.Attributes.Select(x =>
         {
             if (x is DisplayAttribute)
@@ -88,23 +96,22 @@ namespace OpenTap
             return x;
         });
 
+        /// <summary> The target object to which this member is added.
+        /// This should always be the same as the argument to GetValue/SetValue. </summary>
         internal object Target { get; }
-
         object source;
         IMemberData member;
-
-        public object GetValue(object owner)
-        {
-            var result = member.GetValue(source);
-            return result;
-        }
+        List<(object Source, IMemberData Member)> additionalMembers;
+        
+        /// <summary>  Gets the value of this member. </summary>
+        public object GetValue(object owner) =>  member.GetValue(source);
 
         /// <summary> Sets the value of this member on the owner. </summary>
         public void SetValue(object owner, object value)
         {
             // this gets a bit complicated now.
             // we have to ensure that the value is not just same object type, but not the same object
-            // in some cases. Thence we need special cloning.
+            // in some cases. Hence we need special cloning of the value.
             bool strConvertSuccess = false;
             string str = null;
             strConvertSuccess = StringConvertProvider.TryGetString(value, out str);
@@ -162,6 +169,7 @@ namespace OpenTap
             }
         }
 
+        /// <summary>  The members and objects that make up the aggregation of this parameter. </summary>
         public IEnumerable<(object Source, IMemberData Member)> ParameterizedMembers
         {
             get
@@ -173,31 +181,39 @@ namespace OpenTap
             }
         }
 
-        public ITypeData DeclaringType { get; private set; }
+        /// <summary> The target object type. </summary>
+        public ITypeData DeclaringType { get; }
+        
+        /// <summary>  The declared type of this property. This is the type of the first member added to the parameter.
+        /// Subsequent members does not need to have the same type, but they should be conversion compatible. e.g
+        /// if the first member is an int, subsequent members can be other numeric types or string as well. </summary>
         public ITypeData TypeDescriptor => member.TypeDescriptor;
+        
+        /// <summary> If this member is writable. Usually true for parameters.</summary>
         public bool Writable => member.Writable;
+        /// <summary> If this member is readable. Usually true for parameters. </summary>
         public bool Readable => member.Readable;
-        public string Name { get; private set; }
+        /// <summary> The declared name of this parameter. This parameter can be referred to by this name. It may contain spaces etc. </summary>
+        public string Name { get; }
 
-        internal void AddAdditionalMember(object source, IMemberData newMember)
+        internal void AddAdditionalMember(object newSource, IMemberData newMember)
         {
             if (additionalMembers == null)
                 additionalMembers = new List<(object, IMemberData)>();
-            additionalMembers.Add((source, newMember));
+            additionalMembers.Add((newSource, newMember));
         }
 
-        List<(object Source, IMemberData Member)> additionalMembers = null;
-
         /// <summary>
-        /// removes a forwarded member. If it was the original member, the first additional member will be used.
+        /// Removes a forwarded member. If it was the original member, the first additional member will be used.
         /// If no additional members are present, then true will be returned, signalling that the forwarded member no longer exists.
         /// </summary>
-        /// <param name="aliasedMember">The forwarded member.</param>
-        /// <param name="_source">The object owning 'aliasedMember'</param>
-        /// <returns></returns>
-        internal bool RemoveMember(IMemberData aliasedMember, object _source)
+        /// <param name="delMember">The forwarded member.</param>
+        /// <param name="delSource">The object owning 'delMember'</param>
+        /// <returns>True if the last member/source pair has been removed. If this happens the parameter should be removed
+        /// from the target object.</returns>
+        internal bool RemoveMember(IMemberData delMember, object delSource)
         {
-            if (_source == source && Equals(aliasedMember, member))
+            if (delSource == source && Equals(delMember, member))
             {
                 if (additionalMembers == null || additionalMembers.Count == 0)
                 {
@@ -209,13 +225,12 @@ namespace OpenTap
             }
             else
             {
-                additionalMembers.Remove((_source, aliasedMember));
+                additionalMembers?.Remove((delSource, delMember));
             }
 
             return false;
         }
     }
-
 
     class DynamicMember : IMemberData
     {
@@ -288,12 +303,12 @@ namespace OpenTap
             throw new Exception("A member by that name already exists.");
         }
 
-        public static void UnparameterizeMember(ParameterMemberData parameterMember, IMemberData aliasedMember, object source)
+        public static void UnparameterizeMember(ParameterMemberData parameterMember, IMemberData delMember, object delSource)
         {
             if (parameterMember == null) throw new ArgumentNullException(nameof(parameterMember));
             if (parameterMember == null)
                 throw new Exception($"Member {parameterMember.Name} is not a forwarded member.");
-            if (parameterMember.RemoveMember(aliasedMember, source))
+            if (parameterMember.RemoveMember(delMember, delSource))
                 RemovedDynamicMember(parameterMember.Target, parameterMember);
         }
     }
