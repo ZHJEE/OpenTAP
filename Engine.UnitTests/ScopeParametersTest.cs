@@ -131,7 +131,7 @@ namespace OpenTap.UnitTests
         public void SweepLoopRange2Test()
         {
             var plan = new TestPlan();
-            var sweep = new SweepRangeStep();
+            var sweep = new SweepParameterRangeStep();
             var numberstep = new ScopeTestStep();
             plan.ChildTestSteps.Add(sweep);
             sweep.ChildTestSteps.Add(numberstep);
@@ -141,11 +141,15 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(0, sweep.SelectedParameters.Count());
             {
                 var a = AnnotationCollection.Annotate(sweep);
-                var m = a.GetMember(nameof(SweepRangeStep.SelectedParameters));
+                var m = a.GetMember(nameof(SweepParameterRangeStep.SelectedParameters));
+                var sweptMember = a.GetMember("A");
+                Assert.IsTrue(sweptMember.Get<IEnabledAnnotation>().IsEnabled);
                 var ms = m.Get<IMultiSelectAnnotationProxy>();
                 var avail = m.Get<IAvailableValuesAnnotationProxy>();
                 ms.SelectedValues = avail.AvailableValues;
                 a.Write();
+                sweptMember = a.GetMember("A");
+                Assert.IsFalse(sweptMember.Get<IEnabledAnnotation>().IsEnabled);
             }
             
             Assert.AreEqual(1, sweep.SelectedParameters.Count());
@@ -167,7 +171,7 @@ namespace OpenTap.UnitTests
                 
                 // verify that sweep Behavior selected value can be displayed.
                 var annotation = AnnotationCollection.Annotate(sweep);
-                var mem = annotation.GetMember(nameof(SweepRangeStep.SweepBehavior));
+                var mem = annotation.GetMember(nameof(SweepParameterRangeStep.SweepBehavior));
                 var proxy = mem.Get<IAvailableValuesAnnotationProxy>();
                 var selectedBehavior = proxy.SelectedValue.Get<IStringReadOnlyValueAnnotation>();
                 Assert.AreEqual("Linear", selectedBehavior.Value);
@@ -179,7 +183,7 @@ namespace OpenTap.UnitTests
         public void SweepLoop2Test()
         {
             var plan = new TestPlan();
-            var sweep = new SweepStep();
+            var sweep = new SweepParameterStep();
             var step = new ScopeTestStep();
             plan.ChildTestSteps.Add(sweep);
             sweep.ChildTestSteps.Add(step);
@@ -196,7 +200,7 @@ namespace OpenTap.UnitTests
 
             var str = new TapSerializer().SerializeToString(plan);
             var plan2 = (TestPlan)new TapSerializer().DeserializeFromString(str);
-            var sweep2 = (SweepStep) plan2.Steps[0];
+            var sweep2 = (SweepParameterStep) plan2.Steps[0];
             var td2 = TypeData.GetTypeData(sweep2);
             var members2 = td2.GetMembers();
             var rows = sweep2.SweepValues;

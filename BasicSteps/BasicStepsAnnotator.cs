@@ -487,7 +487,6 @@ namespace OpenTap.Plugins.BasicSteps
             public void Write(object source)
             {
                 if (IsReadOnly) return;
-                var sweepPrams = fac.Get<IObjectValueAnnotation>().Value as List<IMemberData>;
                 
                 HashSet<IMemberData> found = new HashSet<IMemberData>();
                 foreach (var _mem in selectedValues)
@@ -545,6 +544,36 @@ namespace OpenTap.Plugins.BasicSteps
                 if(type.Type == typeof(SweepRow))
                 {
                     annotation.Add(new SweepParamsMembers(annotation));
+                }
+            }
+
+            {
+                var member = annotation.Get<IMemberAnnotation>()?.Member as IParameterMemberData;
+                if (member == null) return;
+
+                // If the member is a forwarded member on a loopTestStep, it should not be editable because the value
+                // is controlled in the sweep, however it should still be shown in the GUI.
+                if (member.DeclaringType.DescendsTo(typeof(LoopTestStep)))
+                    annotation.Add(new DisabledLoopMemberAnnotation(annotation, member));
+            }
+        }
+        class DisabledLoopMemberAnnotation : IEnabledAnnotation
+        {
+            readonly AnnotationCollection annotation;
+            readonly IMemberData member;
+            public DisabledLoopMemberAnnotation(AnnotationCollection annotation, IMemberData member)
+            {
+                this.annotation = annotation;
+                this.member = member;
+            }
+
+            public bool IsEnabled
+            {
+                get
+                { 
+                    if (annotation.Source is ISweptParameters sw && sw.SweptProperties.Contains(member.Name))
+                        return false;
+                    return true;
                 }
             }
         }

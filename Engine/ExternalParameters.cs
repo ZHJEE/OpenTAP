@@ -8,7 +8,7 @@ using System.Linq;
 namespace OpenTap
 {
 
-    /// <summary> Represents an external test plan parameters that can be defined when a test plan is loaded. </summary>
+    /// <summary> Represent an external test plan parameters that can be defined when a test plan is loaded. </summary>
     public class ExternalParameter
     {
         /// <summary> The name of this parameter. </summary>
@@ -149,10 +149,9 @@ namespace OpenTap
             if(propertyInfo == null)
                 throw new ArgumentNullException(nameof(propertyInfo));
             ParameterMemberData fwd = propertyInfo.GetParameter(plan, step);
-            if(name != null)
-                if(fwd.Name != name)
-                    throw new InvalidOperationException("Name does not match external parameter name.");
             if (fwd == null) return;
+            if(name != null && fwd.Name != name)
+                throw new InvalidOperationException("Name does not match external parameter name.");
             propertyInfo.Unparameterize(fwd, step);
         }
 

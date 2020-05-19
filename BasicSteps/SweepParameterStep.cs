@@ -9,7 +9,7 @@ namespace OpenTap.Plugins.BasicSteps
 {
     [AllowAnyChild]
     [Display("Sweep Parameter", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
-    public class SweepStep : LoopTestStep
+    public class SweepParameterStep : LoopTestStep, ISweptParameters
     {
         SweepRowCollection sweepValues = new SweepRowCollection();
         [DeserializeOrder(1)] // this should be deserialized as the last thing.
@@ -85,11 +85,11 @@ namespace OpenTap.Plugins.BasicSteps
         }
 
         
-        public SweepStep()
+        public SweepParameterStep()
         {
             SweepValues.Loop = this;
             SweepValues.Add(new SweepRow());
-            Name = "Sweep ({Parameters})";
+            Name = "Sweep {Parameters}";
         }
 
         int iteration;
@@ -150,5 +150,7 @@ namespace OpenTap.Plugins.BasicSteps
             for (int i = 0; i < sets.Length; i++)
                 sets[i].SetValue(this, originalValues[i]);
         }
+
+        public IEnumerable<string> SweptProperties => SelectedParameters;
     }
 }

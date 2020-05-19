@@ -215,8 +215,8 @@ namespace OpenTap.Plugins.BasicSteps
         }
 
         
-        static ConditionalWeakTable<SweepStep, SweepRowTypeData> sweepRowTypes =
-            new ConditionalWeakTable<SweepStep, SweepRowTypeData>();
+        static ConditionalWeakTable<SweepParameterStep, SweepRowTypeData> sweepRowTypes =
+            new ConditionalWeakTable<SweepParameterStep, SweepRowTypeData>();
         
         public ITypeData GetTypeData(object obj)
         {
@@ -238,7 +238,7 @@ namespace OpenTap.Plugins.BasicSteps
         {
             this.declaringType = declaringType;
             this.innerMember = innerMember;
-            ParameterizedMembers = new (object, IMemberData)[]{(declaringType.sweepLoop, innerMember)};
+            ParameterizedMembers = new (object, IMemberData)[]{(declaringType.SweepParameterLoop, innerMember)};
         }
 
         public IEnumerable<object> Attributes => innerMember.Attributes;
@@ -275,8 +275,8 @@ namespace OpenTap.Plugins.BasicSteps
 
         IEnumerable<IMemberData> GetSweepMembers()
         {
-            var loopmembers = TypeData.GetTypeData(sweepLoop).GetMembers()
-                .Where(x => sweepLoop.SelectedParameters.Contains(x.Name))
+            var loopmembers = TypeData.GetTypeData(SweepParameterLoop).GetMembers()
+                .Where(x => SweepParameterLoop.SelectedParameters.Contains(x.Name))
                 .OfType<IParameterMemberData>();
             return loopmembers.Select(x => new SweepRowMemberData(this, x));
         } 
@@ -286,30 +286,30 @@ namespace OpenTap.Plugins.BasicSteps
             return BaseType.GetMember(name) ?? GetSweepMembers().FirstOrDefault(x => x.Name == name);
         }
 
-        public SweepStep sweepLoop;
+        public SweepParameterStep SweepParameterLoop;
 
-        public SweepRowTypeData(SweepStep sweepLoop)
+        public SweepRowTypeData(SweepParameterStep sweepParameterLoop)
         {
-            this.sweepLoop = sweepLoop;
+            this.SweepParameterLoop = sweepParameterLoop;
         }
         
         public object CreateInstance(object[] arguments)
         {
-            return new SweepRow {Loop = sweepLoop};
+            return new SweepRow {Loop = SweepParameterLoop};
         }
 
         public bool CanCreateInstance => true;
 
         public override bool Equals(object obj)
         {
-            if (obj is SweepRowTypeData otherSweepRow && otherSweepRow.sweepLoop == sweepLoop)
+            if (obj is SweepRowTypeData otherSweepRow && otherSweepRow.SweepParameterLoop == SweepParameterLoop)
                 return true;
             return false;
         }
 
         public override int GetHashCode()
         {
-            return sweepLoop.GetHashCode() * 37012721 + 1649210;
+            return SweepParameterLoop.GetHashCode() * 37012721 + 1649210;
         }
     };
 }

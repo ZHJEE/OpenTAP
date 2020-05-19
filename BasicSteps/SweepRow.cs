@@ -12,7 +12,7 @@ namespace OpenTap.Plugins.BasicSteps
         
         /// <summary> The sweep step owning this row. This is needed to figure out which properties the object has. </summary>
         [Browsable(false)]
-        public SweepStep Loop { get; set; }
+        public SweepParameterStep Loop { get; set; }
         
         /// <summary> Dictionary for storing dynamic property values. </summary>
         public Dictionary<string, object> Values = new Dictionary<string, object>();
