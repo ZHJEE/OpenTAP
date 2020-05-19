@@ -73,6 +73,23 @@ namespace OpenTap.Plugins
             return true;
         }
 
+        void loadPreloadedvalues(TestPlan plan)
+        {
+            foreach (var value in PreloadedValues)
+            {
+                var ext = plan.ExternalParameters.Get(value.Key);
+                if (ext == null) continue;
+                try
+                {
+                    ext.Value = value.Value;
+                }
+                catch
+                {
+
+                }
+            }    
+        }
+        
         XElement rootNode;
         /// <summary> Deserialization implementation. </summary>
         public override bool Deserialize(XElement elem, ITypeData t, Action<object> setter)
@@ -80,27 +97,22 @@ namespace OpenTap.Plugins
             if (rootNode == null && t.DescendsTo(typeof(TestPlan)))
             {
                 rootNode = elem;
-                TestPlan _plan;
+                TestPlan _plan = null;
+               
                 bool ok = Serializer.Deserialize(elem,  x=>
                 {
                     _plan = (TestPlan)x;
-                    setter(_plan);
-                    Serializer.DeferLoad(() =>
-                    {
-                        foreach (var value in PreloadedValues)
-                        {
-                            var ext = _plan.ExternalParameters.Get(value.Key);
-                            try
-                            {
-                                ext.Value = value.Value;
-                            }
-                            catch
-                            {
-
-                            }
-                        }    
-                    });
+                    setter(_plan); 
                 }, t);
+                
+                // preloaded values should be handled as the absolute last thing
+                // 2x Defer is used to ensure that there's a very little chance that it will be overwritten
+                // but idealy there should be a way for ordering defers.
+                Serializer.DeferLoad(() =>
+                {
+                    loadPreloadedvalues(_plan);
+                    Serializer.DeferLoad(() => loadPreloadedvalues(_plan));
+                });
 
                 return ok;
             }
@@ -143,28 +155,21 @@ namespace OpenTap.Plugins
                 bool ok = Serializer.Deserialize(elem, setter, t);
                 var extParam = plan.ExternalParameters.Get(parameter);
 
-                if (ok && extParam != null)
+                if (ok)
                 {
-                    Serializer.DeferLoad(() => { extParam.Value = extParam.Value; });
-                }
+                    Serializer.DeferLoad(() =>
+                    {
+                        extParam = plan.ExternalParameters.Get(parameter);
 
-                if (PreloadedValues.ContainsKey(parameter))
-                {
-                    if (extParam != null)
-                    {
-                        // If there is a  preloaded value, use that.
+                        if (PreloadedValues.ContainsKey(extParam.Name)) // If there is a  preloaded value, use that.
+                            extParam.Value = PreloadedValues[extParam.Name];
+                        else
+                            extParam.Value = extParam.Value;
+                    });
+                    if (extParam != null && PreloadedValues.ContainsKey(extParam.Name)) // If there is a  preloaded value, use that.
                         extParam.Value = PreloadedValues[extParam.Name];
-                    }
-                    else
-                    {
-                        Serializer.DeferLoad(() =>
-                        {
-                            extParam = plan.ExternalParameters.Get(parameter);
-                            if(extParam != null)
-                                extParam.Value = extParam.Value;
-                        });
-                    }
                 }
+                
 
                 return ok;
             }

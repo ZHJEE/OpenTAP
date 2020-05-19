@@ -8,6 +8,7 @@ using System.Text;
 using OpenTap.Plugins.BasicSteps;
 using System;
 using System.Linq;
+using OpenTap.Plugins;
 
 namespace OpenTap.Engine.UnitTests
 {
@@ -95,6 +96,45 @@ namespace OpenTap.Engine.UnitTests
                 Assert.IsTrue(fileStep2.PathToThing.Context == fileStep2);
                 Assert.AreEqual(fileStep2.PathToThing.Text, fileStep.PathToThing.Text);
             }
+        }
+
+        [Test]
+        public void SerializeDeserializeWithDutExternalParameter()
+        {
+            var plan = new TestPlan();
+            var step = new TestPlanTest.DutStep();
+            var dut1 = new DummyDut {Name = "DUT1"};
+            var dut2 = new DummyDut {Name = "DUT2"};
+            
+            DutSettings.Current.AddRange(new []{dut1, dut2});
+            try
+            {
+                step.Dut = dut1;
+                plan.ChildTestSteps.Add(step);
+                plan.ExternalParameters.Add(step,
+                    TypeData.GetTypeData(step).GetMember(nameof(TestPlanTest.DutStep.Dut)), "dut");
+
+                using (var memstr = new MemoryStream())
+                {
+                    plan.Save(memstr);
+                    
+                    var serializer = new TapSerializer();
+                    var ext = serializer.GetSerializer<ExternalParameterSerializer>();
+                    ext.PreloadedValues["dut"] = "DUT2";
+
+                    memstr.Seek(0, SeekOrigin.Begin);
+                    plan = (TestPlan)serializer.Deserialize(memstr);
+                }
+
+                step = (TestPlanTest.DutStep) plan.ChildTestSteps[0];
+                Assert.AreEqual(step.Dut, dut2);
+            }
+            finally
+            {
+                DutSettings.Current.Remove(dut1);
+                DutSettings.Current.Remove(dut2);
+            }
+
         }
 
         private void GenerateTestPlanWithNDelaySteps(int stepsCount, string filePath, double defaultValue, string externalParameterName)
