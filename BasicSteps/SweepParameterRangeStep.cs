@@ -9,13 +9,14 @@ using System.Xml.Serialization;
 
 namespace OpenTap.Plugins.BasicSteps
 {
-    interface ISweptParameters
+    interface ISelectedParameters
     {
-        IEnumerable<string> SweptProperties { get; }
+        IList<string> SelectedParameters { get; }
     }
-    [Display("Sweep Parameter Range", "Ranged based sweep step that iterates value of its parameters based on a selected range.", "Flow Control")]
+    [Display("Sweep Parameter Range", "Ranged based sweep step that iterates value of its parameters based on a selected range."
+        , Groups: new [] { "Flow Control", "Legacy" })]
     [AllowAnyChild]
-    public class SweepParameterRangeStep : LoopTestStep, ISweptParameters
+    public class SweepParameterRangeStep : LoopTestStep, ISelectedParameters
     {
         [Display("Start", Group:"Sweep", Order: -2, Description: "The parameter value where the sweep will start.")]
         public decimal SweepStart { get; set; }
@@ -252,6 +253,5 @@ namespace OpenTap.Plugins.BasicSteps
                 sets[i].SetValue(this, originalValues[i]);
         }
 
-        public IEnumerable<string> SweptProperties => SelectedParameters;
     }
 }

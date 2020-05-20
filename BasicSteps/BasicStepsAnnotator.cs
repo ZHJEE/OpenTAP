@@ -553,7 +553,7 @@ namespace OpenTap.Plugins.BasicSteps
 
                 // If the member is a forwarded member on a loopTestStep, it should not be editable because the value
                 // is controlled in the sweep, however it should still be shown in the GUI.
-                if (member.DeclaringType.DescendsTo(typeof(LoopTestStep)))
+                if (member.DeclaringType.DescendsTo(typeof(ISelectedParameters)))
                     annotation.Add(new DisabledLoopMemberAnnotation(annotation, member));
             }
         }
@@ -571,7 +571,7 @@ namespace OpenTap.Plugins.BasicSteps
             {
                 get
                 { 
-                    if (annotation.Source is ISweptParameters sw && sw.SweptProperties.Contains(member.Name))
+                    if (annotation.Source is ISelectedParameters sw && sw.SelectedParameters.Contains(member.Name))
                         return false;
                     return true;
                 }

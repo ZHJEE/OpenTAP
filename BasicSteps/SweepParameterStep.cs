@@ -8,8 +8,9 @@ using System.Xml.Serialization;
 namespace OpenTap.Plugins.BasicSteps
 {
     [AllowAnyChild]
-    [Display("Sweep Parameter", "Table based loop that sweeps the value of its parameters based on a set of values.", "Flow Control")]
-    public class SweepParameterStep : LoopTestStep, ISweptParameters
+    [Display("Sweep Parameter", "Table based loop that sweeps the value of its parameters based on a set of values."
+        , Groups: new [] { "Flow Control", "Legacy" })]
+    public class SweepParameterStep : LoopTestStep, ISelectedParameters
     {
         SweepRowCollection sweepValues = new SweepRowCollection();
         [DeserializeOrder(1)] // this should be deserialized as the last thing.
@@ -149,8 +150,6 @@ namespace OpenTap.Plugins.BasicSteps
             }
             for (int i = 0; i < sets.Length; i++)
                 sets[i].SetValue(this, originalValues[i]);
-        }
-
-        public IEnumerable<string> SweptProperties => SelectedParameters;
+        } 
     }
 }
