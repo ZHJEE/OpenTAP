@@ -700,7 +700,7 @@ namespace OpenTap
         
         
         /// <summary>
-        /// Runs the specified child step if enabled. Upgrades parent verdict to the resulting verdict of the child run. Throws an exception if childStep does not belong or isn't enabled.
+        /// Runs the specified child step if enabled. Upgrades parent verdict to the resulting verdict of the child run, unless upgradeVerdict is false. Throws an exception if childStep does not belong or isn't enabled.
         /// </summary>
         /// <param name="Step"></param>
         /// <param name="childStep">The child step to run.</param>
@@ -708,7 +708,8 @@ namespace OpenTap
         /// <param name="currentPlanRun">The current TestPlanRun.</param>
         /// <param name="currentStepRun">The current TestStepRun.</param>
         /// <param name="attachedParameters">Parameters that will be stored together with the actual parameters of the step.</param>
-        public static TestStepRun RunChildStep(this ITestStep Step, ITestStep childStep, bool throwOnError, TestPlanRun currentPlanRun, TestStepRun currentStepRun, IEnumerable<ResultParameter> attachedParameters = null)
+        /// <param name="upgradeVerdict">Flag indicating whether the parent verdict should be upgraded</param>
+        public static TestStepRun RunChildStep(this ITestStep Step, ITestStep childStep, bool throwOnError, TestPlanRun currentPlanRun, TestStepRun currentStepRun, IEnumerable<ResultParameter> attachedParameters = null, bool upgradeVerdict = true)
         {
             if (childStep == null)
                 throw new ArgumentNullException(nameof(childStep));
@@ -730,19 +731,22 @@ namespace OpenTap
                 step.Results.Defer(() =>
                 {
                     run.WaitForCompletion();
-                    Step.UpgradeVerdict(run.Verdict);
+                    if (upgradeVerdict)
+                        Step.UpgradeVerdict(run.Verdict);
                 });
             }
             else
             {
                 if(run.WasDeferred)
                     run.WaitForCompletion();
-                Step.UpgradeVerdict(run.Verdict);
+                if (upgradeVerdict)
+                    Step.UpgradeVerdict(run.Verdict);
             }
 
             if (run.IsBreakCondition())
             {
-                Step.UpgradeVerdict(Verdict.Error);
+                if (upgradeVerdict)
+                    Step.UpgradeVerdict(Verdict.Error);
                 if (throwOnError)
                     run.ThrowDueToBreakConditions();
             }

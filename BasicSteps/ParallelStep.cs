@@ -2,6 +2,7 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
+
 using System.Linq;
 using System.Threading;
 
@@ -31,7 +32,7 @@ namespace OpenTap.Plugins.BasicSteps
                 {
                     try
                     {
-                        RunChildStep(step);
+                        this.RunChildStep(step, true, PlanRun, StepRun, null, false);
                     }
                     catch
                     {
@@ -47,6 +48,9 @@ namespace OpenTap.Plugins.BasicSteps
 
             for (int waits = 0; waits < steps.Length; waits++)
                 sem.Wait();
+
+            foreach (var step in steps)
+                UpgradeVerdict(step.Verdict);
         }
     }
 }
