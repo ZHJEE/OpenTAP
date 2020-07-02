@@ -19,6 +19,9 @@ namespace OpenTap.Package
         [CommandLineArgument("force", Description = "Download packages even if it results in some being broken.", ShortName = "f")]
         public bool ForceInstall { get; set; }
 
+        [CommandLineArgument("compatible", Description = "Download compatible packages.", ShortName = "p")]
+        public bool CompatibleInstall { get; set; }
+
         [CommandLineArgument("dependencies", Description = "Download dependencies without asking.", ShortName = "y")]
         public bool InstallDependencies { get; set; }
 
@@ -84,7 +87,12 @@ namespace OpenTap.Package
             else
                 repositories.AddRange(Repository.Select(s => PackageRepositoryHelpers.DetermineRepositoryType(s)));
 
-            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, ForceInstall, InstallDependencies, false);
+            if (CompatibleInstall && ForceInstall)
+            {
+                log.Warning("Either compatible or force to be used. They cannot be used together.");
+                return 2;
+            }
+            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, ForceInstall, InstallDependencies, false, CompatibleInstall);
 
             if (PackagesToDownload == null)
                 return 2;

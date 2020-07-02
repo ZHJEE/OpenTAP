@@ -90,7 +90,7 @@ namespace OpenTap.Package
             try
             {
                 // Get package information
-                List<PackageDef> packagesToInstall = PackageActionHelpers.GatherPackagesAndDependencyDefs(targetInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, Force, InstallDependencies, !Force);
+                List<PackageDef> packagesToInstall = PackageActionHelpers.GatherPackagesAndDependencyDefs(targetInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, Force, InstallDependencies, !Force, false);
                 if (packagesToInstall?.Any() != true)
                 {
                     log.Info("Could not find one or more packages.");

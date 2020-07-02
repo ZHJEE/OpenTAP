@@ -35,10 +35,10 @@ namespace OpenTap.Package
             public DepResponse Response { get; set; } = DepResponse.Add;
         }
 
-        internal static PackageDef FindPackage(PackageSpecifier packageReference, bool force, Installation installation, List<IPackageRepository> repositories)
+        internal static PackageDef FindPackage(PackageSpecifier packageReference, bool force, bool compatible, Installation installation, List<IPackageRepository> repositories)
         {
             IPackageIdentifier[] compatibleWith;
-            if (!force)
+            if (compatible)
 			{
                 var tapPackage = installation.GetOpenTapPackage();
                 if(tapPackage != null)
@@ -132,7 +132,7 @@ namespace OpenTap.Package
 
         }
 
-        internal static List<PackageDef> GatherPackagesAndDependencyDefs(Installation installation, PackageSpecifier[] pkgRefs, string[] packageNames, string Version, CpuArchitecture arch, string OS, List<IPackageRepository> repositories, bool force, bool includeDependencies, bool askToIncludeDependencies)
+        internal static List<PackageDef> GatherPackagesAndDependencyDefs(Installation installation, PackageSpecifier[] pkgRefs, string[] packageNames, string Version, CpuArchitecture arch, string OS, List<IPackageRepository> repositories, bool force, bool includeDependencies, bool askToIncludeDependencies, bool compatible)
         {
             List<PackageDef> gatheredPackages = new List<PackageDef>();
 
@@ -201,7 +201,7 @@ namespace OpenTap.Package
                 }
                 else
                 {
-                    PackageDef package = PackageActionHelpers.FindPackage(packageReference, force, installation, repositories);
+                    PackageDef package = PackageActionHelpers.FindPackage(packageReference, force, compatible, installation, repositories);
 
                     if (PackageCacheHelper.PackageIsFromCache(package))
                         log.Debug(timer, "Found package {0} version {1} in local cache", package.Name, package.Version);
