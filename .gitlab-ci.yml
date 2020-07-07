@@ -50,7 +50,7 @@ Doc-API:
 pages:
   stage: package
   image: node:9.11.1
-  dependencies:
+  needs:
     - Doc-API
   only:
     - /^release.*$/
@@ -59,7 +59,7 @@ pages:
     - doc/node_modules/
   script:
     - pushd doc
-    - rm 'User Guide/Readme.md' 'Developer Guide/Readme.md'
+    - rm "User Guide/Readme.md" "Developer Guide/Readme.md"
     - npm install
     - npm run build
     - popd
@@ -79,17 +79,14 @@ Build-Linux64:
     paths:
        - bin/Release/publish
 
-# Builds the Everything.sln solution
+# Builds the OpenTAP.sln solution
 Build-x86:
   stage: build
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
   script:
-         - MSBuild OpenTAP.sln /t:restore /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /m
-         - dotnet restore -r win7-x86
-         - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /m
-         - dotnet build tap\tap.csproj -c Release -r win-x86
-         - Remove-Item -recurse "bin\Release\Packages"
+         - MSBuild OpenTAP.sln /t:restore /t:Rebuild /p:Configuration=Release /p:Platform=x86 /p:DefineConstants="TRACE" /p:TreatWarningsAsErrors="true" /m
+         - Remove-Item -recurse bin/Release/Packages
   artifacts:
     expire_in: 1 week
     paths:
@@ -100,66 +97,36 @@ Build-x64:
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
   script: 
-         - MSBuild /t:restore OpenTAP.sln /p:Configuration=Release /p:Platform=x64 /target:Rebuild /p:DefineConstants="TRACE" /m
-         - dotnet restore -r win7-x64
-         - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x64 /target:Rebuild /p:DefineConstants="TRACE" /m
-         - dotnet build tap\tap.csproj -c Release -r win-x64
-         - Remove-Item -recurse "bin\Release\Packages"
+         - MSBuild OpenTAP.sln /t:restore /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:DefineConstants="TRACE" /p:TreatWarningsAsErrors="true" /m
+         - Remove-Item -recurse bin/Release/Packages
   artifacts:
     expire_in: 1 week
     paths:
        - bin/Release/
-
-WarningTest:
-  stage: build
-  image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
-  tags: [ docker, windows ]
-  script: 
-         - MSBuild OpenTAP.sln /t:restore /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /p:TreatWarningsAsErrors="true" /m
-         - MSBuild OpenTAP.sln /p:Configuration=Release /p:Platform=x86 /target:Rebuild /p:DefineConstants="TRACE" /p:TreatWarningsAsErrors="true" /m
 
 
 # #############################################
 # # Stage: test                               #
 # #############################################
 
-# Gets bin directory from the builddrop location and runs unit tests in Tap.Engine.dll
 TestEngine:
   stage: test
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
-  dependencies:
-     - Build-x86
   needs:
-     - Build-x86
+     - Build-x64
   script:
-         - $ErrorActionPreference = "Stop"
          - dotnet vstest bin/Release/OpenTap.UnitTests.dll --logger:"console;verbosity=detailed" -- RunConfiguration.TestSessionTimeout=1200000
-  artifacts:
-    when: always
-    expire_in: 1 week
-    paths:
-       - "TestResult.xml"
 
-
-# Can't run on docker, as a unit test is using dotfuscator
 TestPackage:
   stage: test
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
-  dependencies:
-     - Build-x86
   needs:
-     - Build-x86
+     - Build-x64
   script:
-         - $ErrorActionPreference = "Stop"
-         - copy-item -r "Package.UnitTests/Packages" bin/Release
+         - copy-item -r Package.UnitTests/Packages bin/Release
          - dotnet vstest bin/Release/OpenTap.Package.UnitTests.dll
-  artifacts:
-    when: always
-    expire_in: 1 week
-    paths:
-       - "TestResult.xml"
 
 TestLinuxPlan:
   stage: test
@@ -178,8 +145,6 @@ TestLinuxPlan:
 
 .LinuxScript:
   tags: [ docker, gce ]
-  dependencies:
-     - Build-Linux64
   needs:
      - Build-Linux64
   script:
@@ -273,22 +238,17 @@ Package-Windows64:
   image: registry.gitlab.com/opentap/buildrunners/signrunner:latest
   tags: [ docker, windows ]
   variables: 
-    ErrorActionPreference: stop
     Architecture: x64
   dependencies:
-     - Build-x64
-     - Doc-API
-  needs:
      - Build-x64
      - Doc-API
   script:
          - if (!$PROTECTED_BRANCH) { Set-Content .\opentap.$Architecture.package.xml  -Value (get-content .\opentap.$Architecture.package.xml | Select-String -Pattern '<Sign Certificate' -NotMatch) }
          - cd bin/Release
-         - .\tap.exe package install -f "/repo/Sign.TapPackage"
+         - ./tap package install -f /repo/Sign.TapPackage
          - $version=$(./tap sdk gitversion)
-         - cmd /C ".\tap.exe package create -v ../../opentap.$Architecture.package.xml -o ../../OpenTAP.$version.$Architecture.Windows.TapPackage"
+         - ./tap package create -v ../../opentap.$Architecture.package.xml -o ../../OpenTAP.$version.$Architecture.Windows.TapPackage
   artifacts:
-    when: on_success
     expire_in: 1 day
     paths:
        - OpenTAP.*.Windows.TapPackage
@@ -296,9 +256,6 @@ Package-Windows64:
 Package-Windows32:
   extends: Package-Windows64
   dependencies:
-     - Build-x86
-     - Doc-API
-  needs:
      - Build-x86
      - Doc-API
   variables:
@@ -309,23 +266,16 @@ Package-Linux:
   image: registry.gitlab.com/opentap/buildrunners/signrunner:latest
   tags: [ docker, windows ]
   dependencies:
-     - Build-x86
+     - Build-x64
      - Build-Linux64
-  needs:
-     - Build-x86
-     - Build-Linux64    
   script:
          - if (!$PROTECTED_BRANCH) { Set-Content .\opentap_linux64.package.xml  -Value (get-content .\opentap_linux64.package.xml | Select-String -Pattern '<Sign Certificate' -NotMatch) }
-         - mv bin\Release\publish bin\linux-x64
-         - pushd bin\linux-x64\
-         - ../Release/tap package download --os Linux --architecture x64 -f -r $env:PACKAGE_REPO_URL -t . Demonstration
-         - mv "Demonstration*.TapPackage" "Demonstration.TapPackage"
-         - ../Release/tap package install -f "/repo/Sign.TapPackage"
-         - cmd /C "..\Release\tap package create -v ../../opentap_linux64.package.xml -o Packages/OpenTAP.Linux.TapPackage"
+         - mv bin/Release/publish bin/linux-x64
+         - cd bin/linux-x64\
+         - ../Release/tap package install -f /repo/Sign.TapPackage
          - $version=$(..\Release\tap sdk gitversion)
-         - cp Packages/OpenTAP.Linux.TapPackage ../../OpenTAP.$version.Linux.TapPackage
+         - ../Release/tap package create -v ../../opentap_linux64.package.xml -o ../../OpenTAP.$version.Linux.TapPackage
   artifacts:
-    when: on_success
     expire_in: 1 week
     paths:
        - OpenTAP.*.Linux.TapPackage
@@ -336,17 +286,13 @@ Package-SDK:
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
   dependencies:
-     - Build-x86
-     - Build-DevGuide
-     - Doc-API
-  needs:
-     - Build-x86
+     - Build-x64
      - Build-DevGuide
      - Doc-API
   script:
          - Set-Content .\opentap.x86.package.xml  -Value (get-content .\opentap.x86.package.xml | Select-String -Pattern '<Sign Certificate' -NotMatch)
          - cd bin/Release
-         - .\tap.exe package create ../../opentap.x86.package.xml --install -v
+         - ./tap package create ../../opentap.x86.package.xml --install -v
          - Copy-Item "../../sdk/Examples" "Packages/SDK/Examples" -Recurse
          - Copy-Item "../../Package/PackageSchema.xsd" "Packages/SDK/PackageSchema.xsd"
          - ./tap sdk gitversion --fields 4 --replace "Packages/SDK/Examples/ExamplePlugin/ExamplePlugin.csproj"
@@ -357,7 +303,6 @@ Package-SDK:
          - ./tap package create -v ../../sdk/sdk.package.xml
          - Move-Item "*.TapPackage" "../.."
   artifacts:
-    when: on_success
     expire_in: 1 week
     paths:
        - "SDK.*.TapPackage"
@@ -371,14 +316,10 @@ Package-NuGet:
   stage: installer
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
-  dependencies:
-    - Build-x64
-    - Package-Windows64
-    - Build-Linux64
   needs:
-    - Build-x64
-    - Package-Windows64
-    - Build-Linux64
+     - Build-x64
+     - Package-Windows64
+     - Build-Linux64
   script:
     - Move-Item bin/Release/publish/ bin/Linux/
     - dotnet build -c NetCore tap/tap.csproj
@@ -435,7 +376,7 @@ Installer-Linux:
   stage: installer
   image: mcr.microsoft.com/dotnet/framework/sdk:4.7.2
   tags: [ docker, windows ]
-  dependencies:
+  needs:
      - Package-Linux
   script:
          - Invoke-WebRequest https://netcologne.dl.sourceforge.net/project/gnuwin32/tar/1.13-1/tar-1.13-1-bin.exe -Outfile tarsetup.exe
@@ -459,8 +400,6 @@ Package-Build-Deb:
   stage: installer
   image: mcr.microsoft.com/dotnet/core/sdk:2.1-bionic
   tags: [ docker, gce ]
-  dependencies:
-    - Package-Linux
   needs:
     - Package-Linux
   script:
@@ -473,7 +412,6 @@ Package-Build-Deb:
     - popd
     - mv OpenTAP.deb ../../OpenTAP.deb
   artifacts:
-    when: on_success 
     expire_in: 1 week
     paths: 
       - OpenTAP.deb
@@ -486,7 +424,7 @@ Test-Installer-Linux:
   stage: testinstaller
   image: mcr.microsoft.com/dotnet/core/runtime:2.1.12-bionic
   tags: [ docker, gce ]
-  dependencies:
+  needs:
     - Installer-Linux
   script:
     - apt update
