@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
@@ -870,16 +871,78 @@ namespace OpenTap
             return val;
         }
 
-        /// <summary>
-        /// Returns arg.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public static T Identity<T>(T id)
+        public static object CloneAs(object obj)
         {
-            return id;
+            var t1 = TypeData.GetTypeData(obj);
+            return CloneAs(t1, t1, obj, true);
         }
+
+        public class CloneCache
+        {
+            public ITypeData stringValueTarget;
+            public string stringValueCache;
+            public int cloneStage;
+            public TapSerializer serializer;
+            
+        }
+        
+        public static object CloneAs(ITypeData t1, ITypeData t2, object value, bool cloneIdentical)
+        {
+            TapSerializer serializer = null;
+            return CloneAs(t1, t2, value, cloneIdentical, ref serializer);
+        }
+        
+
+        public static object CloneAs(ITypeData t1, ITypeData t2, object value, bool cloneIdentical,
+            ref TapSerializer serializer)
+        {
+            return CloneAs(t1, t2, value, cloneIdentical, new CloneCache {serializer = serializer});
+        }
+
+        public static object CloneAs(ITypeData t1, ITypeData t2, object value, bool cloneIdentical, CloneCache cache, object context = null)
+        {
+            if (value == null) return null;
+            if (t1 == t2)
+            {
+                if (!cloneIdentical) return value;
+                if (value is ICloneable cloner) return cloner.Clone();
+            }
+            else
+            {
+                if (cache.stringValueTarget != t2)
+                {
+                    cache.stringValueCache = null;
+                    cache.stringValueTarget = null;
+                }
+            }
+            
+            if(cache.cloneStage < 2)
+            {
+                // try StringConvertProvider
+                if ((cache.stringValueCache != null) || StringConvertProvider.TryGetString(value, out cache.stringValueCache, CultureInfo.InvariantCulture))
+                {
+                    cache.stringValueTarget = t2;
+                    if (StringConvertProvider.TryFromString(cache.stringValueCache, t2, context ?? value, out object result,
+                        CultureInfo.InvariantCulture))
+                    {
+                        cache.cloneStage = 1;
+                        return result;
+                    }
+                }
+            }
+            
+            { // last resort try Xml
+                if (cache.serializer == null) cache.serializer = new TapSerializer();
+                if(cache.stringValueCache == null)
+                    cache.stringValueCache = cache.serializer.SerializeToString(value);
+                var result = cache.serializer.DeserializeFromString(cache.stringValueCache, t2);
+                cache.cloneStage = 3;
+                return result;
+            }
+        }
+        
+        /// <summary> Returns arg. </summary>
+        public static T Identity<T>(T id) => id;
 
         /// <summary>
         /// Returns the element for which selector returns the max value.

@@ -42,6 +42,8 @@ namespace OpenTap.Plugins.BasicSteps
             iteration = 0;
         }
 
+        TapSerializer serializer;
+
         public override void Run()
         {
             base.Run();
@@ -59,18 +61,20 @@ namespace OpenTap.Plugins.BasicSteps
                 foreach (var set in sets)
                 {
                     var mem = rowType.GetMember(set.Name);
-                    var val = StringConvertProvider.GetString(mem.GetValue(Value), CultureInfo.InvariantCulture);
+                    
                     var disp = mem.GetDisplayAttribute();
-                    AdditionalParams.Add(new ResultParameter(disp.Group.FirstOrDefault() ?? "", disp.Name, val));
-
+                    object value = mem.GetValue(Value);
+                    if(StringConvertProvider.TryGetString(value, out string str, CultureInfo.InvariantCulture))
+                        AdditionalParams.Add(new ResultParameter(disp.Group.FirstOrDefault() ?? "", disp.Name, str));
                     try
                     {
-                        var value = StringConvertProvider.FromString(val, set.TypeDescriptor, this, CultureInfo.InvariantCulture);
+                        
+                        value = Utils.CloneAs(mem.TypeDescriptor, set.TypeDescriptor, value, false, ref serializer);
                         set.SetValue(this, value);
                     }
                     catch (TargetInvocationException ex)
                     {
-                        Log.Error("Unable to set '{0}' to value '{2}': {1}", set.GetDisplayAttribute().Name, ex?.InnerException?.Message, val);
+                        Log.Error("Unable to set '{0}' to value '{2}': {1}", set.GetDisplayAttribute().Name, ex?.InnerException?.Message, value);
                         Log.Debug(ex.InnerException);
                     }
                 }

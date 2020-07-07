@@ -717,6 +717,8 @@ namespace OpenTap
             {
                 if (type.DescendsTo(typeof(ITestStep)) && contextObject is ITestStepParent parent)
                 {
+                    while (parent.Parent != null)
+                        parent = parent.Parent;
                     if(Guid.TryParse(stringdata, out Guid id))
                     {
                         return parent.ChildTestSteps.GetStep(id);

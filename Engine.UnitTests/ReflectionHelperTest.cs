@@ -276,6 +276,31 @@ namespace OpenTap.Engine.UnitTests
             Assert.IsNotNull(opentapdll);
         }
 
+        [Test]
+        public void CloningTest()
+        {
+            var plan = new TestPlan();
+            var step = new DelayStep();
+            plan.ChildTestSteps.Add(step);
+            object[] things = {"ASD", 1, step, new Enabled<int>(){Value = 5, IsEnabled = false}};
+            bool[] equals = {true, true, true, false};
+            for (int i = 0; i < things.Length; i++)
+            {
+                var clone = Utils.CloneAs(things[i]);
+                Assert.IsTrue(object.Equals(things[i], clone) == equals[i]);
+                if (clone is Enabled<int> e2)
+                {
+                    Assert.AreEqual(e2.Value, ((Enabled<int>) things[i]).Value);
+                    Assert.AreEqual(e2.IsEnabled, ((Enabled<int>) things[i]).IsEnabled);
+                }
+            }
+            {
+                var d = TypeData.FromType(typeof(double));
+                var testnum = "1.5";
+                var clone = Utils.CloneAs(TypeData.GetTypeData((object)testnum), d, testnum, true);
+                Assert.AreEqual(1.5, clone);
+            }
+        }
     }
 
 

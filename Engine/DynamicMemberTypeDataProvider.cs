@@ -131,59 +131,22 @@ namespace OpenTap
             // this gets a bit complicated now.
             // we have to ensure that the value is not just same object type, but not the same object
             // in some cases. Hence we need special cloning of the value.
-            bool strConvertSuccess = false;
-            string str = null;
-            strConvertSuccess = StringConvertProvider.TryGetString(value, out str);
-
-            ICloneable cloneable = value as ICloneable;
-
-            TapSerializer serializer = null;
-            string serialized = null;
-            if (cloneable == null && !strConvertSuccess && value != null)
-            {
-                serializer = new TapSerializer();
-                try
-                {
-                    serialized = serializer.SerializeToString(value);
-                }
-                catch
-                {
-                }
-            }
-
+            var cache = new Utils.CloneCache();
             int count = 0;
             if (additionalMembers != null)
                 count = additionalMembers.Count;
-
+            var td = TypeData.GetTypeData(value);
             for (int i = -1; i < count; i++)
             {
                 var context = i == -1 ? source : additionalMembers[i].Source;
                 var _member = i == -1 ? member : additionalMembers[i].Member;
                 try
                 {
-                    object setVal = value;
-                    if (i >= 0 || TypeData.GetTypeData(setVal).DescendsTo(TypeDescriptor) == false) // let's just set the value on the first property.
-                    {
-                        if (strConvertSuccess)
-                        {
-                            if (StringConvertProvider.TryFromString(str, TypeDescriptor, context, out setVal) == false)
-                                setVal = value;
-                        }
-                        else if (cloneable != null)
-                        {
-                            setVal = cloneable.Clone();
-                        }
-                        else if (serialized != null)
-                        {
-                            try
-                            {
-                                setVal = serializer.DeserializeFromString(serialized);
-                            }
-                            catch
-                            {
-                            }
-                        }
-                    }
+                    object setVal;
+                    if (i >= 0 || td.DescendsTo(TypeDescriptor) == false) // let's just set the value on the first property.
+                        setVal = Utils.CloneAs(td, _member.TypeDescriptor, value, true, cache, context);
+                    else
+                        setVal = value;
 
                     _member.SetValue(context, setVal); // This will throw an exception if it is not assignable.
                 }
