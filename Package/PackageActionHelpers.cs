@@ -46,7 +46,7 @@ namespace OpenTap.Package
                 else
                     compatibleWith = new[] { new PackageIdentifier("OpenTAP", PluginManager.GetOpenTapAssembly().SemanticVersion.ToString(), CpuArchitecture.Unspecified, "") };
             }
-            else
+            else // meant for force or default action
                 compatibleWith = Array.Empty<IPackageIdentifier>();
             
             var compatiblePackages = PackageRepositoryHelpers.GetPackagesFromAllRepos(repositories, packageReference, compatibleWith);

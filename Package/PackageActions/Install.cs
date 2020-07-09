@@ -89,8 +89,13 @@ namespace OpenTap.Package
 
             try
             {
+                if (Compatible && Force)
+                {
+                    log.Warning("Either compatible or force to be used. They cannot be used together.");
+                    return 2;
+                }
                 // Get package information
-                List<PackageDef> packagesToInstall = PackageActionHelpers.GatherPackagesAndDependencyDefs(targetInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, Force, InstallDependencies, !Force, true);
+                List<PackageDef> packagesToInstall = PackageActionHelpers.GatherPackagesAndDependencyDefs(targetInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, Force, InstallDependencies, !Force, Compatible);
                 if (packagesToInstall?.Any() != true)
                 {
                     log.Info("Could not find one or more packages.");

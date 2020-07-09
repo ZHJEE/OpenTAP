@@ -16,12 +16,6 @@ namespace OpenTap.Package
     [Display("download", Group: "package", Description: "Downloads one or more packages.")]
     public class PackageDownloadAction : LockingPackageAction
     {
-        [CommandLineArgument("force", Description = "Download packages even if it results in some being broken.", ShortName = "f")]
-        public bool ForceInstall { get; set; }
-
-        [CommandLineArgument("compatible", Description = "Download compatible packages.", ShortName = "p")]
-        public bool CompatibleInstall { get; set; }
-
         [CommandLineArgument("dependencies", Description = "Download dependencies without asking.", ShortName = "y")]
         public bool InstallDependencies { get; set; }
 
@@ -87,12 +81,7 @@ namespace OpenTap.Package
             else
                 repositories.AddRange(Repository.Select(s => PackageRepositoryHelpers.DetermineRepositoryType(s)));
 
-            if (CompatibleInstall && ForceInstall)
-            {
-                log.Warning("Either compatible or force to be used. They cannot be used together.");
-                return 2;
-            }
-            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, ForceInstall, InstallDependencies, false, CompatibleInstall);
+            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, false, InstallDependencies, false, Compatible);
 
             if (PackagesToDownload == null)
                 return 2;
