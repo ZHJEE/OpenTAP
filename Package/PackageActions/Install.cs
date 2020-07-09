@@ -4,7 +4,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -95,6 +94,8 @@ namespace OpenTap.Package
                     log.Warning("Either compatible or force to be used. They cannot be used together.");
                     return 2;
                 }
+                // In case of both compatible and force being false, it doesn't matter and default installation will always be not forced
+
                 // Get package information
                 List<PackageDef> packagesToInstall = PackageActionHelpers.GatherPackagesAndDependencyDefs(targetInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, Force, InstallDependencies, !Force);
                 if (packagesToInstall?.Any() != true)
