@@ -89,13 +89,6 @@ namespace OpenTap.Package
 
             try
             {
-                if (Compatible && Force)
-                {
-                    log.Warning("Either compatible or force to be used. They cannot be used together.");
-                    return 2;
-                }
-                // In case of both compatible and force being false, it doesn't matter and default installation will always be not forced
-
                 // Get package information
                 List<PackageDef> packagesToInstall = PackageActionHelpers.GatherPackagesAndDependencyDefs(targetInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, Force, InstallDependencies, !Force);
                 if (packagesToInstall?.Any() != true)

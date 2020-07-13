@@ -294,7 +294,7 @@ Package-Linux:
          - if (!$PROTECTED_BRANCH) { Set-Content .\opentap_linux64.package.xml  -Value (get-content .\opentap_linux64.package.xml | Select-String -Pattern '<Sign Certificate' -NotMatch) }
          - mv bin\Release\publish bin\linux-x64
          - pushd bin\linux-x64\
-         - ../Release/tap package download --os Linux --architecture x64 -p -r $env:PACKAGE_REPO_URL -t . Demonstration
+         - ../Release/tap package download --os Linux --architecture x64 -f -r $env:PACKAGE_REPO_URL -t . Demonstration
          - mv "Demonstration*.TapPackage" "Demonstration.TapPackage"
          - ../Release/tap package install -f "/repo/Sign.TapPackage"
          - cmd /C "..\Release\tap package create -v ../../opentap_linux64.package.xml -o Packages/OpenTAP.Linux.TapPackage"

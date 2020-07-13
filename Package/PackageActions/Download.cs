@@ -16,11 +16,17 @@ namespace OpenTap.Package
     [Display("download", Group: "package", Description: "Downloads one or more packages.")]
     public class PackageDownloadAction : LockingPackageAction
     {
+        [CommandLineArgument("force", Description = "Download packages even if it results in some being broken.", ShortName = "f")]
+        public bool ForceInstall { get; set; } = true;
+
         [CommandLineArgument("dependencies", Description = "Download dependencies without asking.", ShortName = "y")]
         public bool InstallDependencies { get; set; }
 
         [CommandLineArgument("repository", Description = CommandLineArgumentRepositoryDescription, ShortName = "r")]
         public string[] Repository { get; set; }
+
+        [CommandLineArgument("compatible", Description = "Download compatible version.")]
+        public bool Compatible { get; set; }
 
         [CommandLineArgument("version", Description = CommandLineArgumentVersionDescription)]
         public string Version { get; set; }
@@ -81,7 +87,10 @@ namespace OpenTap.Package
             else
                 repositories.AddRange(Repository.Select(s => PackageRepositoryHelpers.DetermineRepositoryType(s)));
 
-            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, !Compatible, InstallDependencies, false);
+            if (Compatible)
+                ForceInstall = false;
+
+            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, ForceInstall, InstallDependencies, false);
 
             if (PackagesToDownload == null)
                 return 2;

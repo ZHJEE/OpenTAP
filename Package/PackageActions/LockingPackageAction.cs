@@ -39,12 +39,6 @@ namespace OpenTap.Package
         [CommandLineArgument("target", Description = "The location where the command is applied. The default is the directory of the application itself.", ShortName = "t")]
         public string Target { get; set; }
 
-        /// <summary>
-        /// Perform compatibility of packages
-        /// </summary>
-        [CommandLineArgument("compatible", Description = "Download or install compatible packages.", ShortName = "p")]
-        public bool Compatible { get; set; }
-
         internal static string GetLocalInstallationDir()
         {
             return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
