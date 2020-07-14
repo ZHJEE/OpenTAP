@@ -16,7 +16,7 @@ namespace OpenTap.Package
     [Display("download", Group: "package", Description: "Downloads one or more packages.")]
     public class PackageDownloadAction : LockingPackageAction
     {
-        [CommandLineArgument("force", Description = "Download packages even if it results in some being broken.", ShortName = "f")]
+        [CommandLineArgument("force", Description = "This option is ignored for package download.", ShortName = "f")]
         public bool ForceInstall { get; set; } = true;
 
         [CommandLineArgument("dependencies", Description = "Download dependencies without asking.", ShortName = "y")]
