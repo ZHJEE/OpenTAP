@@ -19,6 +19,28 @@ namespace OpenTap.Sdk.New
         [CommandLineArgument("out", ShortName = "o", Description = "Path to generated file.")]
         public virtual string output { get; set; }
 
+        private string _target;
+        
+        [CommandLineArgument("target", ShortName = "t", Description = "Directory where the command should be applied.")]
+        public string Target {
+            get => _target;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value) == false)
+                {
+                    var dir = new DirectoryInfo(value);
+                    if (dir.Exists == false)
+                    {
+                        var ex = new Exception($"Target directory {dir.FullName} does not exist.");
+                        log.Error(ex.Message);
+                        throw ex;
+                    }
+
+                    Directory.SetCurrentDirectory(dir.FullName);
+                }
+                _target = value;
+            } 
+        }
         public abstract int Execute(CancellationToken cancellationToken);
 
         public void WriteFile(string filepath, string content, bool force = false)
