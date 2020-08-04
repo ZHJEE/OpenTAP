@@ -462,8 +462,7 @@ namespace OpenTap
                         var testPlanBytes = memstr.ToArray();
                         TestPlanXml = Encoding.UTF8.GetString(testPlanBytes);
                         
-                        Parameters.Add(new ResultParameter("Test Plan", nameof(Hash), GetHash(testPlanBytes),
-                            new MetaDataAttribute(), 0));
+                        Parameters.Add("Test Plan", nameof(Hash), GetHash(testPlanBytes), new MetaDataAttribute());
                     }
                     catch (Exception e)
                     {
@@ -476,17 +475,20 @@ namespace OpenTap
                     }
                 }
             });
+            object addMetadataLock = new object();
             // waits for prompt before loading the parameters.
             ResourceManager.ResourceOpened += res =>
             {
-                Parameters.AddRange(ResultParameters.GetMetadataFromObject(res));
+                lock(addMetadataLock)
+                    Parameters.IncludeMetadataFromObject(res);
             };
             TestPlanName = plan.Name;
             this.plan = plan;
         }
 
-        internal TestPlanRun() 
+        internal TestPlanRun()
         {
+            StatusLogging = EngineSettings.Current.TestPlanStatusLoggingEnabled; 
             MainThread = TapThread.Current;
             FailedToStart = false;
             
@@ -539,7 +541,7 @@ namespace OpenTap
                         plan.Save(memstr);
                         var testPlanBytes = memstr.ToArray();
                         TestPlanXml = Encoding.UTF8.GetString(testPlanBytes);
-                        Parameters.Add(new ResultParameter("Test Plan", nameof(Hash), GetHash(testPlanBytes), new MetaDataAttribute(), 0));
+                        Parameters.Add("Test Plan", nameof(Hash), GetHash(testPlanBytes), new MetaDataAttribute());
                     }
                     catch (Exception e)
                     {

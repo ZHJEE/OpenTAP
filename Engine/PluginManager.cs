@@ -478,7 +478,7 @@ namespace OpenTap
             var assemblies = allPluginTypes.Select(item => item.GetType()).Distinct().Select(type => type.Assembly).ToHashSet();
             assemblies.Add(Assembly.GetExecutingAssembly());
 
-            List<ResultParameter> parameters = new List<ResultParameter>();
+            ResultParameters parameters = new ResultParameters();
             foreach (var asm in assemblies)
             {
                 try
@@ -493,7 +493,7 @@ namespace OpenTap
                     // Silent catch all because we don't care too much about this parameter
                 }
             }
-            return new ResultParameters(parameters);
+            return parameters;
         }
         #endregion
     }
