@@ -86,8 +86,6 @@ namespace OpenTap.Plugins.BasicSteps
         Verdict iterate()
         {
             TapThread.Current.AbortToken.ThrowIfCancellationRequested();
-            if (Retry && Verdict == Verdict.Error) // previous break conditions were reached
-                Verdict = Verdict.NotSet; 
             this.iteration += 1;
             OnPropertyChanged(nameof(IterationInfo));
             var AdditionalParams = new List<ResultParameter> { new ResultParameter("", "Iteration", this.iteration) };
