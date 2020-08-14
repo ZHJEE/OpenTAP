@@ -49,16 +49,16 @@ namespace OpenTap.Engine.UnitTests
         // what about inconclusive??
 
 
-        [TestCase(Verdict.Error, BreakCondition.BreakOnError)]
-        [TestCase(Verdict.Fail, BreakCondition.BreakOnFail)]
-        [TestCase(Verdict.Inconclusive, BreakCondition.BreakOnInconclusive)]
+        [TestCase(Verdict.Error, InternalBreakCondition.BreakOnError)]
+        [TestCase(Verdict.Fail, InternalBreakCondition.BreakOnFail)]
+        [TestCase(Verdict.Inconclusive, InternalBreakCondition.BreakOnInconclusive)]
         [TestCase(Verdict.Inconclusive,
-            BreakCondition.BreakOnInconclusive | BreakCondition.BreakOnError)]
+            InternalBreakCondition.BreakOnInconclusive | InternalBreakCondition.BreakOnError)]
 
         public void TestStepBreakOnError(Verdict verdictOutput, object _condition)
         {
             // _condition arg cannot be a BreakCondition as BreakCondition is not public.
-            BreakCondition condition = (BreakCondition) _condition;
+            InternalBreakCondition condition = (InternalBreakCondition) _condition;
             var l = new PlanRunCollectorListener();
             TestPlan plan = new TestPlan();
             var verdict = new VerdictStep
@@ -76,7 +76,7 @@ namespace OpenTap.Engine.UnitTests
             var run = plan.Execute(new[] {l});
             Assert.AreEqual(verdictOutput, run.Verdict);
             Assert.AreEqual(1, l.StepRuns.Count);
-            Assert.AreEqual(BreakCondition.Inherit, BreakConditionProperty.GetBreakCondition(verdict2));
+            Assert.AreEqual(InternalBreakCondition.Inherit, BreakConditionProperty.GetBreakCondition(verdict2));
         }
 
         [TestCase(Verdict.Pass, EngineSettings.AbortTestPlanType.Step_Error, 2)]
@@ -103,7 +103,7 @@ namespace OpenTap.Engine.UnitTests
                 {
                     VerdictOutput = verdictOutput
                 };
-                BreakConditionProperty.SetBreakCondition(verdict, BreakCondition.Inherit);
+                BreakConditionProperty.SetBreakCondition(verdict, InternalBreakCondition.Inherit);
                 var verdict2 = new VerdictStep
                 {
                     VerdictOutput = Verdict.Pass
@@ -113,7 +113,7 @@ namespace OpenTap.Engine.UnitTests
                 var run = plan.Execute(new[] {l});
                 Assert.AreEqual(finalVerdict, run.Verdict);
                 Assert.AreEqual(runCount, l.StepRuns.Count);
-                Assert.AreEqual(BreakCondition.Inherit, BreakConditionProperty.GetBreakCondition(verdict2));
+                Assert.AreEqual(InternalBreakCondition.Inherit, BreakConditionProperty.GetBreakCondition(verdict2));
             }
             finally
             {
@@ -138,7 +138,7 @@ namespace OpenTap.Engine.UnitTests
                 {
                     VerdictOutput = verdictOutput,
                 };
-                BreakConditionProperty.SetBreakCondition(verdict, BreakCondition.Inherit | BreakCondition.BreakOnError);
+                BreakConditionProperty.SetBreakCondition(verdict, InternalBreakCondition.Inherit | InternalBreakCondition.BreakOnError);
                 var verdict2 = new VerdictStep
                 {
                     VerdictOutput = Verdict.Pass
@@ -148,7 +148,7 @@ namespace OpenTap.Engine.UnitTests
                 var run = plan.Execute(new[] {l});
                 Assert.AreEqual(finalVerdict, run.Verdict);
                 Assert.AreEqual(runCount, l.StepRuns.Count);
-                Assert.AreEqual(BreakCondition.Inherit, BreakConditionProperty.GetBreakCondition(verdict2));
+                Assert.AreEqual(InternalBreakCondition.Inherit, BreakConditionProperty.GetBreakCondition(verdict2));
             }
             finally
             {
@@ -236,17 +236,17 @@ namespace OpenTap.Engine.UnitTests
             plan.Steps.Add(passStep);
             
             // break on fail, this means that 'passStep' will not get executed 
-            BreakConditionProperty.SetBreakCondition(plan, BreakCondition.BreakOnError);
+            BreakConditionProperty.SetBreakCondition(plan, InternalBreakCondition.BreakOnError);
             var col = new PlanRunCollectorListener();
             plan.Execute(new []{col});
             Assert.AreEqual(1, col.StepRuns.Count);
             
-            BreakConditionProperty.SetBreakCondition(plan, BreakCondition.BreakOnFail);
+            BreakConditionProperty.SetBreakCondition(plan, InternalBreakCondition.BreakOnFail);
             col = new PlanRunCollectorListener();
             plan.Execute(new []{col});
             Assert.AreEqual(2, col.StepRuns.Count);
             
-            BreakConditionProperty.SetBreakCondition(plan, BreakCondition.BreakOnInconclusive);
+            BreakConditionProperty.SetBreakCondition(plan, InternalBreakCondition.BreakOnInconclusive);
             col = new PlanRunCollectorListener();
             plan.Execute(new []{col});
             Assert.AreEqual(3, col.StepRuns.Count);

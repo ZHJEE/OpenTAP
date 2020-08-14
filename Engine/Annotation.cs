@@ -1908,7 +1908,7 @@ namespace OpenTap
             }
         }
 
-        class EnabledAnnotation : IMembersAnnotation, IOwnedAnnotation
+        class EnabledAnnotation : IMembersAnnotation, INamedMembersAnnotation, IOwnedAnnotation
         {
             class EnabledAccessAnnotation : IAccessAnnotation
             {
@@ -1922,39 +1922,61 @@ namespace OpenTap
                 public bool IsVisible => true;
             }
 
-            IEnumerable<AnnotationCollection> members;
+            Dictionary<IMemberData, AnnotationCollection> members = new Dictionary<IMemberData, AnnotationCollection>();
             public IEnumerable<AnnotationCollection> Members
             {
                 get
                 {
-                    if (this.members != null) return this.members;
+                    if (this.members != null) return this.members.Values;
                     var members = annotation.GetAll<IMembersAnnotation>().FirstOrDefault(x => x != this)?.Members;
 
                     var enabledMember = members.FirstOrDefault(x => x.Get<IMemberAnnotation>().Member.Name == nameof(Enabled<int>.IsEnabled));
 
                     var valueMember = members.FirstOrDefault(x => x != enabledMember);
 
-                    var unit = annotation.Get<UnitAttribute>();
-                    var avail = annotation.Get<IAvailableValuesAnnotation>();
-                    List<IAnnotation> extra = new List<IAnnotation>();
-                    if (unit != null) { extra.Add(unit); }
-                    if (avail != null) { extra.Add(avail); }
-                    if (annotation.Get<DirectoryPathAttribute>() is DirectoryPathAttribute d)
-                        extra.Add(d);
-                    if (annotation.Get<FilePathAttribute>() is FilePathAttribute f)
-                        extra.Add(f);
-                    if (annotation.Get<ISuggestedValuesAnnotation>() is ISuggestedValuesAnnotation s)
-                        extra.Add(s);
-
-                    extra.Add(new EnabledAccessAnnotation(annotation));
-                    var src = annotation.Get<IObjectValueAnnotation>().Value;
-                    var newValueMember = annotation.AnnotateMember(valueMember.Get<IMemberAnnotation>().Member, src, extra.ToArray());
-
-                    if (src != null)
-                        newValueMember.Read(src);
-                    this.members = new[] { enabledMember, newValueMember };
-                    return this.members;
+                    AnnotationCollection newValueMember = ReplaceValueMember(valueMember);
+                    this.members = new Dictionary<IMemberData, AnnotationCollection> 
+                    { 
+                        { enabledMember.Get<IMemberAnnotation>().Member, enabledMember }, 
+                        { newValueMember.Get<IMemberAnnotation>().Member, newValueMember } 
+                    };
+                    return this.members.Values;
                 }
+            }
+
+            private AnnotationCollection ReplaceValueMember(AnnotationCollection valueMember)
+            {
+                var unit = annotation.Get<UnitAttribute>();
+                var avail = annotation.Get<IAvailableValuesAnnotation>();
+                List<IAnnotation> extra = new List<IAnnotation>();
+                if (unit != null) { extra.Add(unit); }
+                if (avail != null) { extra.Add(avail); }
+                if (annotation.Get<DirectoryPathAttribute>() is DirectoryPathAttribute d)
+                    extra.Add(d);
+                if (annotation.Get<FilePathAttribute>() is FilePathAttribute f)
+                    extra.Add(f);
+                if (annotation.Get<ISuggestedValuesAnnotation>() is ISuggestedValuesAnnotation s)
+                    extra.Add(s);
+
+                extra.Add(new EnabledAccessAnnotation(annotation));
+                var src = annotation.Get<IObjectValueAnnotation>().Value;
+                var newValueMember = annotation.AnnotateMember(valueMember.Get<IMemberAnnotation>().Member, src, extra.ToArray());
+
+                if (src != null)
+                    newValueMember.Read(src);
+                return newValueMember;
+            }
+
+
+            public AnnotationCollection GetMember(IMemberData member)
+            {
+                if (members.TryGetValue(member, out AnnotationCollection value)) return value;
+                var named = annotation.GetAll<INamedMembersAnnotation>().FirstOrDefault(x => x != this);
+                var memberAnnotation = named.GetMember(member);
+                if (memberAnnotation.Get<IMemberAnnotation>().Member.Name != nameof(Enabled<int>.IsEnabled))
+                    memberAnnotation = ReplaceValueMember(memberAnnotation);
+                members[member] = memberAnnotation;
+                return memberAnnotation;
             }
 
             AnnotationCollection annotation;
@@ -2455,11 +2477,6 @@ namespace OpenTap
 
                     if (type.IsEnum)
                     {
-                        if (type == typeof(BreakCondition))
-                        {
-                                annotation.Add(new BreakConditionsAnnotation(annotation));
-                        }
-                        else
                         {    
                             annotation.Add(new EnumValuesAnnotation(type, annotation));
                             annotation.Add(new EnumStringAnnotation(type, annotation));
@@ -2468,6 +2485,10 @@ namespace OpenTap
                             {
                                 annotation.Add(new FlagEnumAnnotation(annotation, type));
                             }
+                        }
+                        if (type == typeof(BreakConditions.Values))
+                        {
+                            annotation.Add(new BreakConditionsAnnotation());
                         }
                     }
 

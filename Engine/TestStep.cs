@@ -501,7 +501,7 @@ namespace OpenTap
         public Guid Id { get; set; } = Guid.NewGuid();
 
         // Implementing this interface will make setting and getting break conditions faster.
-        BreakCondition IBreakConditionProvider.BreakCondition { get; set; } = BreakCondition.Inherit;
+        InternalBreakCondition IBreakConditionProvider.BreakCondition { get; set; } = InternalBreakCondition.Inherit;
         // Implementing this interface will make setting and getting descriptions faster.
         string IDescriptionProvider.Description { get; set; }
         // Implementing this interface will make setting and getting dynamic members faster.

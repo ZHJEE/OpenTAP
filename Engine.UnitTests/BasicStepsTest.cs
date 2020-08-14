@@ -50,7 +50,7 @@ namespace OpenTap.UnitTests
         public void RepeatUntilPass([Values(true, false)] bool retry)
         {
             var step = new PassThirdTime();
-            BreakConditionProperty.SetBreakCondition(step, BreakCondition.BreakOnFail);
+            BreakConditionProperty.SetBreakCondition(step, InternalBreakCondition.BreakOnFail);
             
             var rpt = new RepeatStep()
             {
@@ -87,7 +87,7 @@ namespace OpenTap.UnitTests
         public void RepeatWhileError(Verdict targetVerdict, RepeatStep.RepeatStepAction action)
         {
             var step = new PassThirdTime();
-            BreakConditionProperty.SetBreakCondition(step, BreakCondition.BreakOnFail);
+            BreakConditionProperty.SetBreakCondition(step, InternalBreakCondition.BreakOnFail);
             
             var rpt = new RepeatStep()
             {

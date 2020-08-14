@@ -6,7 +6,7 @@ namespace OpenTap
     /// Test step break conditions. Can be used to define when a test step should issue a break due to it's own verdict.
     /// </summary>
     [Flags]
-    internal enum BreakCondition
+    internal enum InternalBreakCondition
     {
         /// <summary> Inherit behavior from parent or engine settings. </summary>
         [Display("Inherit", "Inherit behavior from the parent step. If no parent step exist or specify a behavior, the Engine setting 'Stop Test Plan Run If' is used.")]
@@ -29,24 +29,25 @@ namespace OpenTap
         /// <summary> Sets the break condition for a test step. </summary>
         /// <param name="step"> Which step to set it on.</param>
         /// <param name="condition"></param>
-        public static void SetBreakCondition(ITestStepParent step, BreakCondition condition)
+        public static void SetBreakCondition(ITestStepParent step, InternalBreakCondition condition)
         {
-            DynamicMemberTypeDataProvider.TestStepTypeData.BreakConditions.SetValue(step, condition);
+            DynamicMemberTypeDataProvider.TestStepTypeData.BreakConditions.SetValue(step, new BreakConditions(condition));
         }
 
         /// <summary> Gets the break condition for a given test step. </summary>
         /// <param name="step"></param>
         /// <returns></returns>
-        public static BreakCondition GetBreakCondition(ITestStepParent step)
+        public static InternalBreakCondition GetBreakCondition(ITestStepParent step)
         {
-            return (BreakCondition) DynamicMemberTypeDataProvider.TestStepTypeData.BreakConditions.GetValue(step);
+            var bc = (BreakConditions)DynamicMemberTypeDataProvider.TestStepTypeData.BreakConditions.GetValue(step);
+            return bc.Conditions;
         }
     }
 
     /// <summary> Internal interface to speed up setting and getting BreakConditions on core classes like TestStep. </summary>
     internal interface IBreakConditionProvider
     {
-        BreakCondition BreakCondition { get; set; }
+        InternalBreakCondition BreakCondition { get; set; }
     }
 
     /// <summary> Internal interface to speed up setting and getting Descriptions on core classes like TestStep. </summary>

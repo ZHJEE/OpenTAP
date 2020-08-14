@@ -361,36 +361,36 @@ namespace OpenTap
 
     internal class DynamicMemberTypeDataProvider : IStackedTypeDataProvider
     {
-        class BreakConditionDynamicMember : DynamicMember
-        {
-            public BreakConditionDynamicMember(DynamicMember breakConditions) : base(breakConditions)
-            {
-                
-            }
+        //class BreakConditionDynamicMember : DynamicMember
+        //{
+        //    public BreakConditionDynamicMember(DynamicMember breakConditions) : base(breakConditions)
+        //    {
 
-            public BreakConditionDynamicMember()
-            {
-                
-            }
+        //    }
 
-            public override void SetValue(object owner, object value)
-            {
-                if (owner is IBreakConditionProvider bc)
-                {
-                    bc.BreakCondition = (BreakCondition) value;
-                    return;
-                }
+        //    public BreakConditionDynamicMember()
+        //    {
 
-                base.SetValue(owner, value);
-            }
+        //    }
 
-            public override object GetValue(object owner)
-            {
-                if (owner is IBreakConditionProvider bc)
-                    return bc.BreakCondition;
-                return base.GetValue(owner);
-            }
-        }
+        //    public override void SetValue(object owner, object value)
+        //    {
+        //        if (owner is IBreakConditionProvider bc)
+        //        {
+        //            bc.BreakCondition = ((BreakConditions)value).Conditions;
+        //            return;
+        //        }
+
+        //        base.SetValue(owner, value);
+        //    }
+
+        //    public override object GetValue(object owner)
+        //    {
+        //        if (owner is IBreakConditionProvider bc)
+        //            return new BreakConditions(bc.BreakCondition);
+        //        return base.GetValue(owner);
+        //    }
+        //}
 
 
         class DescriptionDynamicMember : DynamicMember
@@ -478,10 +478,10 @@ namespace OpenTap
 
         internal class TestStepTypeData : ITypeData
         {
-            internal static readonly DynamicMember BreakConditions = new BreakConditionDynamicMember
+            internal static readonly DynamicMember BreakConditions = new DynamicMember
             {
                 Name = nameof(BreakConditions),
-                DefaultValue = BreakCondition.Inherit,
+                DefaultValue = new BreakConditions(InternalBreakCondition.Inherit),
                 Attributes = new Attribute[]
                 {
                     new DisplayAttribute("Break Conditions",
@@ -492,16 +492,16 @@ namespace OpenTap
                 DeclaringType = TypeData.FromType(typeof(TestStepTypeData)),
                 Readable = true,
                 Writable = true,
-                TypeDescriptor = TypeData.FromType(typeof(BreakCondition))
+                TypeDescriptor = TypeData.FromType(typeof(BreakConditions))
             };
             
             /// <summary>
             /// This is slightly different from normal BreakConditions as the Display attribute is different.
             /// </summary>
-            internal static readonly DynamicMember TestPlanBreakConditions = new BreakConditionDynamicMember(BreakConditions)
+            internal static readonly DynamicMember TestPlanBreakConditions = new DynamicMember(BreakConditions)
             {
                 Name = nameof(BreakConditions),
-                DefaultValue = BreakCondition.Inherit,
+                DefaultValue = new BreakConditions(InternalBreakCondition.Inherit),
                 Attributes = new Attribute[]
                 {
                     new DisplayAttribute("Break Conditions",
@@ -511,7 +511,7 @@ namespace OpenTap
                 DeclaringType = TypeData.FromType(typeof(TestStepTypeData)),
                 Readable = true,
                 Writable = true,
-                TypeDescriptor = TypeData.FromType(typeof(BreakCondition))
+                TypeDescriptor = TypeData.FromType(typeof(BreakConditions))
             };
 
 

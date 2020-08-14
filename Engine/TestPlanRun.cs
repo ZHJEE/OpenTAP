@@ -394,7 +394,7 @@ namespace OpenTap
             if (plan == null)
                 throw new ArgumentNullException(nameof(plan));
             var breakCondition = BreakConditionProperty.GetBreakCondition(plan);
-            if (breakCondition.HasFlag(BreakCondition.Inherit))
+            if (breakCondition.HasFlag(InternalBreakCondition.Inherit))
             {
                 BreakCondition |= breakCondition;
             }
@@ -504,16 +504,16 @@ namespace OpenTap
                 {
                     if (abort2.HasFlag(EngineSettings.AbortTestPlanType.Step_Fail))
                     {
-                        BreakCondition = BreakCondition.BreakOnError | BreakCondition.BreakOnFail;
+                        BreakCondition = InternalBreakCondition.BreakOnError | InternalBreakCondition.BreakOnFail;
                     }
                     else
                     {
-                        BreakCondition = BreakCondition.BreakOnError;
+                        BreakCondition = InternalBreakCondition.BreakOnError;
                     }
                 }
                 else if (abort2.HasFlag(EngineSettings.AbortTestPlanType.Step_Fail))
                 {
-                    BreakCondition = BreakCondition.BreakOnFail;
+                    BreakCondition = InternalBreakCondition.BreakOnFail;
                 }
             }
         }

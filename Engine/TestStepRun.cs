@@ -104,7 +104,7 @@ namespace OpenTap
         /// <summary>
         /// Calculated abort condition...
         /// </summary>
-        internal BreakCondition BreakCondition { get; set; }
+        internal InternalBreakCondition BreakCondition { get; set; }
 
     }
 
@@ -261,12 +261,12 @@ namespace OpenTap
         }
         
         
-        static BreakCondition calculateBreakCondition(ITestStep step, TestRun parentStepRun)
+        static InternalBreakCondition calculateBreakCondition(ITestStep step, TestRun parentStepRun)
         {
-            BreakCondition breakCondition = BreakConditionProperty.GetBreakCondition(step);
+            InternalBreakCondition breakCondition = BreakConditionProperty.GetBreakCondition(step);
             
-            if (breakCondition.HasFlag(BreakCondition.Inherit))
-                return parentStepRun.BreakCondition | BreakCondition.Inherit;
+            if (breakCondition.HasFlag(InternalBreakCondition.Inherit))
+                return parentStepRun.BreakCondition | InternalBreakCondition.Inherit;
             return breakCondition;
         }
 
@@ -283,9 +283,9 @@ namespace OpenTap
         {
             var verdict = Verdict;
             if (OutOfRetries 
-                || (verdict == Verdict.Fail && BreakCondition.HasFlag(BreakCondition.BreakOnFail)) 
-                || (verdict == Verdict.Error && BreakCondition.HasFlag(BreakCondition.BreakOnError))
-                || (verdict == Verdict.Inconclusive && BreakCondition.HasFlag(BreakCondition.BreakOnInconclusive)))
+                || (verdict == Verdict.Fail && BreakCondition.HasFlag(InternalBreakCondition.BreakOnFail)) 
+                || (verdict == Verdict.Error && BreakCondition.HasFlag(InternalBreakCondition.BreakOnError))
+                || (verdict == Verdict.Inconclusive && BreakCondition.HasFlag(InternalBreakCondition.BreakOnInconclusive)))
             {
                 return true;
             }
