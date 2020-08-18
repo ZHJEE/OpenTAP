@@ -98,6 +98,7 @@ namespace OpenTap.Engine.UnitTests
         ///A test for Run
         ///</summary>
         [Test]
+        [Pairwise]
         public void RunTest([Values(false, true)] bool open)
         {
             TestTraceListener trace = new TestTraceListener();
@@ -551,7 +552,65 @@ namespace OpenTap.Engine.UnitTests
             }
         }
 
-        
+        class DeferredResultsStep : TestStep
+        {
+            public bool IsDone = false;
+            public Semaphore sem = new Semaphore(0, 1);
+            public Semaphore canFinish = new Semaphore(0, 1);
+            public override void Run()
+            {
+                Results.Defer(() =>
+                {
+                    sem.Release();
+                    canFinish.WaitOne();
+                });
+            }
+        }
+
+        [Test]
+        public void DeferAndAbort([Values(true, false)] bool WrapSequence)
+        {
+            var defer = new DeferredResultsStep();
+            var plan = new TestPlan();
+            if (WrapSequence)
+            {
+                var sequenceStep = new SequenceStep();
+                sequenceStep.ChildTestSteps.Add(defer);
+                plan.ChildTestSteps.Add(sequenceStep);
+            }
+            else
+            {
+                plan.ChildTestSteps.Add(defer);
+            }
+
+            var sem2 = new Semaphore(0, 1);
+            var thread = TapThread.Start(() =>
+            {
+                try
+                {
+                    plan.Execute();
+                }
+                finally
+                {
+                    sem2.Release();
+                }
+            });
+            defer.sem.WaitOne();
+            thread.Abort();
+            try
+            {
+                bool hangs = sem2.WaitOne(50) == false;
+                Assert.IsTrue(hangs, "Deferred results step should wait.");
+            }
+            finally
+            {
+                defer.canFinish.Release();    
+            }
+            bool isDone = sem2.WaitOne(10000);
+            if(!isDone)
+                Assert.Fail("Test plan timed out");
+            Assert.IsTrue(isDone);
+        }
 
         [Test]
         public void RelativeTestPlanTest()
@@ -882,9 +941,48 @@ namespace OpenTap.Engine.UnitTests
             Assert.AreEqual(1, TestSubStep.Runs);
             Assert.AreEqual(1, run.StepsWithPrePlanRun.Count);
         }
-        
+
         [Test]
-        public void PromptMetadataTest()
+        public void ComponentSettingMetadataTest()
+        {
+            UserInput.SetInterface(new ComponentSettingPrompt());
+            try
+            {
+                TestComponentSettingList.Current.Clear();
+                TestComponentSettingList.Current.Add(new TestComponentSetting());
+
+                EngineSettings.Current.PromptForMetaData = true;
+
+                {
+                    var plan = new TestPlan();
+                    plan.Steps.Add(new ComponentSettingStep());
+
+                    var run = plan.Execute();
+                    Assert.IsFalse(run.FailedToStart);
+                    Assert.AreEqual(Verdict.Pass, run.Verdict);
+                }
+
+                TestComponentSettingList.Current.OfType<TestComponentSetting>().ForEach(f => f.MetaComment = "Test meta data comment");
+
+                {
+                    var plan = new TestPlan();
+                    plan.Steps.Add(new ComponentSettingStep());
+
+                    {
+                        var run = plan.Execute();
+                        Assert.IsFalse(run.FailedToStart);
+                        Assert.AreEqual(Verdict.Pass, run.Verdict);
+                    }
+                }
+            }
+            finally
+            {
+                UserInput.SetInterface(null);
+            }
+        }
+
+        [Test]
+        public void DutPromptMetadataTest()
         {
             UserInput.SetInterface(new DutInfoPrompt());
 
@@ -952,7 +1050,7 @@ namespace OpenTap.Engine.UnitTests
             var planrun = plan.Execute(new[] { pl });
 
             var steprun = pl.StepRuns.First();
-            Assert.IsTrue(steprun.Parameters["ArrayValues"].ToString() == new NumberFormatter(System.Globalization.CultureInfo.CurrentCulture).FormatRange(arrayStep.ArrayValues));
+            Assert.IsTrue(steprun.Parameters["ArrayValues"].ToString() == new NumberFormatter(System.Globalization.CultureInfo.CurrentCulture){UseRanges = false}.FormatRange(arrayStep.ArrayValues));
         }
 
         [Test]
@@ -1050,6 +1148,39 @@ namespace OpenTap.Engine.UnitTests
             EngineSettings.Current.AbortTestPlan = prevAbortPlanType;
             Debug.WriteLine("TestPlanDeferError {0}", sw.Elapsed);
             //workhard = false;
+        }
+
+        class ComponentSettingPrompt : IUserInputInterface
+        {
+            public void RequestUserInput(object dataObject, TimeSpan Timeout, bool modal)
+            {
+                var sub = AnnotationCollection.Annotate(dataObject).Get<IForwardedAnnotations>().Forwarded.ToArray();
+                var comment = sub.First(x => x.Get<IMemberAnnotation>().Member.Name == "MetaComment");
+                Assert.IsNotNull(comment != null);
+                comment.Get<IStringValueAnnotation>().Value = "Just another meta comment";
+                comment.Write();
+            }
+        }
+
+        public class TestComponentSettingList : ComponentSettingsList<TestComponentSettingList, TestComponentSetting> { }
+
+        public class TestComponentSetting : ComponentSettings<TestComponentSetting>
+        {
+            [MetaData(true)]
+            [Display("MetaComment", Description: "Some comment for meta data")]
+            public string MetaComment { get; set; }
+
+            public TestComponentSetting() { }
+        }
+
+        public class ComponentSettingStep : TestStep
+        {
+            public override void Run()
+            {
+                if (string.Compare("Just another meta comment", TestComponentSetting.Current.MetaComment, true) != 0)
+                    throw new InvalidOperationException();
+                UpgradeVerdict(Verdict.Pass);
+            }
         }
 
         class DutInfoPrompt : IUserInputInterface
@@ -1202,7 +1333,7 @@ namespace OpenTap.Engine.UnitTests
         {
             // run an excessively long test plan.
 
-            int Count = 5000;
+            int Count = 500;
             double maxDuration = 50;
             TestPlan plan = new TestPlan();
             TimeGuardStep guard = new TimeGuardStep() { Timeout = maxDuration, StopOnTimeout = true };
@@ -1469,8 +1600,7 @@ namespace OpenTap.Engine.UnitTests
             var plan1Step2 = new DelayStep() { DelaySecs = 10.0 };
             plan1.ChildTestSteps.Add(plan1Step1);
             plan1.ChildTestSteps.Add(plan1Step2);
-            CancellationToken ctPlan1 = new CancellationToken();
-
+            
             //---------------------------------------------------------------------------------------------------------
             EventWaitHandle ewhPlan2IsRunning = new EventWaitHandle(false, EventResetMode.AutoReset);
             EventWaitHandle ewhPlan2StoppedRunning = new EventWaitHandle(false, EventResetMode.AutoReset);
@@ -1482,29 +1612,38 @@ namespace OpenTap.Engine.UnitTests
             plan2.ChildTestSteps.Add(plan2Step1);
             plan2.ChildTestSteps.Add(plan2Step2);
             plan2.ChildTestSteps.Add(plan2Step3);            
-            CancellationToken ctPlan2 = new CancellationToken();
-
+            
             //---------------------------------------------------------------------------------------------------------
-            TapThread tapThread1 = TapThread.Start(() =>
+            var tapThread1 = TapThread.Start(() =>
             {
-                //TestPlan.Current is null before the TestPlan starts running
-                ctPlan1.Register(TapThread.Current.Abort);
-                plan1.Execute(new IResultListener[] { new TestPlanResultListener(ewhPlan1IsRunning) }, null, new HashSet<ITestStep>(plan1.ChildTestSteps));
-                //TestPlan.Current is null after the TestPlan starts running
-                ewhPlan1StoppedRunning.Set();
+                try
+                {
+                    plan1.Execute(new IResultListener[] {new TestPlanResultListener(ewhPlan1IsRunning)}, null,
+                        new HashSet<ITestStep>(plan1.ChildTestSteps));
+                }
+                finally
+                {
+                    //TestPlan.Current is null after the TestPlan starts running
+                    ewhPlan1StoppedRunning.Set();
+                }
             });
 
             //---------------------------------------------------------------------------------------------------------            
-            TapThread tapThread2= TapThread.Start(() =>
+            var tapThread2= TapThread.Start(() =>
             {
-                //TestPlan.Current is null before the TestPlan starts running
-                ctPlan2.Register(TapThread.Current.Abort);
-                plan2.Execute(new IResultListener[] { new TestPlanResultListener(ewhPlan2IsRunning) }, null, new HashSet<ITestStep>(plan2.ChildTestSteps));
-                //TestPlan.Current is null after the TestPlan starts running
-                ewhPlan2StoppedRunning.Set();
+                try
+                {
+                    plan2.Execute(new IResultListener[] {new TestPlanResultListener(ewhPlan2IsRunning)}, null,
+                        new HashSet<ITestStep>(plan2.ChildTestSteps));
+                }
+                finally
+                {
+                    ewhPlan2StoppedRunning.Set();
+                }
             });
 
-            WaitHandle.WaitAll(new WaitHandle[] { ewhPlan1IsRunning, ewhPlan2IsRunning });
+            if(!WaitHandle.WaitAll(new WaitHandle[] { ewhPlan1IsRunning, ewhPlan2IsRunning }, 120000))
+                Assert.Fail("Test plan running timed out.");
             
             Assert.AreEqual(2, plan1.ChildTestSteps.Count);
             Assert.AreEqual(false, tapThread1.AbortToken.IsCancellationRequested);
@@ -1593,6 +1732,27 @@ namespace OpenTap.Engine.UnitTests
                 DutSettings.Current.Remove(dut);
             }
         }
+
+        [Test]
+        public void DefaultPlanMetadata()
+        {
+            PlanRunCollectorListener pl1 = new PlanRunCollectorListener();
+            var plan = new TestPlan();
+            plan.ChildTestSteps.Add(new ManySettingsStep());
+            var run = plan.Execute(new[] {pl1});
+            
+            var parameters = run.Parameters;
+            Assert.IsNotNull(parameters.Find("Station"));
+            Assert.IsNull(parameters.Find("Allow Metadata Prompt"));
+            var stepParameters = pl1.StepRuns.FirstOrDefault().Parameters;
+            Assert.IsNotNull(stepParameters.Find("A"));
+            Assert.IsNotNull(stepParameters.Find("Verdict"));
+            Assert.IsNotNull(stepParameters.Find("Duration"));
+            Assert.IsNull(stepParameters.Find(nameof(ManySettingsStep.Id))); // Id is not saved as Parameter
+            Assert.IsNotNull(run.TestPlanXml);
+            Assert.IsNotNull(run.Hash);
+        }
+        
     }
 
     [TestFixture]
@@ -2036,6 +2196,30 @@ namespace OpenTap.Engine.UnitTests
             plan.ChildTestSteps.Add(regexStep);
             var run = plan.Execute();
             Assert.AreEqual(Verdict.Pass, run.Verdict);
+        }
+    }
+
+    public class ManySettingsStep : TestStep
+    {
+        public int A { get; set; } = 123;
+        public int[] B { get; set; } = new[] {1, 2, 3};
+        public Instrument[] C { get; set; } = Array.Empty<Instrument>();
+        public Instrument[] D { get; set; }= Array.Empty<Instrument>();
+        public Instrument[] E { get; set; }= Array.Empty<Instrument>();
+        public string F { get; set; } = "Hello world!!";
+        
+        [EnabledIf(nameof(A), 123)]
+        public Enabled<string> G { get; set; } = new Enabled<string>() {Value = "Hello"};
+        [EnabledIf(nameof(A), 123)]
+        public List<string> H { get; set; } = new List<string>{"1 2 3"};
+        [EnabledIf(nameof(A), 123)]
+        public Enabled<double> I { get; set; } = new Enabled<double>();
+        [EnabledIf(nameof(A), 123)]
+        public ITestStep Step { get; set; }
+        
+        public override void Run()
+        {
+            
         }
     }
 
