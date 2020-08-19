@@ -16,17 +16,11 @@ namespace OpenTap.Package
     [Display("download", Group: "package", Description: "Downloads one or more packages.")]
     public class PackageDownloadAction : LockingPackageAction
     {
-        [CommandLineArgument("force", Description = "This option is ignored for package download.", ShortName = "f")]
-        public bool ForceInstall { get; set; } = true;
-
         [CommandLineArgument("dependencies", Description = "Download dependencies without asking.", ShortName = "y")]
         public bool InstallDependencies { get; set; }
 
         [CommandLineArgument("repository", Description = CommandLineArgumentRepositoryDescription, ShortName = "r")]
         public string[] Repository { get; set; }
-
-        [CommandLineArgument("compatible", Description = "Download compatible version.")]
-        public bool Compatible { get; set; }
 
         [CommandLineArgument("version", Description = CommandLineArgumentVersionDescription)]
         public string Version { get; set; }
@@ -37,7 +31,7 @@ namespace OpenTap.Package
         [CommandLineArgument("architecture", Description = CommandLineArgumentArchitectureDescription)]
         public CpuArchitecture Architecture { get; set; }
 
-        [UnnamedCommandLineArgument("packages", Required = true)]
+        [UnnamedCommandLineArgument("Packages", Required = true)]
         public string[] Packages { get; set; }
 
         [CommandLineArgument("dry-run", Description = "Initiates the command and checks for errors, but does not download any packages.")]
@@ -77,8 +71,8 @@ namespace OpenTap.Package
 
         protected override int LockedExecute(CancellationToken cancellationToken)
         {
-            string destinationDir = Target ?? Directory.GetCurrentDirectory();
-            Installation destinationInstallation = new Installation(destinationDir);
+            string targetDir = Target ?? Directory.GetCurrentDirectory();
+            Installation destinationDownload = new Installation(targetDir);
 
             List<IPackageRepository> repositories = new List<IPackageRepository>();
 
@@ -87,16 +81,13 @@ namespace OpenTap.Package
             else
                 repositories.AddRange(Repository.Select(s => PackageRepositoryHelpers.DetermineRepositoryType(s)));
 
-            if (Compatible)
-                ForceInstall = false;
-
-            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, ForceInstall, InstallDependencies, false);
+            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationDownload, Packages, Version, Architecture, OS, repositories, InstallDependencies, false);
 
             if (PackagesToDownload == null)
                 return 2;
 
             if (!DryRun)
-                PackageActionHelpers.DownloadPackages(destinationDir, PackagesToDownload);
+                PackageActionHelpers.DownloadPackages(Directory.GetCurrentDirectory(), PackagesToDownload, false);
             else
                 log.Info("Dry run completed. Specified packages are available.");
 
