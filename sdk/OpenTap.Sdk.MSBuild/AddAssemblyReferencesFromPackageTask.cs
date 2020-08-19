@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using DotNet.Globbing;
 using DotNet.Globbing.Token;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
 using Task = Microsoft.Build.Utilities.Task;
 
 namespace Keysight.OpenTap.Sdk.MSBuild
@@ -66,7 +67,7 @@ namespace Keysight.OpenTap.Sdk.MSBuild
     {
         private List<GlobWrapper> _globs;
 
-        public static List<GlobTask> ParseString(string tasks)
+        public static List<GlobTask> ParseString(string tasks, TaskLoggingHelper log)
         {
             var result = new List<GlobTask>();
             var groups = tasks.Split(',').Where(x => x.Length > 0);
@@ -78,11 +79,13 @@ namespace Keysight.OpenTap.Sdk.MSBuild
                     g = string.Concat(g.Skip(1));
 
                 var groupParts = g.Split(';').ToArray();
-                if (groupParts.Length > 3)
+                if (groupParts.Length != 3)
                 {
-                    throw new Exception("Semicolons are not valid in glob patterns.");
+                    log.LogWarning($"Input '{g}' seems to be malformed. Skipping.");
+                    continue;
                 }
-                // Remove the last character in this string to circumvent disgusting workaround needed in targets file
+
+                // Remove the last character in this string to circumvent workaround needed in targets file
                 groupParts[1] = groupParts[1].Substring(0, groupParts[1].Length - 1);
                 var packageName = groupParts[0];
                 var includeGlobs = "**";
@@ -96,7 +99,7 @@ namespace Keysight.OpenTap.Sdk.MSBuild
                 if (groupParts.Length > 2)
                 {
                     if (string.IsNullOrEmpty(groupParts[2]) == false)
-                    {// 
+                    {
                         excludeGlobs = groupParts[2].Replace('\\', '/');
                     }
                 } 
@@ -141,6 +144,25 @@ namespace Keysight.OpenTap.Sdk.MSBuild
     [Serializable]
     public class AddAssemblyReferencesFromPackage : Task
     {
+        public override bool Execute()
+        {
+            Assemblies = new string[] { };
+            try
+            {
+                var globTasks = GlobTask.ParseString(PackagesAndGlobs, Log);
+
+                InitializeWriter();
+                Parallel.ForEach(globTasks, HandlePackage);
+                CloseWriter();
+            }
+            catch (Exception e)
+            {
+                Log.LogErrorFromException(e);
+                throw;
+            }
+
+            return true;
+        }
         public AddAssemblyReferencesFromPackage()
         {
             _added = new HashSet<string>();
@@ -185,27 +207,6 @@ namespace Keysight.OpenTap.Sdk.MSBuild
 
             _writer.WriteLine("  </ItemGroup>");
         }
-
-        public override bool Execute()
-        {
-            Assemblies = new string[] { };
-            try
-            {
-                var globTasks = GlobTask.ParseString(PackagesAndGlobs);
-
-                InitializeWriter();
-                Parallel.ForEach(globTasks, HandlePackage);
-                CloseWriter();
-            }
-            catch (Exception e)
-            {
-                Log.LogErrorFromException(e);
-                throw;
-            }
-
-            return true;
-        }
-
         private void HandlePackage(GlobTask globTask)
         {
             var assembliesInPackage = new List<string>();
