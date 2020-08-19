@@ -47,11 +47,18 @@ namespace OpenTap.Package
 
             var compatiblePackages = PackageRepositoryHelpers.GetPackagesFromAllRepos(repositories, packageReference, compatibleWith);
 
-            // If there were no release version of the package. Try installing any version.
+            // Try downloading specified version. If there were no release version of the package. Try installing any version.
+            if (compatiblePackages.Any() == false)
+            {
+                log.Warning($"Could not find a compatible version of package '{packageReference.Name}'. Trying specified version.");
+                compatibleWith = Array.Empty<IPackageIdentifier>();
+                compatiblePackages = PackageRepositoryHelpers.GetPackagesFromAllRepos(repositories, packageReference, compatibleWith);
+            }
             if (compatiblePackages.Any() == false && packageReference.Version.PreRelease == null && packageReference.Version.MatchBehavior == VersionMatchBehavior.Exact)
             {
                 log.Warning($"Could not find a release version of package '{packageReference.Name}'. Trying 'Any' version.");
                 packageReference = new PackageSpecifier(packageReference.Name, VersionSpecifier.Any, packageReference.Architecture, packageReference.OS);
+                compatibleWith = Array.Empty<IPackageIdentifier>();
                 compatiblePackages = PackageRepositoryHelpers.GetPackagesFromAllRepos(repositories, packageReference, compatibleWith);
             }
 
