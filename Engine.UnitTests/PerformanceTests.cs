@@ -47,7 +47,7 @@ namespace OpenTap.Engine.UnitTests
             void buildSequence(ITestStepParent parent, int levels)
             {
                 parent.ChildTestSteps.Add(new ManySettingsStep());
-                parent.ChildTestSteps.Add(new DeferringResultStep());
+                //parent.ChildTestSteps.Add(new DeferringResultStep());
                 parent.ChildTestSteps.Add(new VirtualPropertiesStep());
                 for (int i = 0; i < levels; i++)
                 {
@@ -78,7 +78,7 @@ namespace OpenTap.Engine.UnitTests
             var time2 = DateTime.Now - proc.StartTime;
             var spentMs = timeSpent.TotalMilliseconds / count;
             Console.WriteLine("Time spent per plan: {0}ms", spentMs);
-            Console.WriteLine("Time spent per step: {0}ms", spentMs / plan.Steps.Count);
+            Console.WriteLine("Time spent per step: {0}ms", spentMs / total);
         }
     }
 
@@ -90,6 +90,8 @@ namespace OpenTap.Engine.UnitTests
         
         [CommandLineArgument("test-plan")]
         public bool ProfileTestPlan { get; set; }
+
+        [CommandLineArgument("iterations")] public int Iterations { get; set; } = 1000;
         
         public int Execute(CancellationToken cancellationToken)
         {
@@ -100,7 +102,7 @@ namespace OpenTap.Engine.UnitTests
                 var sw = Stopwatch.StartNew();
                 
                 
-                for (int i = 0; i < 1000000; i++)
+                for (int i = 0; i < Iterations; i++)
                 {
                     //ShortTimeSpan.FromSeconds(0.01 * i).ToString(sb);
                     ShortTimeSpan.FromSeconds(0.01 * i).ToString(sb);
@@ -111,7 +113,7 @@ namespace OpenTap.Engine.UnitTests
                 Console.WriteLine("TimeSpan: {0}ms", sw.ElapsedMilliseconds);
             }
             if(ProfileTestPlan)
-                new TestPlanPerformanceTest().GeneralPerformanceTest(10000);
+                new TestPlanPerformanceTest().GeneralPerformanceTest(Iterations);
             
             return 0;
         }
