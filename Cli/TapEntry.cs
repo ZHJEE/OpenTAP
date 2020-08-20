@@ -141,9 +141,9 @@ namespace OpenTap.Cli
                 var args = Environment.GetCommandLineArgs();
                 bool isVerbose = args.Contains("--verbose") || args.Contains("-v");
                 bool isColor = args.Contains("--color") || args.Contains("-c");
-                args = args.Where(x => (x.Contains("--color") || x.Contains("--verbose")) == false).ToArray();
+                bool isQuiet = args.Contains("--quiet");
                 ConsoleTraceListener.SetStartupTime(start);
-                var cliTraceListener = new ConsoleTraceListener(isVerbose, false, isColor);
+                var cliTraceListener = new ConsoleTraceListener(isVerbose, isQuiet, isColor);
                 Log.AddListener(cliTraceListener);
                 cliTraceListener.TraceEvents(TapInitializer.InitTraceListener.Instance.AllEvents.ToArray());
                 AppDomain.CurrentDomain.ProcessExit += (s, e) => cliTraceListener.Flush();

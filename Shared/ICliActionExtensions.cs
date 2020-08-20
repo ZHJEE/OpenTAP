@@ -31,6 +31,7 @@ namespace OpenTap.Cli
 
             ap.AllOptions.Add("help", 'h', false, "Write help information.");
             ap.AllOptions.Add("verbose", 'v', false, "Show verbose/debug level log messages.");
+            ap.AllOptions.Add("quiet", needsArgument: false,description: "Show verbose/debug level log messages.");
             ap.AllOptions.Add("color", 'c', false, "Color messages according to their level.");
 
             var argToProp = new Dictionary<string, IMemberData>();
