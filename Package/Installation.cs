@@ -30,6 +30,31 @@ namespace OpenTap.Package
         }
 
         /// <summary>
+        /// Returns a list of triples (Package, File, OffendingPackage) for each conflict between this installation and a list of packages.
+        /// </summary>
+        /// <param name="newPackages"></param>
+        /// <returns></returns>
+        public List<(PackageDef Package, PackageFile File, PackageDef OffendingPackage)> CalculatePackageInstallConflicts(IEnumerable<PackageDef> newPackages)
+        {
+            return VerifyPackageHashes.CalculatePackageInstallConflicts(this.GetPackages(), newPackages);
+        }
+        
+        /// <summary>
+        /// /// Returns a list of triples (Package, File, OffendingPackage) for each conflict between two lists of packages.
+        /// </summary>
+        /// <param name="installedPackages"></param>
+        /// <param name="newPackages"></param>
+        /// <returns></returns>
+        public static List<(PackageDef Package, PackageFile File, PackageDef OffendingPackage)>
+            CalculatePackageInstallConflicts(IEnumerable<PackageDef> installedPackages,
+                IEnumerable<PackageDef> newPackages)
+        {
+            return VerifyPackageHashes.CalculatePackageInstallConflicts(installedPackages, newPackages);
+        } 
+        
+        
+
+        /// <summary>
         /// Returns package definition list of installed packages in the TAP installation defined in the constructor, and system-wide packages.
         /// </summary>
         /// <returns></returns>
