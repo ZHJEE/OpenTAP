@@ -1,6 +1,7 @@
 ﻿using OpenTap.Cli;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -282,7 +283,7 @@ namespace OpenTap.Package
 
             if (package.Dependencies.Count > 0)
             {
-                AddWritePair("Dependencies", string.Join(Environment.NewLine, package.Dependencies.Select(x => x.Name)));
+                AddWritePair("Dependencies", string.Join(Environment.NewLine, package.Dependencies.Select(x => $"{x.Name} {x.Version}")));
             }
             
             foreach (var (key, value) in SubTags)
