@@ -766,5 +766,89 @@ namespace OpenTap.Package.UnitTests
             Assert.AreEqual(1, pkg.Dependencies.Count);
             Assert.AreEqual("XSeries", pkg.Dependencies.First().PackageName);
         }*/
+
+        [Test]
+        public void TestSetAssemblyInfo()
+        {
+            SemanticVersion GetSemanticVersion(Assembly asm)
+            {
+                string verString = asm.GetCustomAttributes<AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion;
+                SemanticVersion ver = default(SemanticVersion);
+                if (String.IsNullOrEmpty(verString) || !SemanticVersion.TryParse(verString, out ver))
+                    verString = asm.GetCustomAttributes<AssemblyVersionAttribute>().FirstOrDefault()?.Version;
+                if (String.IsNullOrEmpty(verString) || !SemanticVersion.TryParse(verString, out ver))
+                    verString = asm.GetCustomAttributes<AssemblyFileVersionAttribute>().FirstOrDefault()?.Version;
+                if (String.IsNullOrEmpty(verString) || !SemanticVersion.TryParse(verString, out ver))
+                {
+                    if(asm.IsDynamic == true || string.IsNullOrWhiteSpace(asm.Location))
+                        verString = "0.0.0";
+                    else if(Version.TryParse(FileVersionInfo.GetVersionInfo(asm.Location).ProductVersion, out Version pv))
+                        verString = pv.ToString(3);
+                    else if(Version.TryParse(FileVersionInfo.GetVersionInfo(asm.Location).FileVersion, out Version fv))
+                        verString = fv.ToString(3);
+                    else
+                        verString = "0.0.0";
+
+                }
+                if (String.IsNullOrEmpty(verString) || !SemanticVersion.TryParse(verString, out ver))
+                    Debug.Assert(false);
+
+                return ver;
+            }
+            
+            void createDll(string name, bool GenerateAssemblyInfo = false)
+            {
+                // Create dll without AssemblyInformationalVersionAttribute
+                var proj = "<Project Sdk=\"Microsoft.NET.Sdk\">" +
+                           "<PropertyGroup>" +
+                           $"<AssemblyName>{name}</AssemblyName>" +
+                           "<TargetFramework>netstandard2.0</TargetFramework>" +
+                           $"<GenerateAssemblyInfo>{GenerateAssemblyInfo.ToString()}</GenerateAssemblyInfo>" +
+                           "</PropertyGroup>" +
+                           "</Project>";
+                
+                var dir = Path.Combine(Path.GetTempPath(), "AssemblyTest");
+                if (Directory.Exists(dir))
+                    Directory.Delete(dir, true);
+                Directory.CreateDirectory(dir);
+                var projectPath = Path.Combine(dir, $"{name}.csproj");
+                File.WriteAllText(projectPath, proj);
+                
+                var process = new Process();
+                var startInfo = new ProcessStartInfo("dotnet", "build");
+                startInfo.WorkingDirectory = dir;
+                process.StartInfo = startInfo;
+
+                process.Start();
+                if (process.WaitForExit(10000) == false)
+                    Assert.Fail("Failed to create assembly testing dll.");
+                
+                // Copy dll
+                File.Copy(Path.Combine(dir, $"bin/Debug/netstandard2.0/{name}.dll"), $"{name}.dll", true);
+                
+                // Clean up
+                Directory.Delete(dir, true);
+            }
+            
+            // Check if version is null
+            var asmName = "SetAsmInfoTest";
+            createDll(asmName);
+            var assembly = Assembly.LoadFile(Path.Combine(Directory.GetCurrentDirectory(), $"{asmName}.dll"));
+            Assert.IsTrue(GetSemanticVersion(assembly).Equals(SemanticVersion.Parse("0.0.0")), "");
+            
+            // Check if version has been new version inserted
+            asmName = "SetAsmInfoTest2";
+            createDll(asmName, false);
+            SetAsmInfo.SetAsmInfo.SetInfo($"{asmName}.dll", Version.Parse("1.2.3.4"), Version.Parse("2.3.4.5"), SemanticVersion.Parse("3.4.5-test"));
+            assembly = Assembly.LoadFile(Path.Combine(Directory.GetCurrentDirectory(), $"{asmName}.dll"));
+            Assert.IsTrue(GetSemanticVersion(assembly).Equals(SemanticVersion.Parse("3.4.5-test")), "");
+            
+            // Check if version has been updated.
+            asmName = "SetAsmInfoTest3";
+            createDll(asmName, true);
+            SetAsmInfo.SetAsmInfo.SetInfo($"{asmName}.dll", Version.Parse("1.2.3.4"), Version.Parse("2.3.4.5"), SemanticVersion.Parse("3.4.5-test"));
+            assembly = Assembly.LoadFile(Path.Combine(Directory.GetCurrentDirectory(), $"{asmName}.dll"));
+            Assert.IsTrue(GetSemanticVersion(assembly).Equals(SemanticVersion.Parse("3.4.5-test")), "");
+        }
     }
 }

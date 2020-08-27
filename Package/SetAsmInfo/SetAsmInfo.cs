@@ -368,7 +368,11 @@ namespace OpenTap.Package.SetAsmInfo
             
             // If the attribute does not exist, we need to add it.
             if (replaceAttributeRegex.IsMatch(data) == false)
-                data = insertAttributeRegex.Replace(data, m => m.Value + Environment.NewLine + $"  .custom instance void ['mscorlib']'System.Reflection'.'{attribute}'::.ctor(string) =  ({EncodeStr(replace)})");
+            {
+                // Log.Debug("Inserting assembly info attributes");
+                data = insertAttributeRegex.Replace(data, m => m.Value + Environment.NewLine + 
+                        $"  .custom instance void ['mscorlib']'System.Reflection'.'{attribute}'::.ctor(string) =  ({EncodeStr(replace)}) // Attribute automatically added by OpenTAP.{Environment.NewLine}");
+            }
             else // If the attribute exists, just replace it.
                 data = replaceAttributeRegex.Replace(data, match => string.Format("{0} ({1})", match.Groups["name"].Value, EncodeStr(replace)), 1);
 
