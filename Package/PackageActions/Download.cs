@@ -16,6 +16,10 @@ namespace OpenTap.Package
     [Display("download", Group: "package", Description: "Downloads one or more packages.")]
     public class PackageDownloadAction : LockingPackageAction
     {
+        [Obsolete("This attribute is no longer in use since compatible versions will always be downloaded first")]
+        [CommandLineArgument("force", Visible = false, Description = "Download packages even if it results in some being broken.", ShortName = "f")]
+        public bool ForceInstall { get; set; }
+
         [CommandLineArgument("dependencies", Description = "Download dependencies without asking.", ShortName = "y")]
         public bool InstallDependencies { get; set; }
 
