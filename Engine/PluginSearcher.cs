@@ -55,7 +55,9 @@ namespace OpenTap
             /// <summary> No options </summary>
             None = 0,
             /// <summary> Allow multiple assemblies with the same name </summary>
-            IncludeSameAssemblies = 1
+            IncludeSameAssemblies = 1,
+            /// <summary> Include getting the assembly version of non-plugin assemblies. </summary>
+            IncludeNonPluginAssemblyVersions = 2 // Note: this is mostly used in testing, but may have uses outside of it. 
         }
 
         /// <summary>
@@ -392,6 +394,31 @@ namespace OpenTap
                         ReadPrivateTypesInCurrentAsm = bool.Parse(valueString.FixedArguments.First().Value.ToString());
                         break;
                     }
+                }
+                
+                if(Option.HasFlag(Options.IncludeNonPluginAssemblyVersions) && !asm.IsSemanticVersionSet))
+                {
+                    foreach (CustomAttributeHandle attrHandle in CurrentReader.GetAssemblyDefinition().GetCustomAttributes())
+                    {
+                        CustomAttribute attr = CurrentReader.GetCustomAttribute(attrHandle);
+                        string attributeFullName = "";
+                        if (attr.Constructor.Kind == HandleKind.MemberReference)
+                        {
+                            var ctor = CurrentReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
+                            attributeFullName = GetFullName(CurrentReader, ctor.Parent);
+                            if(attributeFullName == typeof(System.Reflection.AssemblyInformationalVersionAttribute).FullName)
+                            {
+                                var value = CurrentReader.GetBlobBytes(attr.Value);
+                                var valueString = attr.DecodeValue(new CustomAttributeTypeProvider(AllTypes));
+                                if(SemanticVersion.TryParse(GetStringIfNotNull(valueString.FixedArguments[0].Value), out SemanticVersion infoVer)) // the first argument to the DisplayAttribute constructor is the InformationalVersion string
+                                {
+                                    asm.SemanticVersion = infoVer;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    asm.IsSemanticVersionSet = true;
                 }
 
                 foreach (var typeDefHandle in CurrentReader.TypeDefinitions)

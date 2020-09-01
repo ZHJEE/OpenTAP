@@ -1,4 +1,10 @@
 
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+
 namespace OpenTap.Engine.UnitTests.TestTestSteps
 {
     [Display("Write File", Description: "Writes a string to a file.", Group: "Tests")]
@@ -55,6 +61,48 @@ namespace OpenTap.Engine.UnitTests.TestTestSteps
             {
                 Verdict = Verdict.Fail;
             }
+        }
+    }
+
+    [Display("Read Assembly Version", Group: "Tests")]
+    public class ReadAssemblyVersionStep : TestStep
+    {
+        [FilePath]
+        public string File { get; set; }
+        
+        public string MatchVersion { get; set; }
+        
+        public override void Run()
+        {
+            var searcher = new PluginSearcher(PluginSearcher.Options.IncludeNonPluginAssemblyVersions);
+            searcher.Search(new[] {File});
+            var asmFile = searcher.Assemblies.FirstOrDefault(asm => Path.GetFileName(asm.Location) == Path.GetFileName(File));
+
+            var semver = asmFile.SemanticVersion;
+            if (string.IsNullOrWhiteSpace(MatchVersion) == false)
+            {
+                if (Equals(semver.ToString(), MatchVersion))
+                {
+                    UpgradeVerdict(Verdict.Pass);
+                }
+                else
+                {
+                    UpgradeVerdict(Verdict.Fail);
+                }
+            }
+            Log.Info("Read Version {0}", semver.ToString());
+        }
+    }
+
+    [Display("Remove Directory", "Removes a directory.", "Tests")]
+    public class RemoveDirectory : TestStep
+    {
+        [DirectoryPath]
+        public string Path { get; set; }
+        public override void Run()
+        {
+            if (Directory.Exists(Path))
+                Directory.Delete(Path, true);
         }
     }
     
