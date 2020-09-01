@@ -396,7 +396,7 @@ namespace OpenTap
                     }
                 }
                 
-                if(Option.HasFlag(Options.IncludeNonPluginAssemblyVersions) && !asm.IsSemanticVersionSet))
+                if(Option.HasFlag(Options.IncludeNonPluginAssemblyVersions) && !asm.IsSemanticVersionSet)
                 {
                     foreach (CustomAttributeHandle attrHandle in CurrentReader.GetAssemblyDefinition().GetCustomAttributes())
                     {
