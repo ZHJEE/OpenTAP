@@ -150,7 +150,7 @@ namespace OpenTap
         /// The attributes of this type. 
         /// Accessing this property causes the underlying Assembly to be loaded if it is not already.
         /// </summary>
-        public IEnumerable<object> Attributes => attributes ?? (attributes = Load().GetAllCustomAttributes(false));
+        public IEnumerable<object> Attributes => attributes ?? (attributes = Load()?.GetAllCustomAttributes(false)) ?? Array.Empty<object>();
 
         /// <summary> The base type of this type. </summary>
         public ITypeData BaseType
@@ -384,6 +384,7 @@ namespace OpenTap
             switch (Member)
             {
                 case PropertyInfo Property:
+                    if(this.Readable == false) throw new Exception("Cannot get the value of a read-only property.");
                     if (propertyGetter == null)
                         propertyGetter = buildGetter(Property);
                     //Building a lambda expression is an order of magnitude faster than Property.GetValue.
@@ -448,6 +449,7 @@ namespace OpenTap
                 {
                     case PropertyInfo Property: return (readable ?? (readable = Property.CanRead && Property.GetGetMethod() != null)).Value;
                     case FieldInfo _: return true;
+                    case MethodInfo _: return true;
                     default: return false;
                 }
             }

@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -519,19 +518,25 @@ namespace OpenTap
         /// </summary>
         /// <typeparam name="T">The type of TestStep to get.</typeparam>
         /// <returns>The closest TestStep of the requested type in the hierarchy.</returns>
-        public static T GetParent<T>(this ITestStep Step) where T : ITestStepParent
+        public static T GetParent<T>(this ITestStep step) where T : ITestStepParent =>  GetParent<T>(step as ITestStepParent);
+        
+        /// <summary>
+        /// Searches up through the Parent steps and returns the first step of the requested type that it finds.  
+        /// </summary>
+        /// <typeparam name="T">The type of TestStep to get.</typeparam>
+        /// <returns>The closest TestStep of the requested type in the hierarchy.</returns>
+        public static T GetParent<T>(this ITestStepParent item) where T : ITestStepParent
         {
-            ITestStepParent parent = Step.Parent;
-            while (parent != null)
+            item = item.Parent;
+            while (item != null)
             {
-                if (parent is T)
-                {
-                    return (T)parent;
-                }
-                parent = parent.Parent;
+                if (item is T p)
+                    return p;
+                item = item.Parent;
             }
-            return default(T);
+            return default;
         }
+        
         /// <summary> 
         /// Raises the <see cref="TestPlan.BreakOffered"/> event on the <see cref="TestPlan"/> object to which this TestStep belongs. 
         /// </summary>
@@ -668,7 +673,7 @@ namespace OpenTap
                 {
                     if (Step is TestStep testStep && runs.Any(x => x.WasDeferred))
                     {
-                        testStep.Results.Defer(() =>
+                        testStep.Results.DeferNoCheck(() =>
                         {
                             foreach (var run in runs)
                             {
@@ -736,10 +741,9 @@ namespace OpenTap
                 throw new ArgumentException("childStep must be enabled.", nameof(childStep));
 
             var run = childStep.DoRun(currentPlanRun, currentStepRun, attachedParameters);
-
             if (Step is TestStep step && run.WasDeferred)
             {
-                step.Results.Defer(() =>
+                step.Results.DeferNoCheck(() =>
                 {
                     run.WaitForCompletion();
                     Step.UpgradeVerdict(run.Verdict);
@@ -965,12 +969,12 @@ namespace OpenTap
 
         internal static void CheckResources(this ITestStep Step)
         {
-            var resProps2 = new HashSet<IResource>();
-            GetObjectSettings<IResource,ITestStep, IResource>(Step, true, null, resProps2);
-            foreach(var res in resProps2)
+            // collect null members into a set. Any null member here is an error.
+            var nullMembers = new HashSet<IMemberData>();
+            GetObjectSettings<IResource,ITestStep, IMemberData>(Step, true, (x, mem) => x == null ? mem : null, nullMembers);
+            foreach(var res in nullMembers)
             {
-                if(res == null)
-                    throw new Exception(String.Format("Resource setting not set on step {0}. Please configure or disable step.", Step.Name));
+                throw new Exception(String.Format("Resource setting {1} not set on step {0}. Please configure or disable step.", Step.Name, res.GetDisplayAttribute().GetFullName()));
             }
             foreach(var step in Step.ChildTestSteps)
             {
@@ -996,7 +1000,7 @@ namespace OpenTap
                 if (td2.IsValueType && targetType.IsValueType == false) continue;
                 if (td2.IsString && targetType.IsString == false) continue;
                 bool hasEnabled = prop.HasAttribute<EnabledIfAttribute>();
-                if(td2.DescendsTo(typeof(IEnabled)) || td2.DescendsTo(targetType) || targetType.DescendsTo(td2) || td2.ElementType.DescendsTo(targetType)|| targetType.DescendsTo(td2.ElementType))
+                if(td2.DescendsTo(typeof(IEnabled)) || td2.DescendsTo(targetType) || td2.ElementType.DescendsTo(targetType))
                     result.Add((prop, hasEnabled));
             }
 
@@ -1061,15 +1065,13 @@ namespace OpenTap
 
                 if (value is T t2)
                 {
-                    itemSet.Add(transform(t2, prop));
+                    itemSet.AddExceptNull(transform(t2, prop));
                 }
                 else if (value is string)
                     continue;
                 else if (value == null && prop.TypeDescriptor.DescendsTo(targetType))
                 {
-                    var tform = transform((T) value, prop);
-                    if(tform != null)
-                        itemSet.Add(tform);
+                    itemSet.AddExceptNull(transform((T) value, prop));
                 }
                 else if (value is IEnumerable seq)
                 {
@@ -1079,7 +1081,7 @@ namespace OpenTap
                         {
                             var value2 = lst[i];
                             if (value2 is T x)
-                                itemSet.Add(transform(x, prop));
+                                itemSet.AddExceptNull(transform(x, prop));
                         }
                     }
                     else
@@ -1087,12 +1089,12 @@ namespace OpenTap
                         if (value is IEnumerable<T> seq2)
                         {
                             foreach (var x in seq2.ToArray())
-                                itemSet.Add(transform(x, prop));
+                                itemSet.AddExceptNull(transform(x, prop));
                         }
                         else
                         {
                             foreach (var x in seq.OfType<T>().ToArray())
-                                itemSet.Add(transform(x, prop));
+                                itemSet.AddExceptNull(transform(x, prop));
                         }
                     }
                 }

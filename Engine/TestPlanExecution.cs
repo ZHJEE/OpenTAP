@@ -180,8 +180,8 @@ namespace OpenTap
                     var run = step.DoRun(execStage, execStage);
                     if (!run.Skipped)
                         runs.Add(run);
-                    if (run.IsBreakCondition())
-                        break;
+                    run.CheckBreakCondition();
+
                     // note: The following is copied inside TestStep.cs
                     if (run.SuggestedNextStep is Guid id)
                     {
@@ -191,7 +191,10 @@ namespace OpenTap
                         // if skip to next step, dont add it to the wait queue.
                     }
                 }
-
+            }
+            catch(TestStepBreakException breakEx)
+            {
+                Log.Info("{0}", breakEx.Message);
             }
             finally
             {
@@ -338,11 +341,12 @@ namespace OpenTap
         /// <summary>
         /// Calls the PromptForDutMetadata delegate for all referenced DUTs.
         /// </summary>
-        internal void StartResourcePromptAsync(TestPlanRun planRun, IEnumerable<IResource> resources)
+        internal void StartResourcePromptAsync(TestPlanRun planRun, IEnumerable<IResource> _resources)
         {
+            var resources = _resources.Where(x => x != null).ToArray();
+            
             List<Type> componentSettingsWithMetaData = new List<Type>();
             var componentSettings = PluginManager.GetPlugins<ComponentSettings>();
-            resources = resources.Where(x => x != null).ToArray();
             bool AnyMetaData = false;
             planRun.PromptWaitHandle.Reset();
 
@@ -390,7 +394,7 @@ namespace OpenTap
                             objects.AddRange(componentSettingsWithMetaData.Select(ComponentSettings.GetCurrent));
                             objects.AddRange(resources);
 
-                            planRun.PromptedResources = (IResource[]) resources;
+                            planRun.PromptedResources = resources;
                             var obj = new MetadataPromptObject { Resources = objects };
                             UserInput.Request(obj, false);
                             if (obj.Response == MetadataPromptObject.PromptResponse.Abort)

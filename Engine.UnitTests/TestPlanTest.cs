@@ -1752,7 +1752,31 @@ namespace OpenTap.Engine.UnitTests
             Assert.IsNotNull(run.TestPlanXml);
             Assert.IsNotNull(run.Hash);
         }
-        
+
+        class CheckTestPlanXmlListener : ResultListener
+        {   
+            public override void OnTestPlanRunStart(TestPlanRun planRun)
+            {
+                base.OnTestPlanRunStart(planRun);
+                if (planRun.TestPlanXml == null)
+                    throw new Exception("Test plan XML is null!!");
+            }
+        }
+
+        [Test]
+        public void TestLoadCacheAndRun([Values(true, false)] bool cacheXml)
+        {
+            // this unit test checks that the TestPlanRun.TestPlanXml is not null
+            // depending on CacheXML=true.
+            var plan = new TestPlan();
+            plan.ChildTestSteps.Add(new LogStep());
+            var memstr = new MemoryStream();
+            plan.Save(memstr);
+            memstr.Seek(0, SeekOrigin.Begin);
+            plan = TestPlan.Load(memstr, "test", cacheXml);
+            var run = plan.Execute(new []{new CheckTestPlanXmlListener()});
+            Assert.AreEqual(Verdict.NotSet, run.Verdict);
+        }
     }
 
     [TestFixture]
@@ -1935,6 +1959,103 @@ namespace OpenTap.Engine.UnitTests
             {
                 EngineSettings.Current.ResourceManagerType = lastrm;
             }
+        }
+        
+        private class DeferredResultsStep : TestStep
+        {
+            public bool DeferredDone;
+            public bool FailedDeferExecuted;
+            public override void Run()
+            {
+                DeferredDone = false;
+                FailedDeferExecuted = false;
+                var sem = new Semaphore(0, 1);
+                Results.Defer(() =>
+                {
+                    sem.WaitOne();
+                    DeferredDone = true;
+                    Log.Info("Deferred Step also done");
+                });
+
+                TapThread.Start(() =>
+                {
+                    try
+                    {
+                        Results.Defer(() =>
+                        {
+                            // this should fail.
+                            Log.Error("This should never be called!!!");
+                        });
+                        FailedDeferExecuted = false;
+                    }
+                    catch
+                    {
+                        FailedDeferExecuted = true;
+                    }
+
+                    sem.Release();
+                });
+            }
+        }
+
+        [Test]
+        public void TestDeferResultsStepInParallel()
+        {
+            var plan = new TestPlan();
+            var parallel = new ParallelStep();
+            var defer = new DeferredResultsStep();
+            plan.Steps.Add(parallel);
+            parallel.ChildTestSteps.Add(defer);
+            plan.Execute();
+            Assert.IsTrue(defer.DeferredDone);
+            Assert.IsTrue(defer.FailedDeferExecuted);
+        }
+
+        private class DeferredResultsStep2 : TestStep
+        {
+            public ManualResetEvent CompleteDefer = new ManualResetEvent(false);
+            public ManualResetEvent RunCompleted = new ManualResetEvent(false);
+            public override void Run()
+            {
+                Results.Defer(() =>
+                {
+                    CompleteDefer.WaitOne();
+                    Log.Info("Deferred Step also done");
+                });
+                RunCompleted.Set();
+            }
+        }
+
+        [Test]
+        public void TestExecuteWaitForDefer_Simple()
+        {
+            var plan = new TestPlan();
+            var defer = new DeferredResultsStep2();
+            plan.Steps.Add(defer);
+            Task<TestPlanRun> t = Task.Run(() => plan.Execute());
+            defer.RunCompleted.WaitOne();
+            Thread.Sleep(300);
+            Assert.IsFalse(t.IsCompleted);
+            defer.CompleteDefer.Set();
+            Thread.Sleep(100);
+            Assert.IsTrue(t.IsCompleted);
+        }
+
+        [Test]
+        public void TestExecuteWaitForDefer_WithParallel()
+        {
+            var plan = new TestPlan();
+            var parallel = new ParallelStep();
+            var defer = new DeferredResultsStep2();
+            plan.Steps.Add(parallel);
+            parallel.ChildTestSteps.Add(defer);
+            Task<TestPlanRun> t = Task.Run(() => plan.Execute());
+            defer.RunCompleted.WaitOne();
+            Thread.Sleep(300);
+            Assert.IsFalse(t.IsCompleted);
+            defer.CompleteDefer.Set();
+            Thread.Sleep(100);
+            Assert.IsTrue(t.IsCompleted);
         }
     }
 
