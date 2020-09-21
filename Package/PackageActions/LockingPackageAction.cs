@@ -23,8 +23,8 @@ namespace OpenTap.Package
     /// </summary>
     public abstract class LockingPackageAction : PackageAction
     {
-        internal const string CommandLineArgumentRepositoryDescription = "Search this repository for packages instead of using\nsettings from 'Package Manager.xml'.";
-        internal const string CommandLineArgumentVersionDescription = "Version of the package. Prepend it with '^' to specify the latest compatible version. E.g. '^9.0.0'. By omitting '^' only the exact version will be matched.";
+        internal const string CommandLineArgumentRepositoryDescription = "Search this repository for packages instead of using package manager settings.";
+        internal const string CommandLineArgumentVersionDescription = "Version of the package. Prepend it with '^' to specify the latest compatible version.\nE.g. '^9.0.0'. By omitting '^' only the exact version will be matched.";
         internal const string CommandLineArgumentOsDescription = "Override which OS to target.";
         internal const string CommandLineArgumentArchitectureDescription = "Override which CPU to target.";
 

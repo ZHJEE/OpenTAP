@@ -285,5 +285,15 @@ namespace OpenTap
         {
             return !(a == b);
         }
+
+        public static bool operator >(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) > 0;
+        public static bool operator <(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) < 0;
+        public static bool operator >=(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) >= 0;
+        public static bool operator <=(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) <= 0;
+        
+
+        public bool IsCompatibleAndNewer(SemanticVersion other) => this > other && other.IsCompatible(this);
+
+
     }
 }

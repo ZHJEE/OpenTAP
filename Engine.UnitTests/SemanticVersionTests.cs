@@ -203,5 +203,35 @@ namespace OpenTap.Engine.UnitTests
             var semver = dynasm.GetSemanticVersion();
             Assert.IsTrue(semver == new SemanticVersion(0, 0, 0, "", ""));
         }
+
+        [TestCase("1.0", "2.0")]
+        [TestCase("1.0", "1.1")]
+        [TestCase("1.2.3", "1.2.4")]
+        [TestCase("1.2.3-beta", "1.2.3")]
+        [TestCase("1.2.3-beta+123456", "1.2.4")]
+        public void TestCompareSemanticVersions(string versionA, string versionB)
+        {
+            var a = SemanticVersion.Parse(versionA);
+            var b = SemanticVersion.Parse(versionB);
+            Assert.IsTrue(b > a);
+            Assert.IsTrue(b >= a);
+            Assert.IsTrue(a < b);
+            Assert.IsTrue(a <= b);
+            Assert.IsFalse(a > b);
+            Assert.IsFalse(a >= b);
+            Assert.IsFalse(b < a);
+            Assert.IsFalse(b <= a);
+        }
+        [TestCase("1.0", "1.0+1234")]
+        [TestCase("1.1", "1.1+1234")]
+        [TestCase("1.2.3+1235", "1.2.3+1234")]
+        public void TestCompareSemanticVersionsEquals(string versionA, string versionB)
+        {
+            var a = SemanticVersion.Parse(versionA);
+            var b = SemanticVersion.Parse(versionB);
+            Assert.IsTrue(b >= a);
+            Assert.IsTrue(a <= b);
+            Assert.IsFalse(a == b);
+        }
     }
 }

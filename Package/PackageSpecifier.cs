@@ -12,7 +12,7 @@ namespace OpenTap.Package
     /// <summary>
     /// Holds search parameters that specifies a range of packages in the OpenTAP package system.
     /// </summary>
-    public class PackageSpecifier
+    public class PackageSpecifier : IPackageIdentifier
     {
         /// <summary>
         /// Search for parameters that specifies a range of packages in the OpenTAP package system. Unset parameters will be treated as 'any'.
@@ -42,6 +42,8 @@ namespace OpenTap.Package
         /// Specifying requirements to the version the package. Never null.
         /// </summary>
         public VersionSpecifier Version { get; }
+        
+        SemanticVersion IPackageIdentifier.Version => new SemanticVersion(Version.Major?? 0, Version.Minor?? 0, Version.Patch?? 0, Version.PreRelease, Version.BuildMetadata); 
 
         /// <summary>
         /// The CPU Architechture of the package. 
@@ -64,6 +66,9 @@ namespace OpenTap.Package
         /// The VersionSpecifier that will match any version. VersionSpecifier.Any.IsCompatible always returns true.
         /// </summary>
         public static readonly VersionSpecifier Any = new VersionSpecifier(null, null, null, null, null, VersionMatchBehavior.Compatible | VersionMatchBehavior.AnyPrerelease);
+        
+        /// <summary> Match any release version. </summary>
+        internal static readonly VersionSpecifier Release = new VersionSpecifier(null, null, null, null, null, 0);
 
         /// <summary>
         /// Major version. When not null, <see cref="IsCompatible"/> will return false for <see cref="SemanticVersion"/>s with a Major version different from this.
@@ -266,6 +271,8 @@ namespace OpenTap.Package
                 return MatchExact(actualVersion);
             if (MatchBehavior.HasFlag(VersionMatchBehavior.Compatible))
                 return MatchCompatible(actualVersion);
+            if (MatchBehavior.HasFlag(VersionMatchBehavior.MatchPrerelease))
+                return MatchExact(actualVersion);
             
             return false;
         }
@@ -282,11 +289,40 @@ namespace OpenTap.Package
                 return false;
             if (MatchBehavior.HasFlag(VersionMatchBehavior.AnyPrerelease))
                 return true;
+            if (MatchBehavior.HasFlag(VersionMatchBehavior.MatchPrerelease) && PreRelease != null)
+                return ComparePreRelease(PreRelease, actualVersion.PreRelease) == 0;
             if (PreRelease != actualVersion.PreRelease)
                 return false;
             if (string.IsNullOrEmpty(BuildMetadata) == false && BuildMetadata != actualVersion.BuildMetadata)
                 return false;
             return true;
+        }
+
+        static int? ComparePreRelease(string spec, string ver)
+        {
+            // 'spec' may be less specific than 'b'. In this case, 0 should be returned. 
+            
+            // if its not comparable pre-releases null will be returned.
+            if (spec == ver) return 0;
+            if (spec == null) return null;
+            if (ver == null) return null;
+            
+            var aGroups = spec.Split('.');
+            var bGroups = ver.Split('.');
+            var aName = aGroups[0];
+            var bName = bGroups[0];
+            if (aName != bName)
+                return null;
+            for (int i = 1; i < aGroups.Length; i++)
+            {
+                int aToken = int.Parse(aGroups[i]);
+                if (bGroups.Length <= i)
+                    return null;
+                int bToken = int.Parse(bGroups[i]);
+                if (aToken != bToken)
+                    return aToken.CompareTo(bToken);
+            }
+            return 0;
         }
 
         private bool MatchCompatible(SemanticVersion actualVersion)
@@ -350,6 +386,13 @@ namespace OpenTap.Package
         {
             return !(a == b);
         }
+
+        const string optionalPrerelease = "_OPTIONAL_PRERELEASE";
+        const string optionalBuildMetadata = "_OPTIONAL_BUILDMETADATA";
+
+        public VersionSpecifier With(int? major = null, int? minor = null, int? patch = null, string prerelease = optionalPrerelease, string buildMetadata = optionalBuildMetadata, VersionMatchBehavior? matchBehavior = null)
+             => new VersionSpecifier(major ?? Major, minor ?? Minor, patch ?? Patch, prerelease == optionalPrerelease ? PreRelease : prerelease, buildMetadata == optionalBuildMetadata ? BuildMetadata : buildMetadata, matchBehavior ?? MatchBehavior);
+        
     }
 
     /// <summary>
@@ -370,5 +413,7 @@ namespace OpenTap.Package
         /// Prerelease property of <see cref="VersionSpecifier"/> is ignored when looking for matching packages.
         /// </summary>
         AnyPrerelease = 4,
+        /// <summary>  Prerelease property of <see cref="VersionSpecifier"/> must be the same </summary>
+        MatchPrerelease = 8
     }
 }

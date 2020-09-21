@@ -48,6 +48,18 @@ namespace OpenTap.Package
             resolve(repositories, packages);
         }
 
+        /// <summary>
+        /// Instantiates a new dependency resolver.
+        /// </summary>
+        /// <param name="packages">The packages to resolve dependencies for.</param>
+        /// <param name="repositories">The repositories to use for resolving dependencies</param>
+        public DependencyResolver(IEnumerable<PackageDef> packages, List<IPackageRepository> repositories)
+        {
+            InstalledPackages = new Dictionary<string, PackageDef>();
+            resolve(repositories, packages);
+        }
+        
+        
         private void resolve(List<IPackageRepository> repositories, IEnumerable<PackageDef> packages)
         {
             var firstleveldependencies = packages.SelectMany(pkg => pkg.Dependencies.Select(dep => new { Dependency = dep, Architecture = pkg.Architecture, OS = pkg.OS }));

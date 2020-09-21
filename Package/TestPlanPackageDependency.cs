@@ -117,7 +117,7 @@ namespace OpenTap.Package
                     }
                     else
                     {
-                        errors.Add($"Package '{name}' is required to load the test plan, but it is not installed.");
+                        errors.Add($"Package '{name}' is required to load the XML, but it is not installed.");
                     }
 
                     if (UsePlatformInteraction)

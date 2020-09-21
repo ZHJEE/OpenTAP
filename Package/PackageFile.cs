@@ -158,7 +158,7 @@ namespace OpenTap.Package
     public class PackageDependency
     {
         /// <summary>
-        /// Name of the package to which this dependency reffers.
+        /// Name of the package to which this dependency refers.
         /// </summary>
         public string Name { get; private set; }
 

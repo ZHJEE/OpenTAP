@@ -520,6 +520,25 @@ namespace OpenTap.Package
             return gatheredPackages;
         }
 
+        internal static string GetDefaultPackageFileName(IPackageIdentifier pkg)
+        {
+            List<string> filenameParts = new List<string> { pkg.Name };
+            if (pkg.Version != null)
+                filenameParts.Add(pkg.Version.ToString());
+            if (pkg.Architecture != CpuArchitecture.AnyCPU)
+                filenameParts.Add(pkg.Architecture.ToString());
+            if (!String.IsNullOrEmpty(pkg.OS) && pkg.OS != "Windows")
+                filenameParts.Add(pkg.OS);
+            filenameParts.Add("TapPackage");
+            return string.Join(".", filenameParts);
+        } 
+        
+        /// <summary> </summary>
+        /// <param name="destinationDir"></param>
+        /// <param name="PackagesToDownload"></param>
+        /// <param name="includeCache"></param>
+        /// <returns>The downloaded packages as a alist of strings.</returns>
+        /// <exception cref="Exception"></exception>
         internal static List<string> DownloadPackages(string destinationDir, List<PackageDef> PackagesToDownload, bool includeCache = true)
         {
             List<string> downloadedPackages = new List<string>();
