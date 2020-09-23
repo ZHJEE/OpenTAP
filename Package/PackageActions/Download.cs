@@ -16,8 +16,7 @@ namespace OpenTap.Package
     [Display("download", Group: "package", Description: "Downloads one or more packages.")]
     public class PackageDownloadAction : LockingPackageAction
     {
-        [Obsolete("This attribute is no longer in use since compatible versions will always be downloaded first")]
-        [CommandLineArgument("force", Visible = false, Description = "Download packages even if it results in some being broken.", ShortName = "f")]
+        [CommandLineArgument("force", Description = "Download packages even if it results in some being broken.", ShortName = "f")]
         public bool ForceInstall { get; set; }
 
         [CommandLineArgument("dependencies", Description = "Download dependencies without asking.", ShortName = "y")]
@@ -35,7 +34,7 @@ namespace OpenTap.Package
         [CommandLineArgument("architecture", Description = CommandLineArgumentArchitectureDescription)]
         public CpuArchitecture Architecture { get; set; }
 
-        [UnnamedCommandLineArgument("Packages", Required = true)]
+        [UnnamedCommandLineArgument("packages", Required = true)]
         public string[] Packages { get; set; }
 
         [CommandLineArgument("dry-run", Description = "Initiates the command and checks for errors, but does not download any packages.")]
@@ -75,8 +74,8 @@ namespace OpenTap.Package
 
         protected override int LockedExecute(CancellationToken cancellationToken)
         {
-            string targetDir = Target ?? Directory.GetCurrentDirectory();
-            Installation destinationDownload = new Installation(targetDir);
+            string destinationDir = Target ?? Directory.GetCurrentDirectory();
+            Installation destinationInstallation = new Installation(destinationDir);
 
             List<IPackageRepository> repositories = new List<IPackageRepository>();
 
@@ -85,13 +84,13 @@ namespace OpenTap.Package
             else
                 repositories.AddRange(Repository.Select(s => PackageRepositoryHelpers.DetermineRepositoryType(s)));
 
-            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationDownload, Packages, Version, Architecture, OS, repositories, InstallDependencies, false);
+            List<PackageDef> PackagesToDownload = PackageActionHelpers.GatherPackagesAndDependencyDefs(destinationInstallation, PackageReferences, Packages, Version, Architecture, OS, repositories, ForceInstall, InstallDependencies, false);
 
             if (PackagesToDownload == null)
                 return 2;
 
             if (!DryRun)
-                PackageActionHelpers.DownloadPackages(Directory.GetCurrentDirectory(), PackagesToDownload, false);
+                PackageActionHelpers.DownloadPackages(destinationDir, PackagesToDownload);
             else
                 log.Info("Dry run completed. Specified packages are available.");
 
