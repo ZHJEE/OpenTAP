@@ -105,17 +105,7 @@ namespace OpenTap.Package
             return (this as PackageIdentifier).Equals(other);
         }
 
-        public override string ToString()
-        {
-            List<string> filenameParts = new List<string> { Name };
-            if (Version != null)
-                filenameParts.Add(Version.ToString());
-            if (Architecture != CpuArchitecture.AnyCPU)
-                filenameParts.Add(Architecture.ToString());
-            if (!String.IsNullOrEmpty(OS) && OS != "Windows")
-                filenameParts.Add(OS);
-            return string.Join(".", filenameParts);
-        }
+        public override string ToString() => PackageActionHelpers.GetDefaultPackageFileName(this);
     }
 
     internal class PackageVersionSerializerPlugin : TapSerializerPlugin

@@ -285,13 +285,41 @@ namespace OpenTap
         {
             return !(a == b);
         }
-
+        
+        /// <summary>
+        /// Version value comparison
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
         public static bool operator >(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) > 0;
+        /// <summary>
+        /// Version value comparison
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
         public static bool operator <(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) < 0;
+        /// <summary>
+        /// Version value comparison
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
         public static bool operator >=(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) >= 0;
+        /// <summary>
+        /// Version value comparison
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
         public static bool operator <=(SemanticVersion a, SemanticVersion b) => a.CompareTo(b) <= 0;
         
-
+        /// <summary>
+        /// True if this version is strictly greater than and semantically compatible with other
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
         public bool IsCompatibleAndNewer(SemanticVersion other) => this > other && other.IsCompatible(this);
 
 

@@ -387,12 +387,12 @@ namespace OpenTap.Package
             return !(a == b);
         }
 
-        const string optionalPrerelease = "_OPTIONAL_PRERELEASE";
-        const string optionalBuildMetadata = "_OPTIONAL_BUILDMETADATA";
+        public VersionSpecifier With(int? major = null, int? minor = null, int? patch = null,
+            string prerelease = null, string buildMetadata = null,
+            VersionMatchBehavior? matchBehavior = null) =>
+            new VersionSpecifier(major ?? Major, minor ?? Minor, patch ?? Patch, prerelease ?? PreRelease,
+                buildMetadata ?? BuildMetadata, matchBehavior ?? MatchBehavior);
 
-        public VersionSpecifier With(int? major = null, int? minor = null, int? patch = null, string prerelease = optionalPrerelease, string buildMetadata = optionalBuildMetadata, VersionMatchBehavior? matchBehavior = null)
-             => new VersionSpecifier(major ?? Major, minor ?? Minor, patch ?? Patch, prerelease == optionalPrerelease ? PreRelease : prerelease, buildMetadata == optionalBuildMetadata ? BuildMetadata : buildMetadata, matchBehavior ?? MatchBehavior);
-        
     }
 
     /// <summary>

@@ -8,7 +8,7 @@ using OpenTap.Cli;
 
 namespace OpenTap.Package
 {
-      [Display("get", Group: "package", Description: "Downloads one or more packages.")]
+      [Display("get", Group: "package", Description: "Download one or more packages without resolving dependencies and maintaining compatibility with current installation.")]
     public class PackageGetAction : ICliAction
     {
         [CommandLineArgument("dependencies", Description = "Also Download dependencies.", ShortName = "y")]
@@ -33,7 +33,7 @@ namespace OpenTap.Package
         public bool DryRun { get; set; } = false;
         
         
-        [CommandLineArgument("out", Description = "Location to put the package file. If --dependencies is specified this has to be a folder.")]
+        [CommandLineArgument("out", Description = "Location to put the package file. If --dependencies is specified this has to be a folder. If a single folder is specified, all downloads are placed in that folder.")]
         public string[] Out { get; set; }
         
         /// <summary>
@@ -127,15 +127,15 @@ namespace OpenTap.Package
 
                 foreach (var repo in repositories)
                 {
-                    var pkg = repo.GetPackageVersions(spec.Name, id)
-                        .OrderByDescending(x => x.Version).ToArray();
+                    var pkgs = repo.GetPackageVersions(spec.Name, id).ToArray();
                     if (specifier != null && specifier.PreRelease != null)
                     {
-                        pkg = pkg.Where(x => specifier.IsCompatible(x.Version)).ToArray();
+                        pkgs = pkgs.Where(x => specifier.IsCompatible(x.Version)).ToArray();
                     }
-                    if (pkg.Any())
+                    if (pkgs.Any())
                     {
-                        var packages = repo.GetPackages(new PackageSpecifier(pkg.FirstOrDefault()), id).ToArray();
+                        var pkg = pkgs.FindMax(p => p.Version);
+                        var packages = repo.GetPackages(new PackageSpecifier(pkg), id).ToArray();
                         var package = packages.FirstOrDefault();
                         if (packageToDownload == null || packageToDownload.Version.CompareTo(package.Version) < 0)
                         {
@@ -170,13 +170,13 @@ namespace OpenTap.Package
                     log.Error("Folder does not exist '{0}'", destination);
                     return -1;
                 }
-                
+
                 PackageActionHelpers.DownloadPackages(destination, toDownload);
                 downloadedPackages = toDownload;
             }
             else
             {
-                
+                string outDir = Out.Length == 1 && Directory.Exists(Out[0]) ? Out[0] : null;                
                 for(int i = 0; i < PackageReferences.Length; i++)
                 {
                     var spec = PackageReferences[i];
@@ -191,11 +191,11 @@ namespace OpenTap.Package
                                 downloadedPackages.Add(package);
                                 var name = PackageActionHelpers.GetDefaultPackageFileName(package);
                                 log.Info("Found remote file {0}", name);
-                                string targetFile = Path.Combine(Directory.GetCurrentDirectory(), name);
-                                if (Out != null && i < Out.Length)
+                                string targetFile = Path.Combine(outDir ?? Directory.GetCurrentDirectory(), name);
+                                if (outDir == null && Out != null && i < Out.Length)
                                 {
                                     var o = Out[i];
-                                    if (o.EndsWith("/"))
+                                    if (Directory.Exists(o))
                                     {
                                         // if the Out is a folder.
                                         targetFile = Path.Combine(o, name);
@@ -210,7 +210,7 @@ namespace OpenTap.Package
                                 {
                                     var sw = Stopwatch.StartNew();
                                     repo.DownloadPackage(array.First(), targetFile);
-                                    log.Info(sw, "Downloaded {0}", targetFile);
+                                    log.Info(sw, $"Downloaded {array.First()} to {targetFile}");
                                 }
                                 downloaded = true;
                             }

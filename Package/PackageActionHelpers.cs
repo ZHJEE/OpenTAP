@@ -65,8 +65,20 @@ namespace OpenTap.Package
             // Of the compatible packages, pick the one with the highest version number. If that package is available from several repositories, pick the one with the lowest index in the list in PackageManagerSettings
             PackageDef package = null;
             if (compatiblePackages.Any())
-                package = compatiblePackages.GroupBy(p => p.Version).OrderByDescending(g => g.Key).FirstOrDefault()
-                                            .OrderBy(p => repositories.IndexWhen(e => NormalizeRepoUrl(e.Url) == NormalizeRepoUrl((p.PackageSource as IRepositoryPackageDefSource)?.RepositoryUrl))).FirstOrDefault();
+            {
+                var highestVersion = compatiblePackages.Max(p => p.Version);
+                var candidates = compatiblePackages.Where(p => p.Version == highestVersion).ToList();
+                
+                foreach (var repo in repositories)
+                {
+                    var repoUrl = NormalizeRepoUrl(repo.Url);
+                    package = candidates.FirstOrDefault(p =>
+                        NormalizeRepoUrl((p.PackageSource as IRepositoryPackageDefSource)?.RepositoryUrl) == repoUrl);
+                        
+                    if (package != null)
+                        break;
+                }
+            }
 
             if (package == null)
             {
@@ -89,16 +101,25 @@ namespace OpenTap.Package
                 // Any compatible with opentap but not platform
                 if (compatibleVersions.Any())
                 {
-                    if (packageReference.Version != VersionSpecifier.Any || packageReference.OS != null || packageReference.Architecture != CpuArchitecture.Unspecified)
+                    if (packageReference.Version != VersionSpecifier.Any || packageReference.OS != null ||
+                        packageReference.Architecture != CpuArchitecture.Unspecified)
+                    {
+                        var parts = new List<string>(3);
+                        if (packageReference.Version != VersionSpecifier.Any)
+                            parts.Add($"compatible with version '{packageReference.Version}'");
+                        if (packageReference.OS != null)
+                            parts.Add($"compatible with '{packageReference.OS}' operating system");
+                        if (packageReference.Architecture != CpuArchitecture.Unspecified)
+                            parts.Add($"with '{packageReference.Architecture}' architecture");
+
+                        var conditions = string.Join(" and ", parts);
+
                         throw new ExitCodeException(1,
-                            string.Format("No '{0}' package {1} was found.", packageReference.Name, string.Join(" and ",
-                                new string[] {
-                                    packageReference.Version != VersionSpecifier.Any ? $"compatible with version '{packageReference.Version}'": null,
-                                    packageReference.OS != null ? $"compatible with '{packageReference.OS}' operating system" : null,
-                                    packageReference.Architecture != CpuArchitecture.Unspecified ? $"with '{packageReference.Architecture}' architecture" : null
-                            }.Where(x => x != null).ToArray())));
+                            $"No '{packageReference.Name}' package {conditions} was found.");
+                    }
                     else
-                        throw new ExitCodeException(1, $"Package '{packageReference.Name}' does not exist in a version compatible with this OS and architecture.");
+                        throw new ExitCodeException(1,
+                            $"Package '{packageReference.Name}' does not exist in a version compatible with this OS and architecture.");
                 }
 
                 // Any version
