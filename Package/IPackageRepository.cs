@@ -104,7 +104,10 @@ namespace OpenTap.Package
         {
             return (this as PackageIdentifier).Equals(other);
         }
-
+        /// <summary>
+        /// Gets a string description of each component of the package separated by dots.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString() => PackageActionHelpers.GetDefaultPackageFileName(this);
     }
 

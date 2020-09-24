@@ -387,6 +387,16 @@ namespace OpenTap.Package
             return !(a == b);
         }
 
+        /// <summary>
+        /// Creates a VersionSpecifier instance identical to this one in all fields with no provided value
+        /// </summary>
+        /// <param name="major"></param>
+        /// <param name="minor"></param>
+        /// <param name="patch"></param>
+        /// <param name="prerelease"></param>
+        /// <param name="buildMetadata"></param>
+        /// <param name="matchBehavior"></param>
+        /// <returns></returns>
         public VersionSpecifier With(int? major = null, int? minor = null, int? patch = null,
             string prerelease = null, string buildMetadata = null,
             VersionMatchBehavior? matchBehavior = null) =>
