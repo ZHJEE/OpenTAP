@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace OpenTap.Package
@@ -562,19 +563,12 @@ namespace OpenTap.Package
         /// <exception cref="Exception"></exception>
         internal static List<string> DownloadPackages(string destinationDir, List<PackageDef> PackagesToDownload, bool includeCache = true)
         {
+            Stopwatch timer = Stopwatch.StartNew();
+
             List<string> downloadedPackages = new List<string>();
             foreach (PackageDef pkg in PackagesToDownload)
             {
-                Stopwatch timer = Stopwatch.StartNew();
-                List<string> filenameParts = new List<string> { pkg.Name };
-                if (pkg.Version != null)
-                    filenameParts.Add(pkg.Version.ToString());
-                if (pkg.Architecture != CpuArchitecture.AnyCPU)
-                    filenameParts.Add(pkg.Architecture.ToString());
-                if (!String.IsNullOrEmpty(pkg.OS) && pkg.OS != "Windows")
-                    filenameParts.Add(pkg.OS);
-                filenameParts.Add("TapPackage");
-                var filename = Path.Combine(destinationDir, String.Join(".", filenameParts));
+                var filename = Path.Combine(destinationDir, GetDefaultPackageFileName(pkg));
 
                 TapThread.ThrowIfAborted();
                 
