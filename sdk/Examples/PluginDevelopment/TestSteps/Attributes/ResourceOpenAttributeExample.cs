@@ -8,8 +8,8 @@ using OpenTap;
 namespace OpenTap.Plugins.PluginDevelopment
 {
     [Display("Resource Open Before Example",
-    Groups: new[] { "Examples", "Plugin Development", "Attributes" },
-    Description: "TestStep that uses ResourceOpen attribute to show the different resource open modes.")]
+        Groups: new[] { "Examples", "Plugin Development", "Attributes" },
+        Description: "TestStep that uses ResourceOpen attribute to show the different resource open modes.")]
     public class ResourceOpenBeforeAttributeExample : TestStep
     {
         public ResourceOpenBeforeAttributeExample() { }
@@ -18,8 +18,8 @@ namespace OpenTap.Plugins.PluginDevelopment
     }
 
     [Display("Resource Open Parallel Example",
-    Groups: new[] { "Examples", "Plugin Development", "Attributes" },
-    Description: "TestStep that uses ResourceOpen attribute to show the different resource open modes.")]
+        Groups: new[] { "Examples", "Plugin Development", "Attributes" },
+        Description: "TestStep that uses ResourceOpen attribute to show the different resource open modes.")]
     public class ResourceOpenParallelAttributeExample : TestStep
     {
         public ResourceOpenParallelAttributeExample() { }
