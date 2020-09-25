@@ -282,14 +282,12 @@ namespace OpenTap.Package
                     msg.Append($"Unable to download package {spec.Name} {spec.Version}.");
 
                     var anySpec = new PackageSpecifier(spec.Name, VersionSpecifier.Any);
-                    log.Info($"Checking for other candidates in {repositories.Count()} repos");
                     var available = GetCandidates(repositories, anySpec, id).Result;
                     if (available.Any())
                     {
                         var availableVersion = available.Max(p => p.Version);
                         msg.Append($" Latest available version: '{availableVersion}'.");
                     }
-                    log.Info($"Got {available.Length} candidates");
 
                     log.Error(msg.ToString());
                 }
@@ -337,22 +335,16 @@ namespace OpenTap.Package
                         var taskResult = task.Result;
                         if (taskResult.Length > 0)
                         {
-
-
                             result.AddRange(taskResult);
                             if (spec.Version.ToString() != "^-release" &&
                                 spec.Version != VersionSpecifier.Any &&
                                 repo is FilePackageRepository &&
                                 result.Any(r => spec.Version.IsCompatible(r.Version)))
                             {
-                                log.Info($"Short circuit in repo {repo.Url}");
                                 return taskResult;
                             }
-
-                            log.Debug(sw, $"Found package in {tasks[i].repo.Url}");
                             result.AddRange(taskResult);
                         }
-
                         tasks.RemoveAt(i);
                     }
                     else
@@ -360,7 +352,6 @@ namespace OpenTap.Package
                         if (sw.Elapsed > TimeSpan.FromSeconds(1) && (k % 10) == 0)
                             log.Info(sw, $"Waiting for repo {repo.Url} to respond...");
                     }
-
                     k += 1;
                 }
                 
