@@ -3,19 +3,26 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
+using NuGet.Packaging;
 using OpenTap.Cli;
 
 #pragma warning disable 1591 // TODO: Add XML Comments in this file, then remove this
 namespace OpenTap.Package
 {
-      [Display("get", Group: "package", Description: "Download one or more packages without resolving dependencies and maintaining compatibility with current installation.")]
+    [Display("get", Group: "package",
+        Description:
+        "Download one or more packages without resolving dependencies and maintaining compatibility with current installation.")]
     public class PackageGetAction : ICliAction
     {
         [CommandLineArgument("dependencies", Description = "Also Download dependencies.", ShortName = "y")]
         public bool Dependencies { get; set; }
 
-        [CommandLineArgument("repository", Description = LockingPackageAction.CommandLineArgumentRepositoryDescription, ShortName = "r")]
+        [CommandLineArgument("repository", Description = LockingPackageAction.CommandLineArgumentRepositoryDescription,
+            ShortName = "r")]
         public string[] Repository { get; set; }
 
         [CommandLineArgument("version", Description = LockingPackageAction.CommandLineArgumentVersionDescription)]
@@ -24,32 +31,41 @@ namespace OpenTap.Package
         [CommandLineArgument("os", Description = LockingPackageAction.CommandLineArgumentOsDescription)]
         public string OS { get; set; }
 
-        [CommandLineArgument("architecture", Description = LockingPackageAction.CommandLineArgumentArchitectureDescription)]
+        [CommandLineArgument("architecture",
+            Description = LockingPackageAction.CommandLineArgumentArchitectureDescription)]
         public CpuArchitecture Architecture { get; set; }
 
         [UnnamedCommandLineArgument("Packages", Required = true)]
         public string[] Packages { get; set; }
 
-        [CommandLineArgument("dry-run", Description = "Initiates the command and checks for errors, but does not download any packages.")]
+        [CommandLineArgument("dry-run",
+            Description = "Initiates the command and checks for errors, but does not download any packages.")]
         public bool DryRun { get; set; } = false;
-        
-        
-        [CommandLineArgument("out", Description = "Location to put the package file. If --dependencies is specified this has to be a folder. If a single folder is specified, all downloads are placed in that folder.")]
+
+
+        [CommandLineArgument("out",
+            Description =
+                "Location to put the package file. If --dependencies is specified this has to be a folder. If a single folder is specified, all downloads are placed in that folder.")]
         public string[] Out { get; set; }
-        
+
         /// <summary>
         /// The location to apply the command to. The default is the location of OpenTap.PackageManager.exe
         /// </summary>
-        [CommandLineArgument("target", Description = "The location where the command is applied. The default is the directory of the application itself.\nThis setting only applies when --compatible is specified.", ShortName = "t")]
+        [CommandLineArgument("target",
+            Description =
+                "The location where the command is applied. The default is the directory of the application itself.\nThis setting only applies when --compatible is specified.",
+            ShortName = "t")]
         public string Target { get; set; }
-        
+
         /// <summary>
         /// This is used when specifying multiple packages with different version numbers. In that case <see cref="Packages"/> can be left null.
         /// </summary>
         public PackageSpecifier[] PackageReferences { get; set; }
-        
+
         /// <summary> Specifies that the downloaded package should be compatible with the currently used TAP installation. </summary>
-        [CommandLineArgument("compatible", Description = "Specifies that the downloaded package should be compatible with the currently used TAP installation.")]
+        [CommandLineArgument("compatible",
+            Description =
+                "Specifies that the downloaded package should be compatible with the currently used TAP installation.")]
         public bool Compatible { get; set; }
 
         /// <summary>
@@ -57,8 +73,8 @@ namespace OpenTap.Package
         /// </summary>
         public IEnumerable<PackageDef> DownloadedPackages { get; private set; } = null;
 
-        TraceSource log = Log.CreateSource("Get"); 
-        
+        TraceSource log = Log.CreateSource("Get");
+
         public PackageGetAction()
         {
             Architecture = ArchitectureHelper.GuessBaseArchitecture;
@@ -93,7 +109,8 @@ namespace OpenTap.Package
             };
 
             if (Repository == null)
-                repositories.AddRange(PackageManagerSettings.Current.Repositories.Where(p => p.IsEnabled).Select(s => s.Manager).ToList());
+                repositories.AddRange(PackageManagerSettings.Current.Repositories.Where(p => p.IsEnabled)
+                    .Select(s => s.Manager).ToList());
             else
                 repositories.AddRange(Repository.Select(s => PackageRepositoryHelpers.DetermineRepositoryType(s)));
 
@@ -102,7 +119,7 @@ namespace OpenTap.Package
             {
                 id = new Installation(targetDir)
                     .GetPackages()
-                    .Select(x =>(IPackageIdentifier)x).ToArray();
+                    .Select(x => (IPackageIdentifier) x).ToArray();
             }
 
 
@@ -188,7 +205,7 @@ namespace OpenTap.Package
 
             //if (downloadedPackages.Count < Packages.Length)
             //    return -1;
-            
+
             return 0;
         }
 
@@ -201,18 +218,35 @@ namespace OpenTap.Package
             {
                 var spec = packageReferences[i];
                 bool downloaded = false;
+                var candidates = GetCandidates(repositories, spec, id).Result;
+                var maxVersion = candidates.Max(p => p.Version);
+                candidates = candidates.Where(p => p.Version == maxVersion).ToArray();
+
                 foreach (var repo in repositories)
                 {
-                    var array = repo.GetPackages(spec, id).ToArray();
-                    if (array.FirstOrDefault() is PackageDef package)
+                    var repoUrl = PackageActionHelpers.NormalizeRepoUrl(repo.Url);
+                    if (repoUrl.StartsWith("HTTP"))
+                    {
+                        var secondSlash = repoUrl.IndexOf('/', repoUrl.IndexOf('/') + 1);
+                        repoUrl = repoUrl.Substring(secondSlash + 1);
+                    }
+
+                    var pkg = candidates.FirstOrDefault(p =>
+                        PackageActionHelpers
+                            .NormalizeRepoUrl((p.PackageSource as IRepositoryPackageDefSource)?.RepositoryUrl)
+                            .EndsWith(repoUrl));
+
+                    if (pkg is PackageDef package)
                     {
                         downloadedPackages.Add(package);
                         var name = PackageActionHelpers.GetDefaultPackageFileName(package);
-                        
+
                         var source = "remote repository";
                         if (repo is FilePackageRepository)
                         {
-                            source = PackageCacheHelper.PackageIsFromCache(package) ? "package cache" : "file repository";
+                            source = PackageCacheHelper.PackageIsFromCache(package)
+                                ? "package cache"
+                                : "file repository";
                         }
 
                         log.Info($"Found file {name} in {source} {repo.Url}");
@@ -242,12 +276,104 @@ namespace OpenTap.Package
 
                 if (!downloaded)
                 {
-                    var name = PackageActionHelpers.GetDefaultPackageFileName(spec);
-                    log.Error("Unable to download package {0}", name);
+                    // Debugger.Launch();
+
+                    var msg = new StringBuilder();
+                    msg.Append($"Unable to download package {spec.Name} {spec.Version}.");
+
+                    var anySpec = new PackageSpecifier(spec.Name, VersionSpecifier.Any);
+                    log.Info($"Checking for other candidates in {repositories.Count()} repos");
+                    var available = GetCandidates(repositories, anySpec, id).Result;
+                    if (available.Any())
+                    {
+                        var availableVersion = available.Max(p => p.Version);
+                        msg.Append($" Latest available version: '{availableVersion}'.");
+                    }
+                    log.Info($"Got {available.Length} candidates");
+
+                    log.Error(msg.ToString());
                 }
             }
 
             return downloadedPackages;
+        }
+
+        private async Task<PackageDef[]> GetCandidates(List<IPackageRepository> repositories, PackageSpecifier spec,
+            IPackageIdentifier[] id)
+        {
+            var timeout = TimeSpan.FromSeconds(30);
+            int k = 0;
+
+            var result = new List<PackageDef>();
+            var sw = Stopwatch.StartNew();
+            var tasks = new List<(IPackageRepository repo, Task<PackageDef[]> task)>();
+
+            foreach (var repository in repositories)
+            {
+                var repo = repository;
+                tasks.Add((repo, Task.Run(() =>
+                {
+                    try
+                    {
+                        return repo.GetPackages(spec, id);
+                    }
+                    catch (Exception e)
+                    {
+                        log.Error($"Unexpected error when contacting repository {repo.Url}");
+                        log.Debug(e);
+                        repositories.Remove(repo); // Don't retry this repository in case we need to check for alternatives
+                        return new PackageDef[] { };
+                    }
+                })));
+            }
+
+            while (sw.Elapsed < timeout && tasks.Any(t => t.task.IsCompleted == false))
+            {
+                for (int i = tasks.Count - 1; i >= 0; i--)
+                {
+                    var (repo, task) = tasks[i];
+                    if (task.IsCompleted)
+                    {
+                        var taskResult = task.Result;
+                        if (taskResult.Length > 0)
+                        {
+
+
+                            result.AddRange(taskResult);
+                            if (spec.Version.ToString() != "^-release" &&
+                                spec.Version != VersionSpecifier.Any &&
+                                repo is FilePackageRepository &&
+                                result.Any(r => spec.Version.IsCompatible(r.Version)))
+                            {
+                                log.Info($"Short circuit in repo {repo.Url}");
+                                return taskResult;
+                            }
+
+                            log.Debug(sw, $"Found package in {tasks[i].repo.Url}");
+                            result.AddRange(taskResult);
+                        }
+
+                        tasks.RemoveAt(i);
+                    }
+                    else
+                    {
+                        if (sw.Elapsed > TimeSpan.FromSeconds(1) && (k % 10) == 0)
+                            log.Info(sw, $"Waiting for repo {repo.Url} to respond...");
+                    }
+
+                    k += 1;
+                }
+                
+                await Task.Delay(TimeSpan.FromMilliseconds(50));
+            }
+
+            foreach (var (repo, t) in tasks)
+            {
+                if (t.IsCompleted == false)
+                    log.Info($"Repo {repo.Url} did not respond within {(int) timeout.TotalMilliseconds} ms.");
+            }
+
+            return result.ToArray();
         }
     }
 }
