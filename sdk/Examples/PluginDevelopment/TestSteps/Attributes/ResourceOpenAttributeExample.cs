@@ -21,6 +21,7 @@ namespace OpenTap.Plugins.PluginDevelopment
     {
         public ResourceOpenBeforeAttributeExample() { }
         public BaseInstrument BaseInstr { get; set; }
+
         public override void Run() { }
     }
 
