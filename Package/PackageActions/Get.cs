@@ -321,7 +321,7 @@ namespace OpenTap.Package
                     {
                         log.Error($"Unexpected error when contacting repository {repo.Url}");
                         log.Debug(e);
-                        repositories.Remove(repo); // Don't retry this repository in case we need to check for alternatives
+                        RemoveRepo(repo, repositories);
                         return new PackageDef[] { };
                     }
                 })));
@@ -370,10 +370,22 @@ namespace OpenTap.Package
             foreach (var (repo, t) in tasks)
             {
                 if (t.IsCompleted == false)
+                {
                     log.Info($"Repo {repo.Url} did not respond within {(int) timeout.TotalMilliseconds} ms.");
+                    RemoveRepo(repo, repositories);
+                }
             }
 
             return result.ToArray();
+        }
+
+        private void RemoveRepo(IPackageRepository repo, List<IPackageRepository> repos)
+        {
+            if (repos.Contains(repo))
+            {
+                log.Info($"Disabling repository {repo.Url} for the rest of this action.");
+                repos.Remove(repo);
+            }
         }
     }
 }
