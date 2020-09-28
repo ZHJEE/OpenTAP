@@ -19,3 +19,7 @@ When the test plan stops, the sub instrument will disconnect and close its conne
 
 ## Resource Ignore
 For resources with the above attribute, test plan will remove such resources and exclude them in the test execution. Hence, these resources will neither invoke its Open nor Close methods.
+
+There is a setting that can affect the open and close sequence of resources. Under Engine settings, change resource strategy to "Short Lived Connections". This ensure connections always closes before test plan ends.
+
+![](./ShortLivedConnectionLog.png)
