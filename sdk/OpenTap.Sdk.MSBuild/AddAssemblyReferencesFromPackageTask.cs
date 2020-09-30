@@ -245,7 +245,13 @@ namespace Keysight.OpenTap.Sdk.MSBuild
                 _added.Add(absolutedllPath);
 
                 if (IsDotNetAssembly(absolutedllPath))
+                {
                     assembliesInPackage.Add(dllPath);
+                }
+                else
+                {
+                    Log.LogWarning($"{absolutedllPath} not recognized as a DotNet assembly. Reference not added.");
+                }
             }
             
             Log.LogMessage(MessageImportance.Normal,
