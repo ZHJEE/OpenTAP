@@ -4,10 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using NuGet.Packaging;
 using OpenTap.Cli;
 
 #pragma warning disable 1591 // TODO: Add XML Comments in this file, then remove this
@@ -218,7 +216,7 @@ namespace OpenTap.Package
             {
                 var spec = packageReferences[i];
                 bool downloaded = false;
-                var candidates = GetCandidates(repositories, spec, id).Result;
+                var candidates = GetCandidates(repositories, spec, id);
                 var maxVersion = candidates.Max(p => p.Version);
                 candidates = candidates.Where(p => p.Version == maxVersion).ToArray();
 
@@ -282,7 +280,7 @@ namespace OpenTap.Package
                     msg.Append($"Unable to download package {spec.Name} {spec.Version}.");
 
                     var anySpec = new PackageSpecifier(spec.Name, VersionSpecifier.Any);
-                    var available = GetCandidates(repositories, anySpec, id).Result;
+                    var available = GetCandidates(repositories, anySpec, id);
                     if (available.Any())
                     {
                         var availableVersion = available.Max(p => p.Version);
@@ -296,11 +294,10 @@ namespace OpenTap.Package
             return downloadedPackages;
         }
 
-        private async Task<PackageDef[]> GetCandidates(List<IPackageRepository> repositories, PackageSpecifier spec,
+        private PackageDef[] GetCandidates(List<IPackageRepository> repositories, PackageSpecifier spec,
             IPackageIdentifier[] id)
         {
             var timeout = TimeSpan.FromSeconds(30);
-            int k = 0;
 
             var result = new List<PackageDef>();
             var sw = Stopwatch.StartNew();
@@ -327,44 +324,36 @@ namespace OpenTap.Package
 
             while (sw.Elapsed < timeout && tasks.Any(t => t.task.IsCompleted == false))
             {
-                for (int i = tasks.Count - 1; i >= 0; i--)
+                var i = Task.WaitAny(tasks.Select(t => t.task).ToArray(), 500);
+                if (i < 0) continue;
+                var (repo, task) = tasks[i];
+                var taskResult = task.Result;
+                if (taskResult.Any())
                 {
-                    var (repo, task) = tasks[i];
-                    if (task.IsCompleted)
+                    result.AddRange(taskResult);
+                    if (spec.Version.ToString() != "^-release" &&
+                        spec.Version != VersionSpecifier.Any &&
+                        repo is FilePackageRepository &&
+                        result.Any(r => spec.Version.IsCompatible(r.Version)))
                     {
-                        var taskResult = task.Result;
-                        if (taskResult.Length > 0)
-                        {
-                            result.AddRange(taskResult);
-                            if (spec.Version.ToString() != "^-release" &&
-                                spec.Version != VersionSpecifier.Any &&
-                                repo is FilePackageRepository &&
-                                result.Any(r => spec.Version.IsCompatible(r.Version)))
-                            {
-                                return taskResult;
-                            }
-                            result.AddRange(taskResult);
-                        }
-                        tasks.RemoveAt(i);
+                        return taskResult;
                     }
-                    else
-                    {
-                        if (sw.Elapsed > TimeSpan.FromSeconds(1) && (k % 10) == 0)
-                            log.Info(sw, $"Waiting for repo {repo.Url} to respond...");
-                    }
-                    k += 1;
+
+                    result.AddRange(taskResult);
                 }
-                
-                await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+                tasks.RemoveAt(i);
+
+                if (sw.Elapsed > TimeSpan.FromMilliseconds(500))
+                    foreach (var rt in tasks.Where(t => t.task.IsCompleted == false))
+                        log.Info(sw, $"Waiting for repo {rt.repo.Url} to respond...");
             }
 
-            foreach (var (repo, t) in tasks)
+
+            foreach (var rt in tasks.Where(t => t.task.IsCompleted == false))
             {
-                if (t.IsCompleted == false)
-                {
-                    log.Info($"Repo {repo.Url} did not respond within {(int) timeout.TotalMilliseconds} ms.");
-                    RemoveRepo(repo, repositories);
-                }
+                log.Debug($"Repo {rt.repo.Url} did not respond within {(int) timeout.TotalMilliseconds} ms.");
+                RemoveRepo(rt.repo, repositories);
             }
 
             return result.ToArray();
@@ -374,9 +363,9 @@ namespace OpenTap.Package
         {
             if (repos.Contains(repo))
             {
-                log.Info($"Disabling repository {repo.Url} for the rest of this action.");
+                log.Warning($"Disabling repository {repo.Url} for the rest of this action.");
                 repos.Remove(repo);
             }
-        }
+        }        
     }
 }
