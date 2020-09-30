@@ -241,7 +241,11 @@ namespace Keysight.OpenTap.Sdk.MSBuild
                 
                 // Ensure we don't add references twice if they are matched by multiple patterns
                 if (_added.Contains(absolutedllPath))
+                {
+                    Log.LogMessage($"{absolutedllPath} already added. Not adding again.");
                     continue;
+                }
+
                 _added.Add(absolutedllPath);
 
                 if (IsDotNetAssembly(absolutedllPath))
