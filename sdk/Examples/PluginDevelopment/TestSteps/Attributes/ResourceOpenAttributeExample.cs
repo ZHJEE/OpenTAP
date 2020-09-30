@@ -38,6 +38,7 @@ namespace OpenTap.Plugins.PluginDevelopment
 
     // Subinstr is open before base instr is open, a sleep delay is used to show this sequence.
     // Subinstr will close 2 sec after base instr is closed.
+    [Display("Base Instrument", Groups: new[] { "Examples", "Plugin Development" }, Description: "An instrument containing dependent instruments of resource open before & ignore behaviour type.")]
     public class BaseInstrument : Instrument
     {
         [ResourceOpen(ResourceOpenBehavior.Before)]
@@ -73,6 +74,7 @@ namespace OpenTap.Plugins.PluginDevelopment
 
     // Subinstr will open in parallel with base instr. To show the difference in opening time, base instr is delayed by 2 secs.
     // Subinstr will close as soon as connection is no longer needed. To show the sequence, base instr is delayed to close by 2 secs.
+    [Display("Parallel Base Instrument", Groups: new[] { "Examples", "Plugin Development" }, Description: "An instrument containing dependent instruments of resource open parallel & ignore behaviour type.")]
     public class ParallelBaseInstrument : Instrument
     {
         [ResourceOpen(ResourceOpenBehavior.InParallel)]
