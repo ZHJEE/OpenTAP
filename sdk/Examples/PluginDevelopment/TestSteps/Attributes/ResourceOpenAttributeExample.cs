@@ -16,33 +16,35 @@ namespace OpenTap.Plugins.PluginDevelopment
 {
     [Display("Resource Open Before Example",
         Groups: new[] { "Examples", "Plugin Development", "Attributes" },
-        Description: "TestStep that uses ResourceOpen attribute to show the different resource open modes.")]
-    public class ResourceOpenBeforeAttributeExample : TestStep
+        Description: "TestStep that uses ResourceOpen attribute to show opening sequence for dependent instruments of different resource open modes.")]
+    public class OpenPriorResource : TestStep
     {
-        public ResourceOpenBeforeAttributeExample() { }
-        public BaseInstrument BaseInstr { get; set; }
+        public OpenPriorResource() { }
+        public OpenPriorInstrument OpenPriorInstr { get; set; }
 
         public override void Run() { }
     }
 
     [Display("Resource Open Parallel Example",
         Groups: new[] { "Examples", "Plugin Development", "Attributes" },
-        Description: "TestStep that uses ResourceOpen attribute to show the different resource open modes.")]
-    public class ResourceOpenParallelAttributeExample : TestStep
+        Description: "TestStep that uses ResourceOpen attribute to show opening sequence for dependent instruments of different resource open modes.")]
+    public class OpenParallelResource : TestStep
     {
-        public ResourceOpenParallelAttributeExample() { }
-        public ParallelBaseInstrument BaseInstr { get; set; }
+        public OpenParallelResource() { }
+        public OpenParallelInstrument OpenParallelInstr { get; set; }
 
         public override void Run() { }
     }
 
-    // Subinstr is open before base instr is open, a sleep delay is used to show this sequence.
-    // Subinstr will close 2 sec after base instr is closed.
-    [Display("Base Instrument", Groups: new[] { "Examples", "Plugin Development" }, Description: "An instrument containing dependent instruments of resource open before & ignore behaviour type.")]
-    public class BaseInstrument : Instrument
+    // Note that ResourceOpenBefore is the default behavior for all resources. Instrument, a derived type of Resource is used in this example. Of course, other resource types derived from Resource class can also be used eg. DUT, Listeners etc.
+
+    // PriorSubInstr is open before its parent instr is open, a sleep delay is used to show this sequence.
+    // PriorSubInstr will close 2 sec after base instr is closed.
+    [Display("Open Prior Instrument", Groups: new[] { "Examples", "Plugin Development" }, Description: "An instrument containing dependent instruments of resource open before & ignore behaviour type.")]
+    public class OpenPriorInstrument : Instrument
     {
-        [ResourceOpen(ResourceOpenBehavior.Before)]
-        public Instrument SubInstr { get; set; }
+        [ResourceOpen(ResourceOpenBehavior.Before)] // This is the default behavior
+        public Instrument PriorSubInstr { get; set; }
 
         [ResourceOpen(ResourceOpenBehavior.Ignore)]
         public Instrument IgnoreSubInstr { get; set; }
@@ -50,7 +52,7 @@ namespace OpenTap.Plugins.PluginDevelopment
         public override void Open()
         {
             TapThread.Sleep(2000);
-            Log.Info("Opening Base Instrument");
+            Log.Info("Opening Prior Instrument");
             base.Open();
             PrintSubInstrStatus();
         }
@@ -59,7 +61,7 @@ namespace OpenTap.Plugins.PluginDevelopment
         {
             TapThread.Sleep(1000);  // Can be some operations that take eg. 1 sec just to show it is connected
 
-            Log.Info("Closing Base Instrument");
+            Log.Info("Closing Prior Instrument");
             base.Close();
             TapThread.Sleep(2000);
             PrintSubInstrStatus();
@@ -67,18 +69,18 @@ namespace OpenTap.Plugins.PluginDevelopment
 
         public void PrintSubInstrStatus()
         {
-            Log.Info("NormSubInstr connected: {0}", SubInstr.IsConnected);
+            Log.Info("PriorSubInstr connected: {0}", PriorSubInstr.IsConnected);
             Log.Info("IgnoreSubInstr connected: {0}", IgnoreSubInstr.IsConnected);
         }
     }
 
-    // Subinstr will open in parallel with base instr. To show the difference in opening time, base instr is delayed by 2 secs.
-    // Subinstr will close as soon as connection is no longer needed. To show the sequence, base instr is delayed to close by 2 secs.
-    [Display("Parallel Base Instrument", Groups: new[] { "Examples", "Plugin Development" }, Description: "An instrument containing dependent instruments of resource open parallel & ignore behaviour type.")]
-    public class ParallelBaseInstrument : Instrument
+    // ParallelSubinstr will open in parallel with its parent instr. To show the difference in opening time, parent instr is delayed by 2 secs.
+    // ParallelSubinstr will close as soon as connection is no longer needed. To show the sequence, parent instr is delayed to close by 2 secs.
+    [Display("Open Parallel Instrument", Groups: new[] { "Examples", "Plugin Development" }, Description: "An instrument containing dependent instruments of resource open parallel & ignore behaviour type.")]
+    public class OpenParallelInstrument : Instrument
     {
         [ResourceOpen(ResourceOpenBehavior.InParallel)]
-        public Instrument SubInstr { get; set; }
+        public Instrument ParallelSubInstr { get; set; }
 
         [ResourceOpen(ResourceOpenBehavior.Ignore)]
         public Instrument IgnoreSubInstr { get; set; }
@@ -86,14 +88,14 @@ namespace OpenTap.Plugins.PluginDevelopment
         public override void Open()
         {
             TapThread.Sleep(2000);
-            Log.Info("Opening Base Instrument");
+            Log.Info("Opening Parallel Instrument");
             base.Open();
             PrintSubInstrStatus();
         }
 
         public override void Close()
         {
-            Log.Info("Closing Base Instrument");
+            Log.Info("Closing Parallel Instrument");
             TapThread.Sleep(2000);
             base.Close();
             PrintSubInstrStatus();
@@ -101,7 +103,7 @@ namespace OpenTap.Plugins.PluginDevelopment
 
         public void PrintSubInstrStatus()
         {
-            Log.Info("ParallelSubInstr connected: {0}", SubInstr.IsConnected);
+            Log.Info("ParallelSubInstr connected: {0}", ParallelSubInstr.IsConnected);
             Log.Info("IgnoreSubInstr connected: {0}", IgnoreSubInstr.IsConnected);
         }
     }
