@@ -26,6 +26,9 @@ namespace OpenTap.Package
         [CommandLineArgument("repository", Description = CommandLineArgumentRepositoryDescription, ShortName = "r")]
         public string[] Repository { get; set; }
 
+        [CommandLineArgument("timeout", Description = "Timeout in milliseconds for installation to complete.", ShortName = "w")]
+        public int ExpiryTime { get; set; } = 0;
+
         [CommandLineArgument("version", Description = CommandLineArgumentVersionDescription)]
         public string Version { get; set; }
 
@@ -80,12 +83,48 @@ namespace OpenTap.Package
                 repositories.AddRange(PackageManagerSettings.Current.Repositories.Where(p => p.IsEnabled).Select(s => s.Manager).ToList());
             else
                 repositories.AddRange(Repository.Select(s => PackageRepositoryHelpers.DetermineRepositoryType(s)));
-            
+
             bool installError = false;
             var installer = new Installer(Target, cancellationToken) { DoSleep = false, ForceInstall = Force };
             installer.ProgressUpdate += RaiseProgressUpdate;
             installer.Error += RaiseError;
             installer.Error += ex => installError = true;
+
+            AutoResetEvent doneInstallEvent = new AutoResetEvent(false);
+            var installObj = new InstallationStruct(doneInstallEvent, targetInstallation, repositories, installError, installer, cancellationToken);
+            ThreadPool.QueueUserWorkItem(new WaitCallback(PerformInstallation), installObj);
+
+            DateTime startTime = DateTime.Now; 
+            do
+            {
+                int timeout = ExpiryTime == 0 ? Timeout.Infinite : ExpiryTime;
+                // Wait for install method to signal.
+                if (doneInstallEvent.WaitOne(timeout))
+                {
+                    DateTime endTime = DateTime.Now;
+                    TimeSpan interval = endTime.Subtract(startTime);
+                    log.Info("Package installation is done in " + interval.Duration());
+                    break;
+                }
+                else
+                {
+                    throw new TimeoutException("Package installation exceeded time out of " + ExpiryTime +" ms.");
+                }
+            } while (true);
+
+            return installObj.InstallStatus;
+        }
+
+        private void PerformInstallation(object stateInfo)
+        {
+            InstallationStruct obj = (InstallationStruct)stateInfo;
+
+            var doneInstallEvent = obj.Event;
+            var targetInstallation = obj.TargetInstallation;
+            var repositories = obj.Repositories;
+            var installer = obj.Installer;
+            var cancellationToken = obj.CancellationToken;
+            var installError = obj.InstallError;
 
             try
             {
@@ -95,14 +134,14 @@ namespace OpenTap.Package
                 if (packagesToInstall?.Any() != true)
                 {
                     log.Info("Could not find one or more packages.");
-                    return 2;
+                    obj.InstallStatus = 2;
                 }
 
                 var installationPackages = targetInstallation.GetPackages();
 
                 var overWriteCheckExitCode = CheckForOverwrittenPackages(installationPackages, packagesToInstall, Force, Interactive);
                 if (overWriteCheckExitCode == InstallationQuestion.Cancel)
-                    return 2;
+                    obj.InstallStatus = 2;
 
                 // Check dependencies
                 var issue = DependencyChecker.CheckDependencies(installationPackages, packagesToInstall, Force ? LogEventType.Warning : LogEventType.Error);
@@ -112,16 +151,16 @@ namespace OpenTap.Package
                     {
                         log.Info("To fix the package conflict uninstall or update the conflicted packages.");
                         log.Info("To install packages despite the conflicts, use the --force option.");
-                        return 4;
+                        obj.InstallStatus = 4;
                     }
-                    if(!CheckOnly)
+                    if (!CheckOnly)
                         log.Warning("Continuing despite breaking installed packages (--force)...");
                 }
 
                 if (CheckOnly)
                 {
                     log.Info("Check completed with no problems detected.");
-                    return 0;
+                    obj.InstallStatus = 0;
                 }
 
                 // Download the packages
@@ -134,11 +173,11 @@ namespace OpenTap.Package
                 log.Info(e.Message);
                 log.Debug(e);
                 RaiseError(e);
-                return 6;
+                obj.InstallStatus = 6;
             }
-            
+
             log.Info("Installing to {0}", Path.GetFullPath(Target));
-            
+
             // Uninstall old packages before
             UninstallExisting(targetInstallation, installer.PackagePaths, cancellationToken);
 
@@ -149,7 +188,10 @@ namespace OpenTap.Package
             // Install the package
             installer.InstallThread();
 
-            return installError ? 5 : 0;
+            obj.InstallStatus = installError ? 5 : 0;
+
+            // Signal to blocked thread to resume since installation has completed 
+            doneInstallEvent.Set();
         }
 
         private void UninstallExisting(Installation installation, List<string> packagePaths, CancellationToken cancellationToken)
@@ -219,7 +261,28 @@ namespace OpenTap.Package
             [Layout(LayoutMode.FloatBottom)]
             [Submit] public InstallationQuestion Response { get; set; } = InstallationQuestion.Cancel;
         }
-        
+
+        private class InstallationStruct
+        {
+            public int InstallStatus = -1;
+            public readonly AutoResetEvent Event;
+            public readonly Installation TargetInstallation;
+            public readonly List<IPackageRepository> Repositories;
+            public readonly bool InstallError;
+            public readonly Installer Installer;
+            public readonly CancellationToken CancellationToken;
+
+            public InstallationStruct(AutoResetEvent stateInfo, Installation targetInstallation, List<IPackageRepository> repositories, bool installError, Installer installer, CancellationToken cancellationToken)
+            {
+                Event = stateInfo;
+                TargetInstallation = targetInstallation;
+                Repositories = repositories;
+                InstallError = installError;
+                Installer = installer;
+                CancellationToken = cancellationToken;
+            }
+        }
+
         internal static InstallationQuestion CheckForOverwrittenPackages(IEnumerable<PackageDef> installedPackages, IEnumerable<PackageDef> packagesToInstall, bool force, bool interactive = false)
         {
             var conflicts = VerifyPackageHashes.CalculatePackageInstallConflicts(installedPackages, packagesToInstall);
