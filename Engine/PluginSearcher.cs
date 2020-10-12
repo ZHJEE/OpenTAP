@@ -960,6 +960,10 @@ namespace OpenTap
                         dict.Add(type, this);
                     }
                 }
+                catch (ArgumentException)
+                {
+                    log.Debug("Reloading type '{0}' from '{1}'.", Name, Assembly.Location);
+                }
                 catch (Exception ex)
                 {
                     _FailedLoad = true;
