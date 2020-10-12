@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0"?>
 <ArrayOfPackages>
-  <Package Version="1.2.3" Name="MyPlugin2" Configuration="" InfoLink="" xmlns="http://keysight.com/schemas/TAP/Package">
+  <Package Version="1.2.3" Name="MyPlugin2" Configuration="" InfoLink="" OS="Windows,Linux" xmlns="http://keysight.com/schemas/TAP/Package">
     <Dependencies>
       <PackageDependency Package="Tap" Version="8.0.605" />
     </Dependencies>
