@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -103,7 +104,7 @@ namespace OpenTap.Package
                 {
                     DateTime endTime = DateTime.Now;
                     TimeSpan interval = endTime.Subtract(startTime);
-                    log.Info("Package installation is done in " + interval.Duration());
+                    log.Info("Package installation duration took " + interval.TotalMinutes + " minutes.");
                     break;
                 }
                 else
@@ -135,13 +136,19 @@ namespace OpenTap.Package
                 {
                     log.Info("Could not find one or more packages.");
                     obj.InstallStatus = 2;
+                    doneInstallEvent.Set();
+                    return;
                 }
 
                 var installationPackages = targetInstallation.GetPackages();
 
                 var overWriteCheckExitCode = CheckForOverwrittenPackages(installationPackages, packagesToInstall, Force, Interactive);
                 if (overWriteCheckExitCode == InstallationQuestion.Cancel)
+                {
                     obj.InstallStatus = 2;
+                    doneInstallEvent.Set();
+                    return;
+                }
 
                 // Check dependencies
                 var issue = DependencyChecker.CheckDependencies(installationPackages, packagesToInstall, Force ? LogEventType.Warning : LogEventType.Error);
@@ -152,6 +159,8 @@ namespace OpenTap.Package
                         log.Info("To fix the package conflict uninstall or update the conflicted packages.");
                         log.Info("To install packages despite the conflicts, use the --force option.");
                         obj.InstallStatus = 4;
+                        doneInstallEvent.Set();
+                        return;
                     }
                     if (!CheckOnly)
                         log.Warning("Continuing despite breaking installed packages (--force)...");
@@ -161,6 +170,8 @@ namespace OpenTap.Package
                 {
                     log.Info("Check completed with no problems detected.");
                     obj.InstallStatus = 0;
+                    doneInstallEvent.Set();
+                    return;
                 }
 
                 // Download the packages
@@ -174,6 +185,8 @@ namespace OpenTap.Package
                 log.Debug(e);
                 RaiseError(e);
                 obj.InstallStatus = 6;
+                doneInstallEvent.Set();
+                return;
             }
 
             log.Info("Installing to {0}", Path.GetFullPath(Target));
@@ -189,9 +202,9 @@ namespace OpenTap.Package
             installer.InstallThread();
 
             obj.InstallStatus = installError ? 5 : 0;
-
             // Signal to blocked thread to resume since installation has completed 
             doneInstallEvent.Set();
+            return;
         }
 
         private void UninstallExisting(Installation installation, List<string> packagePaths, CancellationToken cancellationToken)
