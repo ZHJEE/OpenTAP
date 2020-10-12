@@ -85,7 +85,7 @@ namespace OpenTap.Package.UnitTests
             };
 
             process.Start();
-            process.WaitForExit(1000);
+            process.WaitForExit(60000);
 
             return (process.StandardOutput.ReadToEnd(), process.StandardError.ReadToEnd(), process.ExitCode);
         }
