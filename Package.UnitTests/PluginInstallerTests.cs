@@ -69,12 +69,12 @@ namespace OpenTap.Package.UnitTests
                 A.Dependencies.Add(new PackageDependency("OpenTAP", VersionSpecifier.Any));
                 var file = new PackageFile();
                 file.FileName = "Package/A/test";
-                file.CustomData.Add(new FileHashPackageAction.Hash{Value = "TEST1234"});
+                file.CustomData.Add(new OpenTap.Package.Hash(){Value = "TEST1234"});
                 A.Files.Add(file);
                 
                 var file2 = new PackageFile();
                 file2.FileName = "Dependencies/A/test";
-                file2.CustomData.Add(new FileHashPackageAction.Hash{Value = "TEST1234"});
+                file2.CustomData.Add(new OpenTap.Package.Hash(){Value = "TEST1234"});
                 A.Files.Add(file2);
                 
                 return new List<PackageDef> {opentap, A};
@@ -84,7 +84,7 @@ namespace OpenTap.Package.UnitTests
             {
                 var B = new PackageDef { Name = "B", RawVersion = "2.0.0"};
                 var file = new PackageFile { FileName = "Package/A/test" };
-                file.CustomData.Add(new FileHashPackageAction.Hash{Value = "TEST123"});
+                file.CustomData.Add(new OpenTap.Package.Hash(){Value = "TEST123"});
                 B.Files.Add(file);
                 return new List<PackageDef>{B};
             }
@@ -93,7 +93,7 @@ namespace OpenTap.Package.UnitTests
             {
                 var E = new PackageDef { Name = "E", RawVersion = "2.0.0"};
                 var file = new PackageFile { FileName = "Dependencies/A/test" };
-                file.CustomData.Add(new FileHashPackageAction.Hash{Value = "TEST123"});
+                file.CustomData.Add(new OpenTap.Package.Hash(){Value = "TEST123"});
                 E.Files.Add(file);
                 return new List<PackageDef>{E};
             }
@@ -104,7 +104,7 @@ namespace OpenTap.Package.UnitTests
                 var D = new PackageDef { Name = "D", RawVersion = "2.0.0"};
                 D.Dependencies.Add(new PackageDependency("OpenTAP", VersionSpecifier.Parse("2.0.0")));
                 var file = new PackageFile { FileName = "Package/D/test" };
-                file.CustomData.Add(new FileHashPackageAction.Hash{Value = "TEST123"});
+                file.CustomData.Add(new OpenTap.Package.Hash(){Value = "TEST123"});
                 D.Files.Add(file);
                 return new List<PackageDef>{D};
             }
@@ -114,7 +114,7 @@ namespace OpenTap.Package.UnitTests
             {
                 var B = new PackageDef { Name = "B", RawVersion = "2.0.0" };
                 var file = new PackageFile { FileName = "package/a/test" };
-                file.CustomData.Add(new FileHashPackageAction.Hash{Value = "TEST123"});
+                file.CustomData.Add(new OpenTap.Package.Hash(){Value = "TEST123"});
                 B.Files.Add(file);
                 return new List<PackageDef>{B};
             }
@@ -123,11 +123,11 @@ namespace OpenTap.Package.UnitTests
             {
                 var B = new PackageDef { Name = "B", RawVersion = "2.0.0" };
                 var file = new PackageFile { FileName = "Package/A/test" };
-                file.CustomData.Add(new FileHashPackageAction.Hash {Value = "TEST1234"}); // same hash
+                file.CustomData.Add(new OpenTap.Package.Hash() {Value = "TEST1234"}); // same hash
                 B.Files.Add(file);
                 var C = new PackageDef { Name = "C", RawVersion = "2.0.0" };
                 var file2 = new PackageFile { FileName = "Package/B/test" };
-                file2.CustomData.Add(new FileHashPackageAction.Hash {Value = "TEST1234"});
+                file2.CustomData.Add(new OpenTap.Package.Hash() {Value = "TEST1234"});
                 B.Files.Add(file2);
                 return new List<PackageDef>{B, C};
             }

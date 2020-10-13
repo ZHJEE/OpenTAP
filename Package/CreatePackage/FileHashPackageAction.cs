@@ -13,6 +13,29 @@ using System.Xml.Serialization;
 
 namespace OpenTap.Package
 {
+    /// <summary> SHA1 hash of a file in a package. </summary>
+    public class Hash : ICustomPackageData
+    {
+        /// <summary> Creates a new instance of Hash. </summary>
+        public Hash(byte[] hash) => Value = Convert.ToBase64String(hash);
+        /// <summary> Creates a new instance of Hash. </summary>
+        public Hash() => Value = "";
+        /// <summary> The Base64 converted hash value. </summary>
+        [XmlText]
+        public string Value { get; set; }
+
+        /// <summary> Compares two hashes and returns true if they are the same. </summary>
+        public override bool Equals(object obj)
+        {
+            if(obj is Hash hsh)
+                return hsh.Value == Value;
+            return false;
+        }
+
+        /// <summary> Custom GetHashCode implementation. </summary>
+        public override int GetHashCode() => -1937169414 + EqualityComparer<string>.Default.GetHashCode(Value);
+    }
+    
     /// <summary> SHA1 hashes the files of a TapPackage and includes it in the package.xml file. </summary>
     class FileHashPackageAction : ICustomPackageAction
     {
@@ -37,28 +60,6 @@ namespace OpenTap.Package
                 log.Debug(e);
                 return Array.Empty<byte>();
             }
-        }
-        /// <summary> SHA1 hash of a file in a package. </summary>
-        public class Hash : ICustomPackageData
-        {
-            /// <summary> Creates a new instance of Hash. </summary>
-            public Hash(byte[] hash) => Value = Convert.ToBase64String(hash);
-            /// <summary> Creates a new instance of Hash. </summary>
-            public Hash() => Value = "";
-            /// <summary> The Base64 converted hash value. </summary>
-            [XmlText]
-            public string Value { get; set; }
-
-            /// <summary> Compares two hashes and returns true if they are the same. </summary>
-            public override bool Equals(object obj)
-            {
-                if(obj is Hash hsh)
-                    return hsh.Value == Value;
-                return false;
-            }
-
-            /// <summary> Custom GetHashCode implementation. </summary>
-            public override int GetHashCode() => -1937169414 + EqualityComparer<string>.Default.GetHashCode(Value);
         }
 
         bool ICustomPackageAction.Execute(PackageDef package, CustomPackageActionArgs customActionArgs)
@@ -96,7 +97,7 @@ namespace OpenTap.Package
                     log.Debug("Skipping {0}.", filename);
                     continue;
                 }
-                var hash = file.CustomData.OfType<FileHashPackageAction.Hash>().FirstOrDefault();
+                var hash = file.CustomData.OfType<Hash>().FirstOrDefault();
                 if(hash == null)
                 {
                     // hash not calculated for this package:
@@ -105,7 +106,7 @@ namespace OpenTap.Package
                 }
                 else
                 {
-                    var hash2 = new FileHashPackageAction.Hash(FileHashPackageAction.hashFile(file.FileName));
+                    var hash2 = new Hash(FileHashPackageAction.hashFile(file.FileName));
                     if (false == hash2.Equals(hash))
                     {
                         if (File.Exists(file.FileName))
@@ -201,10 +202,10 @@ namespace OpenTap.Package
             {
                 foreach (var installedFile in installedFilesLookup[file.FileName])
                 {
-                    var hash1 = installedFile.Item2.CustomData.OfType<FileHashPackageAction.Hash>().FirstOrDefault();
+                    var hash1 = installedFile.Item2.CustomData.OfType<Hash>().FirstOrDefault();
                     // Hash information does not exist. Lets just ignore it then.
                     if (hash1 == null) continue; 
-                    var hash = file.CustomData.OfType<FileHashPackageAction.Hash>().FirstOrDefault();
+                    var hash = file.CustomData.OfType<Hash>().FirstOrDefault();
                     // Hash information does not exist. Lets just ignore it then.
                     // We also cannot compare the binary files, because they might not have been downloaded yet.
                     if (hash == null) continue;
