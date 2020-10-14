@@ -224,6 +224,7 @@ TestLinuxPlan:
         - echo "Package NUnit tests"
         - rm -rf Packages
         - cp -r ../../../Package.UnitTests/Packages .
+        - ln -s publish/tap ../tap
         - dotnet vstest OpenTap.Package.UnitTests.dll --logger:"console;verbosity=detailed"
 
 
