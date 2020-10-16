@@ -27,11 +27,12 @@ namespace OpenTap.Package.UnitTests
         {
             PropertyGroups = new List<string>()
             {
-                @"                   
+                $@"
     <PropertyGroup>
         <TargetFrameworkIdentifier></TargetFrameworkIdentifier>
         <TargetFrameworkVersion></TargetFrameworkVersion>
         <TargetFramework>netstandard2.0</TargetFramework>
+        <OutputPath>{Directory.GetCurrentDirectory()}</OutputPath>
     </PropertyGroup>"
             };
             ItemGroups = new List<string>();
