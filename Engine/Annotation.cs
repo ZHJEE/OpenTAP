@@ -750,17 +750,16 @@ namespace OpenTap
                 var sources = annotatedElements;
                 var mems = sources.Select(x => x.Get<IMembersAnnotation>()?.Members.ToArray() ?? Array.Empty<AnnotationCollection>()).ToArray();
                 if (mems.Length == 0) return Array.Empty<AnnotationCollection>();
-                Dictionary<string, AnnotationCollection>[] dicts = mems.Select(x =>
+                Dictionary<IMemberData, AnnotationCollection>[] dicts = mems.Select(x =>
                 {
-                    var dict = new Dictionary<string, AnnotationCollection>(x.Length);
+                    var dict = new Dictionary<IMemberData, AnnotationCollection>(x.Length);
                     foreach (var d in x)
                     {
                         if (d.Get<IHideOnMultiSelectAnnotation>() != null)
                             continue;
                         var mem = d.Get<IMemberAnnotation>()?.Member;
-                        var key = mem.GetDisplayAttribute().GetFullName() + mem.TypeDescriptor.Name;
-                        if (dict.ContainsKey(key) == false)
-                            dict[key] = d;
+                        if (dict.ContainsKey(mem) == false)
+                            dict[mem] = d;
                     }
                     return dict;
                 }).ToArray();

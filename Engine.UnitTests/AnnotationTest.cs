@@ -755,5 +755,35 @@ namespace OpenTap.UnitTests
             Assert.AreEqual(1, annotation.Get<IMembersAnnotation>().Members.Count());
         } 
         
+        [Test]
+        public void MultiSelectParameters()
+        {
+            var plan = new TestPlan();
+            var seq1 = new SequenceStep();
+            var seq2 = new SequenceStep();
+            var delay1 = new DelayStep();
+            var delay2 = new DelayStep();
+            
+            plan.ChildTestSteps.Add(seq1);
+            plan.ChildTestSteps.Add(seq2);
+            seq1.ChildTestSteps.Add(delay1);
+            seq2.ChildTestSteps.Add(delay2);
+
+            var delType = TypeData.GetTypeData(delay1);
+            var delayMember = delType.GetMember(nameof(delay1.DelaySecs));
+            delayMember.Parameterize(seq1, delay1, "delay");
+            delayMember.Parameterize(seq2, delay2, "delay");
+
+            var ab = new object[] {seq1, seq2};
+
+            var member = AnnotationCollection.Annotate(ab).GetMember("delay");
+            var menu = member.Get<MenuAnnotation>();
+            var menuItem = menu.MenuItems.FirstOrDefault(x => x.Get<IconAnnotationAttribute>()?.IconName == IconNames.Parameterize);
+            Assert.IsFalse(menuItem.Get<IEnabledAnnotation>().IsEnabled);
+
+        }
+            
+        
+        
     }
 }

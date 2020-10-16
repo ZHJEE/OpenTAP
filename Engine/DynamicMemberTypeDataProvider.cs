@@ -120,6 +120,16 @@ namespace OpenTap
         internal object Target { get; }
         object source;
         IMemberData member;
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ParameterMemberData other)
+                return other.source == source && Equals(other.member, member);
+            return false;
+        }
+
+        public override int GetHashCode() =>  (source?.GetHashCode() ?? 1937291) * 1238321 + (member?.GetHashCode() ?? 32179312) * 321472132;
+
         List<(object Source, IMemberData Member)> additionalMembers;
         
         /// <summary>  Gets the value of this member. </summary>
