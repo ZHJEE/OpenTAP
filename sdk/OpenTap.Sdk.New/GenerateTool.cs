@@ -4,7 +4,6 @@
 // file, you can obtain one at http://mozilla.org/MPL/2.0/.
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -63,7 +62,6 @@ namespace OpenTap.Sdk.New
             using (var reader = new StreamReader(stream))
                 WriteFile(output ?? Path.Combine(vsCodeDir, "tasks.json"), reader.ReadToEnd());
 
-            Debugger.Launch();
             // .launch
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("OpenTap.Sdk.New.Resources.launchTemplate.txt"))
             using (var reader = new StreamReader(stream))
